@@ -1,0 +1,29 @@
+{
+  "name": "anisync",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Production-grade synchronized watch party platform for anime streaming sites",
+  "workspaces": [
+    "packages/shared",
+    "packages/server",
+    "packages/desktop"
+  ],
+  "scripts": {
+    "dev:server": "cd packages/server && npx tsx src/index.ts",
+    "dev:desktop": "npm run dev -w packages/desktop",
+    "build:shared": "cd packages/shared && npx tsc",
+    "build:server": "cd packages/server && npx tsc",
+    "build:desktop": "cd packages/desktop && npx vite build",
+    "build:all": "npm run build:shared && npm run build:server && npm run build:desktop",
+    "typecheck": "npm run build:shared && cd packages/server && npx tsc --noEmit",
+    "typecheck:all": "cd packages/shared && npx tsc --noEmit && cd ../server && npx tsc --noEmit",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "db:migrate": "npx prisma migrate dev --schema=packages/server/prisma/schema.prisma",
+    "db:generate": "npx prisma generate --schema=packages/server/prisma/schema.prisma",
+    "clean": "rimraf packages/*/dist packages/desktop/release"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

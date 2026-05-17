@@ -1,0 +1,69 @@
+version: '3.8'
+
+services:
+  # ─── PostgreSQL Database ──────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: anisync-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: anisync
+      POSTGRES_PASSWORD: anisync_dev_2024
+      POSTGRES_DB: anisync
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U anisync"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ─── Redis Cache & PubSub ─────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: anisync-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ─── Backend Server ───────────────────────────────────────
+  server:
+    build:
+      context: .
+      dockerfile: packages/server/Dockerfile
+    container_name: anisync-server
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DATABASE_URL: postgresql://anisync:anisync_dev_2024@postgres:5432/anisync
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: dev-secret-change-in-production-anisync-2024
+      JWT_REFRESH_SECRET: dev-refresh-secret-change-in-production-2024
+      CORS_ORIGIN: http://localhost:5173,http://localhost:3001
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./packages/server/src:/app/packages/server/src
+      - ./packages/shared/src:/app/packages/shared/src
+
+volumes:
+  pgdata:
+    driver: local
+  redisdata:
+    driver: local

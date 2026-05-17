@@ -1,0 +1,158 @@
+// ═══════════════════════════════════════════════════════════════
+// Prisma Schema — AniSync Database
+// PostgreSQL with full relational model
+// ═══════════════════════════════════════════════════════════════
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Users ─────────────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(uuid())
+  username      String    @unique @db.VarChar(20)
+  email         String    @unique @db.VarChar(255)
+  passwordHash  String
+  displayName   String    @db.VarChar(50)
+  avatarUrl     String?
+  bio           String?   @db.VarChar(200)
+  lastSeenAt    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  rooms             RoomMember[]
+  messages          Message[]
+  sentFriendships   Friendship[] @relation("FriendshipSender")
+  receivedFriendships Friendship[] @relation("FriendshipReceiver")
+  hostedRooms       Room[]       @relation("RoomHost")
+  watchHistory      WatchHistory[]
+  notifications     Notification[]
+
+  @@index([username])
+  @@index([email])
+  @@index([lastSeenAt])
+}
+
+// ─── Rooms ─────────────────────────────────────────────────────
+
+model Room {
+  id          String    @id @default(uuid())
+  code        String    @unique @db.VarChar(8)
+  name        String    @db.VarChar(50)
+  isPublic    Boolean   @default(false)
+  passwordHash String?
+  hostId      String
+  maxMembers  Int       @default(10)
+  
+  // Settings stored as JSON
+  settings    Json      @default("{}")
+  
+  // Current anime info
+  currentAnime  Json?
+  tags          String[]  @default([])
+  
+  // Lifecycle
+  isActive    Boolean   @default(true)
+  lastActiveAt DateTime @default(now())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  host        User         @relation("RoomHost", fields: [hostId], references: [id])
+  members     RoomMember[]
+  messages    Message[]
+
+  @@index([code])
+  @@index([isPublic, isActive])
+  @@index([lastActiveAt])
+  @@index([hostId])
+}
+
+model RoomMember {
+  userId    String
+  roomId    String
+  role      String    @default("viewer") @db.VarChar(20) // host, moderator, viewer
+  joinedAt  DateTime  @default(now())
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  room      Room      @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roomId])
+  @@index([roomId])
+}
+
+// ─── Messages ──────────────────────────────────────────────────
+
+model Message {
+  id        String    @id @default(uuid())
+  roomId    String
+  userId    String
+  text      String    @db.VarChar(500)
+  type      String    @default("text") @db.VarChar(20) // text, system, gif, emoji
+  reactions Json      @default("[]")
+  editedAt  DateTime?
+  createdAt DateTime  @default(now())
+
+  room      Room      @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([roomId, createdAt])
+  @@index([userId])
+}
+
+// ─── Friendships ───────────────────────────────────────────────
+
+model Friendship {
+  id          String    @id @default(uuid())
+  senderId    String
+  receiverId  String
+  status      String    @default("pending") @db.VarChar(20) // pending, accepted, blocked
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  sender      User      @relation("FriendshipSender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver    User      @relation("FriendshipReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@unique([senderId, receiverId])
+  @@index([receiverId, status])
+}
+
+// ─── Watch History ─────────────────────────────────────────────
+
+model WatchHistory {
+  id          String    @id @default(uuid())
+  userId      String
+  animeTitle  String
+  episodeUrl  String
+  site        String    @db.VarChar(30)
+  roomId      String?
+  watchedAt   DateTime  @default(now())
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, watchedAt])
+}
+
+// ─── Notifications ─────────────────────────────────────────────
+
+model Notification {
+  id        String    @id @default(uuid())
+  userId    String
+  type      String    @db.VarChar(30)
+  title     String    @db.VarChar(100)
+  body      String    @db.VarChar(500)
+  data      Json?
+  read      Boolean   @default(false)
+  createdAt DateTime  @default(now())
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read, createdAt])
+}
