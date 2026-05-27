@@ -77,6 +77,31 @@ export function connectSocket(username: string): TypedSocket {
     console.log('[WS] Connected');
     useAuthStore.getState().setConnected(true);
     performClockSync();
+
+    // ── Auto-rejoin room on reconnect ──
+    const currentRoom = useRoomStore.getState().currentRoom;
+    if (currentRoom) {
+      console.log('[WS] Reconnecting to room:', currentRoom.name);
+      socket!.emit('room:rejoin', { roomId: currentRoom.id }, (res: any) => {
+        if (res.success) {
+          console.log('[WS] Rejoined room successfully');
+          useRoomStore.getState().setRoom(res.room);
+          if (res.currentUrl) {
+            useSyncStore.getState().setCurrentUrl(res.currentUrl);
+          }
+          if (res.syncState) {
+            useSyncStore.getState().setSyncState(res.syncState);
+          }
+        } else {
+          console.log('[WS] Rejoin failed, room may be closed');
+          useRoomStore.getState().leaveRoom();
+          useChatStore.getState().clear();
+          useSyncStore.getState().setCurrentUrl(null);
+          useUIStore.getState().setView('home');
+          useUIStore.getState().addToast({ type: 'info', title: 'Oda kapandı', message: 'Bağlantı koptuğunda oda kapanmış' });
+        }
+      });
+    }
   });
 
   socket.on('disconnect', (reason) => {
@@ -103,6 +128,33 @@ export function connectSocket(username: string): TypedSocket {
 
   socket.on('room:member-left', (data) => {
     useRoomStore.getState().removeMember(data.userId);
+  });
+
+  // Handle reconnected user (was temporarily disconnected)
+  (socket as any).on('room:member-reconnected', (data: any) => {
+    const room = useRoomStore.getState().currentRoom;
+    if (room) {
+      // Update member's presence to connected
+      const updatedMembers = room.members.map((m: any) =>
+        m.userId === data.userId
+          ? { ...m, avatar: data.avatar || m.avatar, presence: { ...m.presence, isConnected: true, lastHeartbeat: Date.now() } }
+          : m
+      );
+      useRoomStore.getState().setRoom({ ...room, members: updatedMembers });
+    }
+  });
+
+  // Handle presence updates (online/offline status)
+  (socket as any).on('presence:room-update', (data: any) => {
+    const room = useRoomStore.getState().currentRoom;
+    if (room) {
+      const updatedMembers = room.members.map((m: any) =>
+        m.userId === data.userId
+          ? { ...m, presence: { ...m.presence, ...data.presence } }
+          : m
+      );
+      useRoomStore.getState().setRoom({ ...room, members: updatedMembers });
+    }
   });
 
   socket.on('room:member-kicked', (data) => {
