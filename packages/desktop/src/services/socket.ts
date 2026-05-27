@@ -1,5 +1,6 @@
 // ═══════════════════════════════════════════════════════════════
 // Socket.IO Client Service — WebSocket Connection Manager
+// No-auth mode: connects with just a username
 // ═══════════════════════════════════════════════════════════════
 
 import { io, Socket } from 'socket.io-client';
@@ -9,37 +10,78 @@ import { useAuthStore, useRoomStore, useSyncStore, useChatStore, useUIStore } fr
 type TypedSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 
 let socket: TypedSocket | null = null;
-const SERVER_URL = 'http://localhost:3000';
+
+const DEFAULT_SERVER = 'https://anisync-server.onrender.com';
+
+// Server URL: stored in localStorage, configurable from UI
+export function getServerUrl(): string {
+  if (typeof window !== 'undefined') {
+    // Mobile WebView: use the server that served this page
+    if (window.location.pathname.startsWith('/app')) {
+      return window.location.origin;
+    }
+    // Check localStorage for saved Render URL
+    const saved = localStorage.getItem('anisync_server_url');
+    if (saved) return saved;
+  }
+  return DEFAULT_SERVER;
+}
+
+export function setServerUrl(url: string) {
+  localStorage.setItem('anisync_server_url', url.replace(/\/+$/, ''));
+}
 
 export function getSocket(): TypedSocket | null {
   return socket;
 }
 
-export function connectSocket(): TypedSocket {
-  const tokens = useAuthStore.getState().tokens;
-  if (!tokens) throw new Error('Not authenticated');
+// ── Cold Start Warm-Up ──
+// Render.com free tier may sleep after 15min inactivity.
+// We ping /api/health first to wake it up before connecting socket.
+export async function warmUpServer(): Promise<boolean> {
+  const url = getServerUrl() + '/api/health';
+  for (let attempt = 1; attempt <= 6; attempt++) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8000);
+      const res = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeout);
+      if (res.ok) return true;
+    } catch {
+      // Server still waking up, wait and retry
+      if (attempt < 6) {
+        await new Promise(r => setTimeout(r, 3000));
+      }
+    }
+  }
+  return false;
+}
 
+export function connectSocket(username: string): TypedSocket {
   if (socket?.connected) return socket;
 
-  socket = io(SERVER_URL, {
-    auth: { token: tokens.accessToken },
+  const avatar = useAuthStore.getState().avatar || null;
+
+  socket = io(getServerUrl(), {
+    auth: { username, avatar },
     reconnection: true,
     reconnectionDelay: 1000,
     reconnectionDelayMax: 10000,
     reconnectionAttempts: 20,
-    timeout: 10000,
+    timeout: 25000,
     transports: ['websocket', 'polling'],
-  });
+  }) as any;
 
   // ── Connection Events ──
   socket.on('connect', () => {
     console.log('[WS] Connected');
-    useUIStore.getState().addToast({ type: 'success', title: 'Bağlandı', duration: 2000 });
+    useAuthStore.getState().setConnected(true);
     performClockSync();
   });
 
   socket.on('disconnect', (reason) => {
     console.log('[WS] Disconnected:', reason);
+    useAuthStore.getState().setConnected(false);
     if (reason !== 'io client disconnect') {
       useUIStore.getState().addToast({ type: 'warning', title: 'Bağlantı koptu', message: 'Yeniden bağlanılıyor...' });
     }
@@ -47,10 +89,6 @@ export function connectSocket(): TypedSocket {
 
   socket.on('connect_error', (err) => {
     console.error('[WS] Connection error:', err.message);
-    if (err.message === 'AUTH_FAILED' || err.message === 'AUTH_REQUIRED') {
-      useAuthStore.getState().logout();
-      useUIStore.getState().setView('login');
-    }
   });
 
   // ── Room Events ──
@@ -68,11 +106,11 @@ export function connectSocket(): TypedSocket {
   });
 
   socket.on('room:member-kicked', (data) => {
-    const myId = useAuthStore.getState().user?.id;
-    if (data.userId === myId) {
+    const myName = useAuthStore.getState().username;
+    if (data.userId === myName) {
       useRoomStore.getState().leaveRoom();
       useChatStore.getState().clear();
-      useUIStore.getState().setView('lobby');
+      useUIStore.getState().setView('home');
       useUIStore.getState().addToast({ type: 'error', title: 'Odadan atıldınız' });
     } else {
       useRoomStore.getState().removeMember(data.userId);
@@ -82,7 +120,7 @@ export function connectSocket(): TypedSocket {
   socket.on('room:closed', (data) => {
     useRoomStore.getState().leaveRoom();
     useChatStore.getState().clear();
-    useUIStore.getState().setView('lobby');
+    useUIStore.getState().setView('home');
     useUIStore.getState().addToast({ type: 'info', title: 'Oda kapandı', message: data.reason });
   });
 
@@ -121,6 +159,23 @@ export function connectSocket(): TypedSocket {
       isPlaying: data.isPlaying, currentTime: data.targetTime,
       playbackSpeed: data.speed, generation: data.generation,
     });
+  });
+
+  // ── URL Sync ──
+  socket.on('sync:url-changed', (data) => {
+    console.log('[Sync] URL changed:', data.url);
+    useSyncStore.getState().setCurrentUrl(data.url);
+  });
+
+  // ── Avatar live update ──
+  (socket as any).on('user:avatar-changed', (data: any) => {
+    const room = useRoomStore.getState().currentRoom;
+    if (room) {
+      const members = room.members.map((m: any) =>
+        m.userId === data.userId ? { ...m, avatar: data.avatar } : m
+      );
+      useRoomStore.getState().setRoom({ ...room, members });
+    }
   });
 
   // ── Chat Events ──
@@ -166,7 +221,7 @@ function performClockSync() {
       samples++;
       if (samples >= 5) {
         offsets.sort((a, b) => a - b);
-        clockOffset = offsets[Math.floor(offsets.length / 2)]; // median
+        clockOffset = offsets[Math.floor(offsets.length / 2)];
       } else {
         setTimeout(doPing, 200);
       }

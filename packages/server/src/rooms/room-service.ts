@@ -1,14 +1,13 @@
 // ═══════════════════════════════════════════════════════════════
-// Room Service — Room CRUD, Lifecycle & Discovery
+// Room Service — In-Memory Room Management (No Database)
+// Simple room create/join/leave with code-based access
 // ═══════════════════════════════════════════════════════════════
 
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import { getDb } from '../db/client';
-import { getRedis, setJson, getJson } from '../redis/client';
-import { config, REDIS_KEYS, ROOM_CODE_CHARS } from '../config';
 import { createInitialSyncState, type SyncState } from '@anisync/shared';
 import type { RoomSettings } from '@anisync/shared';
+import { setJson, getJson } from '../redis/client';
+import { REDIS_KEYS, ROOM_CODE_CHARS } from '../config';
 
 const DEFAULT_SETTINGS: RoomSettings = {
   syncMode: 'host-authority',
@@ -20,6 +19,25 @@ const DEFAULT_SETTINGS: RoomSettings = {
   slowMode: 0,
 };
 
+// ─── In-Memory Room Store ─────────────────────────────────────
+
+interface RoomData {
+  id: string;
+  code: string;
+  name: string;
+  isPublic: boolean;
+  passwordHash: string | null;
+  hostId: string;
+  maxMembers: number;
+  settings: RoomSettings;
+  members: Map<string, { username: string; role: string; joinedAt: string }>;
+  createdAt: string;
+  isActive: boolean;
+}
+
+const rooms = new Map<string, RoomData>();       // id -> room
+const codeToId = new Map<string, string>();       // code -> id
+
 // ─── Room Code Generator ──────────────────────────────────────
 
 function generateRoomCode(length = 6): string {
@@ -30,15 +48,16 @@ function generateRoomCode(length = 6): string {
   return code;
 }
 
-async function uniqueRoomCode(): Promise<string> {
-  const db = getDb();
-  for (let attempt = 0; attempt < 10; attempt++) {
+function uniqueRoomCode(): string {
+  for (let attempt = 0; attempt < 20; attempt++) {
     const code = generateRoomCode();
-    const exists = await db.room.findUnique({ where: { code } });
-    if (!exists) return code;
+    if (!codeToId.has(code)) return code;
   }
-  // Fallback: longer code
   return generateRoomCode(8);
+}
+
+function generateId(): string {
+  return Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
 
 // ─── Service Functions ────────────────────────────────────────
@@ -50,58 +69,46 @@ export async function createRoom(hostId: string, data: {
   maxMembers?: number;
   settings?: Partial<RoomSettings>;
 }) {
-  const db = getDb();
-  const code = await uniqueRoomCode();
+  const code = uniqueRoomCode();
+  const id = generateId();
   const passwordHash = data.password ? await bcrypt.hash(data.password, 10) : null;
   const settings = { ...DEFAULT_SETTINGS, ...data.settings };
 
-  const room = await db.room.create({
-    data: {
-      code,
-      name: data.name.trim().slice(0, 50),
-      isPublic: data.isPublic,
-      passwordHash,
-      hostId,
-      maxMembers: data.maxMembers ?? 10,
-      settings: JSON.parse(JSON.stringify(settings)),
-      members: { create: { userId: hostId, role: 'host' } },
-    },
-    include: {
-      members: { include: { user: { select: { id: true, username: true, displayName: true, avatarUrl: true } } } },
-      host: { select: { id: true, username: true, displayName: true, avatarUrl: true } },
-    },
-  });
+  const room: RoomData = {
+    id, code,
+    name: data.name.trim().slice(0, 50),
+    isPublic: data.isPublic,
+    passwordHash, hostId,
+    maxMembers: data.maxMembers ?? 10,
+    settings,
+    members: new Map([[hostId, { username: hostId, role: 'host', joinedAt: new Date().toISOString() }]]),
+    createdAt: new Date().toISOString(),
+    isActive: true,
+  };
 
-  // Initialize sync state in Redis
+  rooms.set(id, room);
+  codeToId.set(code, id);
+
+  // Initialize sync state
   const syncState = createInitialSyncState();
-  await setJson(REDIS_KEYS.roomState(room.id), syncState);
+  await setJson(REDIS_KEYS.roomState(id), syncState);
 
-  // Add to public discovery if public
-  if (data.isPublic) {
-    await getRedis().zadd(REDIS_KEYS.roomDiscovery, Date.now(), room.id);
-  }
-
-  return formatRoomResponse(room, settings, syncState);
+  console.log(`[Room] Created: ${room.name} (${code}) by ${hostId}`);
+  return formatRoomResponse(room, syncState);
 }
 
 export async function joinRoom(userId: string, code: string, password?: string) {
-  const db = getDb();
-  const room = await db.room.findUnique({
-    where: { code, isActive: true },
-    include: {
-      members: { include: { user: { select: { id: true, username: true, displayName: true, avatarUrl: true } } } },
-    },
-  });
+  const roomId = codeToId.get(code.toUpperCase());
+  if (!roomId) throw new RoomError('ROOM_NOT_FOUND', 'Oda bulunamadı');
 
-  if (!room) throw new RoomError('ROOM_NOT_FOUND', 'Oda bulunamadı');
-  if (room.members.length >= room.maxMembers) throw new RoomError('ROOM_FULL', 'Oda dolu');
+  const room = rooms.get(roomId);
+  if (!room || !room.isActive) throw new RoomError('ROOM_NOT_FOUND', 'Oda bulunamadı');
+  if (room.members.size >= room.maxMembers) throw new RoomError('ROOM_FULL', 'Oda dolu');
 
-  // Check if already a member
-  const existing = room.members.find(m => m.userId === userId);
-  if (existing) {
-    const syncState = await getRoomSyncState(room.id);
-    const settings = room.settings as unknown as RoomSettings;
-    return { room: formatRoomResponse(room, settings, syncState), syncState };
+  // Already a member? Just return
+  if (room.members.has(userId)) {
+    const syncState = await getRoomSyncState(roomId);
+    return { room: formatRoomResponse(room, syncState), syncState };
   }
 
   // Password check
@@ -112,112 +119,86 @@ export async function joinRoom(userId: string, code: string, password?: string) 
   }
 
   // Add member
-  await db.roomMember.create({ data: { userId, roomId: room.id, role: 'viewer' } });
-  await db.room.update({ where: { id: room.id }, data: { lastActiveAt: new Date() } });
+  room.members.set(userId, { username: userId, role: 'viewer', joinedAt: new Date().toISOString() });
 
-  const updatedRoom = await db.room.findUnique({
-    where: { id: room.id },
-    include: {
-      members: { include: { user: { select: { id: true, username: true, displayName: true, avatarUrl: true } } } },
-    },
-  });
-
-  const syncState = await getRoomSyncState(room.id);
-  const settings = room.settings as unknown as RoomSettings;
-  return { room: formatRoomResponse(updatedRoom!, settings, syncState), syncState };
+  const syncState = await getRoomSyncState(roomId);
+  console.log(`[Room] ${userId} joined ${room.name} (${code})`);
+  return { room: formatRoomResponse(room, syncState), syncState };
 }
 
 export async function leaveRoom(userId: string, roomId: string): Promise<{ roomClosed: boolean; newHostId?: string }> {
-  const db = getDb();
-  await db.roomMember.deleteMany({ where: { userId, roomId } });
+  const room = rooms.get(roomId);
+  if (!room) return { roomClosed: false };
 
-  const remaining = await db.roomMember.findMany({ where: { roomId } });
+  room.members.delete(userId);
 
-  if (remaining.length === 0) {
+  if (room.members.size === 0) {
     // Close room
-    await db.room.update({ where: { id: roomId }, data: { isActive: false } });
-    await cleanupRoomRedis(roomId);
+    room.isActive = false;
+    rooms.delete(roomId);
+    codeToId.delete(room.code);
+    console.log(`[Room] Closed: ${room.name} (${room.code})`);
     return { roomClosed: true };
   }
 
   // Transfer host if needed
-  const room = await db.room.findUnique({ where: { id: roomId } });
-  if (room?.hostId === userId) {
-    const newHost = remaining[0];
-    await db.room.update({ where: { id: roomId }, data: { hostId: newHost.userId } });
-    await db.roomMember.update({ where: { userId_roomId: { userId: newHost.userId, roomId } }, data: { role: 'host' } });
-    return { roomClosed: false, newHostId: newHost.userId };
+  if (room.hostId === userId) {
+    const newHost = room.members.keys().next().value!;
+    room.hostId = newHost;
+    const member = room.members.get(newHost)!;
+    member.role = 'host';
+    console.log(`[Room] Host transferred to ${newHost} in ${room.name}`);
+    return { roomClosed: false, newHostId: newHost };
   }
 
   return { roomClosed: false };
 }
 
 export async function kickMember(roomId: string, targetUserId: string, byUserId: string) {
-  const db = getDb();
-  const kicker = await db.roomMember.findUnique({ where: { userId_roomId: { userId: byUserId, roomId } } });
+  const room = rooms.get(roomId);
+  if (!room) throw new RoomError('ROOM_NOT_FOUND', 'Oda bulunamadı');
+
+  const kicker = room.members.get(byUserId);
   if (!kicker || (kicker.role !== 'host' && kicker.role !== 'moderator')) {
     throw new RoomError('FORBIDDEN', 'Yetkiniz yok');
   }
-  const target = await db.roomMember.findUnique({ where: { userId_roomId: { userId: targetUserId, roomId } } });
+
+  const target = room.members.get(targetUserId);
   if (!target) throw new RoomError('NOT_MEMBER', 'Kullanıcı odada değil');
   if (target.role === 'host') throw new RoomError('CANNOT_KICK_HOST', 'Host atılamaz');
 
-  await db.roomMember.delete({ where: { userId_roomId: { userId: targetUserId, roomId } } });
+  room.members.delete(targetUserId);
 }
 
 export async function updateSettings(roomId: string, userId: string, updates: Partial<RoomSettings>) {
-  const db = getDb();
-  const member = await db.roomMember.findUnique({ where: { userId_roomId: { userId, roomId } } });
-  if (!member || member.role !== 'host') throw new RoomError('FORBIDDEN', 'Sadece host ayarları değiştirebilir');
-
-  const room = await db.room.findUnique({ where: { id: roomId } });
+  const room = rooms.get(roomId);
   if (!room) throw new RoomError('ROOM_NOT_FOUND', 'Oda bulunamadı');
 
-  const currentSettings = room.settings as unknown as RoomSettings;
-  const newSettings = { ...currentSettings, ...updates };
-  await db.room.update({ where: { id: roomId }, data: { settings: JSON.parse(JSON.stringify(newSettings)) } });
-  return newSettings;
+  const member = room.members.get(userId);
+  if (!member || member.role !== 'host') throw new RoomError('FORBIDDEN', 'Sadece host ayarları değiştirebilir');
+
+  room.settings = { ...room.settings, ...updates };
+  return room.settings;
 }
 
-export async function discoverRooms(page = 1, pageSize = 20, sort: 'trending' | 'newest' | 'members' = 'trending') {
-  const db = getDb();
-  const skip = (page - 1) * pageSize;
-
-  const orderBy = sort === 'newest' ? { createdAt: 'desc' as const }
-    : sort === 'members' ? { members: { _count: 'desc' as const } }
-    : { lastActiveAt: 'desc' as const };
-
-  const [rooms, total] = await Promise.all([
-    db.room.findMany({
-      where: { isPublic: true, isActive: true },
-      include: {
-        _count: { select: { members: true } },
-        host: { select: { displayName: true, avatarUrl: true } },
-      },
-      orderBy,
-      skip,
-      take: pageSize,
-    }),
-    db.room.count({ where: { isPublic: true, isActive: true } }),
-  ]);
-
+export async function discoverRooms(_page = 1, _pageSize = 20, _sort = 'trending') {
+  const publicRooms = [...rooms.values()].filter(r => r.isPublic && r.isActive);
   return {
-    rooms: rooms.map(r => ({
+    rooms: publicRooms.map(r => ({
       id: r.id, code: r.code, name: r.name, isPublic: true,
       hasPassword: !!r.passwordHash, hostId: r.hostId,
-      maxMembers: r.maxMembers, memberCount: r._count.members,
-      createdAt: r.createdAt.toISOString(), currentAnime: r.currentAnime,
-      tags: r.tags, hostName: r.host.displayName,
+      maxMembers: r.maxMembers, memberCount: r.members.size,
+      createdAt: r.createdAt, currentAnime: null,
+      tags: [], hostName: r.hostId,
     })),
-    total, page, pageSize, hasMore: skip + pageSize < total,
+    total: publicRooms.length, page: _page, hasMore: false,
   };
 }
 
-export async function generateInviteLink(roomId: string, inviterId: string): Promise<string> {
-  const room = await getDb().room.findUnique({ where: { id: roomId } });
+export async function generateInviteLink(roomId: string, _inviterId: string): Promise<string> {
+  const room = rooms.get(roomId);
   if (!room) throw new RoomError('ROOM_NOT_FOUND', 'Oda bulunamadı');
-  const token = jwt.sign({ roomId, code: room.code, inviterId }, config.JWT_SECRET, { expiresIn: '24h' });
-  return token;
+  return room.code; // Just return the room code
 }
 
 // ─── Helpers ──────────────────────────────────────────────────
@@ -227,27 +208,20 @@ async function getRoomSyncState(roomId: string): Promise<SyncState> {
   return cached ?? createInitialSyncState();
 }
 
-async function cleanupRoomRedis(roomId: string) {
-  const redis = getRedis();
-  await redis.del(REDIS_KEYS.roomState(roomId), REDIS_KEYS.roomMembers(roomId));
-  await redis.zrem(REDIS_KEYS.roomDiscovery, roomId);
-}
-
-function formatRoomResponse(room: any, settings: RoomSettings, syncState: SyncState) {
+function formatRoomResponse(room: RoomData, syncState: SyncState) {
   return {
     id: room.id, code: room.code, name: room.name,
     isPublic: room.isPublic, hasPassword: !!room.passwordHash,
     hostId: room.hostId, maxMembers: room.maxMembers,
-    memberCount: room.members?.length ?? 0,
-    createdAt: room.createdAt?.toISOString?.() ?? room.createdAt,
-    currentAnime: room.currentAnime, tags: room.tags ?? [],
-    members: room.members?.map((m: any) => ({
-      userId: m.userId, username: m.user.username,
-      displayName: m.user.displayName, avatarUrl: m.user.avatarUrl,
-      role: m.role, joinedAt: m.joinedAt?.toISOString?.() ?? m.joinedAt,
+    memberCount: room.members.size,
+    createdAt: room.createdAt, currentAnime: null, tags: [],
+    members: [...room.members.entries()].map(([userId, m]) => ({
+      userId, username: m.username,
+      displayName: m.username, avatarUrl: null,
+      role: m.role, joinedAt: m.joinedAt,
       presence: { isConnected: true, isBuffering: false, currentTime: 0, lastHeartbeat: Date.now() },
-    })) ?? [],
-    settings, syncState,
+    })),
+    settings: room.settings, syncState,
   };
 }
 

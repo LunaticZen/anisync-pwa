@@ -1,6 +1,6 @@
 // ═══════════════════════════════════════════════════════════════
 // Prisma Schema — AniSync Database
-// PostgreSQL with full relational model
+// SQLite for local development (no Docker needed)
 // ═══════════════════════════════════════════════════════════════
 
 generator client {
@@ -8,20 +8,20 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider = "sqlite"
+  url      = "file:./anisync.db"
 }
 
 // ─── Users ─────────────────────────────────────────────────────
 
 model User {
   id            String    @id @default(uuid())
-  username      String    @unique @db.VarChar(20)
-  email         String    @unique @db.VarChar(255)
+  username      String    @unique
+  email         String    @unique
   passwordHash  String
-  displayName   String    @db.VarChar(50)
+  displayName   String
   avatarUrl     String?
-  bio           String?   @db.VarChar(200)
+  bio           String?
   lastSeenAt    DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -44,19 +44,19 @@ model User {
 
 model Room {
   id          String    @id @default(uuid())
-  code        String    @unique @db.VarChar(8)
-  name        String    @db.VarChar(50)
+  code        String    @unique
+  name        String
   isPublic    Boolean   @default(false)
   passwordHash String?
   hostId      String
   maxMembers  Int       @default(10)
   
   // Settings stored as JSON
-  settings    Json      @default("{}")
+  settings    String    @default("{}")
   
   // Current anime info
-  currentAnime  Json?
-  tags          String[]  @default([])
+  currentAnime  String?
+  tags          String    @default("[]")
   
   // Lifecycle
   isActive    Boolean   @default(true)
@@ -78,7 +78,7 @@ model Room {
 model RoomMember {
   userId    String
   roomId    String
-  role      String    @default("viewer") @db.VarChar(20) // host, moderator, viewer
+  role      String    @default("viewer")
   joinedAt  DateTime  @default(now())
 
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -94,9 +94,9 @@ model Message {
   id        String    @id @default(uuid())
   roomId    String
   userId    String
-  text      String    @db.VarChar(500)
-  type      String    @default("text") @db.VarChar(20) // text, system, gif, emoji
-  reactions Json      @default("[]")
+  text      String
+  type      String    @default("text")
+  reactions String    @default("[]")
   editedAt  DateTime?
   createdAt DateTime  @default(now())
 
@@ -113,7 +113,7 @@ model Friendship {
   id          String    @id @default(uuid())
   senderId    String
   receiverId  String
-  status      String    @default("pending") @db.VarChar(20) // pending, accepted, blocked
+  status      String    @default("pending")
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
@@ -131,7 +131,7 @@ model WatchHistory {
   userId      String
   animeTitle  String
   episodeUrl  String
-  site        String    @db.VarChar(30)
+  site        String
   roomId      String?
   watchedAt   DateTime  @default(now())
 
@@ -145,10 +145,10 @@ model WatchHistory {
 model Notification {
   id        String    @id @default(uuid())
   userId    String
-  type      String    @db.VarChar(30)
-  title     String    @db.VarChar(100)
-  body      String    @db.VarChar(500)
-  data      Json?
+  type      String
+  title     String
+  body      String
+  data      String?
   read      Boolean   @default(false)
   createdAt DateTime  @default(now())
 

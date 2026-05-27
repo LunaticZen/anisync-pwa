@@ -18,6 +18,13 @@ contextBridge.exposeInMainWorld('anisync', {
   anime: {
     navigate: (url: string) => ipcRenderer.invoke('anime:navigate', url),
     close: () => ipcRenderer.invoke('anime:close'),
+    goBack: () => ipcRenderer.invoke('anime:goBack'),
+    goForward: () => ipcRenderer.invoke('anime:goForward'),
+    reload: () => ipcRenderer.invoke('anime:reload'),
+    getUrl: () => ipcRenderer.invoke('anime:getUrl'),
+    setBounds: (rect: { x: number; y: number; w: number; h: number }) => ipcRenderer.invoke('anime:setBounds', rect),
+    hide: () => ipcRenderer.invoke('anime:hide'),
+    show: () => ipcRenderer.invoke('anime:show'),
     onNavigated: (cb: (url: string) => void) => {
       const handler = (_e: any, url: string) => cb(url);
       ipcRenderer.on('anime:navigated', handler);
@@ -31,6 +38,7 @@ contextBridge.exposeInMainWorld('anisync', {
     pause: () => ipcRenderer.invoke('player:command', 'pause'),
     seek: (time: number) => ipcRenderer.invoke('player:command', 'seek', time),
     getState: () => ipcRenderer.invoke('player:getState'),
+    getEvent: () => ipcRenderer.invoke('player:getEvent'),
     setSpeed: (speed: number) => ipcRenderer.invoke('player:command', 'setSpeed', speed),
     onDetected: (cb: (data: any) => void) => {
       const handler = (_e: any, data: any) => cb(data);

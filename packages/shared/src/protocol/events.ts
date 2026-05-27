@@ -42,6 +42,8 @@ export interface ClientToServerEvents {
   'sync:buffering': (data: { roomId: string; isBuffering: boolean }) => void;
   'sync:heartbeat': (data: SyncHeartbeat) => void;
   'sync:request-state': (data: { roomId: string }, callback: (state: SyncState) => void) => void;
+  'sync:url-changed': (data: { roomId: string; url: string }) => void;
+  'sync:timecheck': (data: { roomId: string; time: number; playing: boolean; userId: string }) => void;
 
   // ── Chat Events ──
   'chat:message': (data: { roomId: string } & SendMessageRequest) => void;
@@ -84,6 +86,8 @@ export interface ServerToClientEvents {
   'sync:correction': (data: SyncCorrection) => void;
   'sync:buffering-update': (data: { userId: string; isBuffering: boolean }) => void;
   'sync:wait-for-buffer': (data: { bufferingUsers: string[] }) => void;
+  'sync:url-changed': (data: { url: string; originUserId: string; serverTimestamp: number }) => void;
+  'sync:timecheck': (data: { time: number; playing: boolean; userId: string; serverTimestamp: number }) => void;
 
   // ── Chat Events ──
   'chat:message': (data: ChatMessage) => void;

@@ -1,6 +1,8 @@
 {
   "name": "@anisync/desktop",
   "version": "1.0.0",
+  "description": "AniSync - Anime birlikte izleme platformu",
+  "author": "AniSync",
   "private": true,
   "main": "electron/main.js",
   "scripts": {
@@ -17,6 +19,9 @@
     "react-dom": "^18.3.0",
     "react-router-dom": "^6.23.0",
     "socket.io-client": "^4.7.5",
+    "socket.io": "^4.7.5",
+    "express": "^4.19.0",
+    "cors": "^2.8.5",
     "zustand": "^4.5.0",
     "framer-motion": "^11.1.0",
     "lucide-react": "^0.378.0",
@@ -27,7 +32,7 @@
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.0",
     "concurrently": "^8.2.0",
-    "electron": "^30.0.0",
+    "electron": "30.5.1",
     "electron-builder": "^24.13.0",
     "rimraf": "^5.0.0",
     "typescript": "^5.4.0",
@@ -37,20 +42,19 @@
   "build": {
     "appId": "com.anisync.desktop",
     "productName": "AniSync",
+    "asar": true,
     "directories": { "output": "release" },
     "win": {
-      "target": ["nsis"],
-      "icon": "assets/icon.ico"
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true
+      "target": ["dir"]
     },
     "files": [
       "dist/**/*",
       "electron/**/*.js",
-      "!node_modules"
+      "node_modules/**/*",
+      "!node_modules/**/test/**",
+      "!node_modules/**/tests/**",
+      "!node_modules/**/*.md",
+      "!node_modules/**/LICENSE*"
     ]
   }
 }

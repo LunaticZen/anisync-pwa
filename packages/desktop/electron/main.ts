@@ -1,14 +1,17 @@
 // ═══════════════════════════════════════════════════════════════
-// Electron Main Process — Application Shell
+// Electron Main Process — AniSync Desktop App
 // ═══════════════════════════════════════════════════════════════
 
-import { app, BrowserWindow, BrowserView, ipcMain, session, Tray, Menu, nativeImage, globalShortcut } from 'electron';
+import { app, BrowserWindow, BrowserView, ipcMain } from 'electron';
 import * as path from 'path';
+import { startServer } from './embedded-server';
 
 let mainWindow: BrowserWindow | null = null;
 let animeView: BrowserView | null = null;
-let tray: Tray | null = null;
+let videoFrameRef: any = null; // Cache the frame that has the video
 const isDev = !app.isPackaged;
+
+// ─── Main Window ──────────────────────────────────────────────
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -18,8 +21,7 @@ function createWindow() {
     minHeight: 600,
     title: 'AniSync',
     frame: false,
-    titleBarStyle: 'hidden',
-    backgroundColor: '#0a0a0f',
+    backgroundColor: '#050816',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
@@ -30,225 +32,259 @@ function createWindow() {
     show: false,
   });
 
-  // Load React app
   if (isDev) {
     mainWindow.loadURL('http://localhost:5173');
-    mainWindow.webContents.openDevTools({ mode: 'detach' });
   } else {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
   }
 
-  mainWindow.once('ready-to-show', () => {
-    mainWindow?.show();
-  });
-
-  mainWindow.on('closed', () => {
-    mainWindow = null;
-    animeView = null;
-  });
-
-  // Create system tray
-  createTray();
+  mainWindow.once('ready-to-show', () => mainWindow?.show());
+  mainWindow.on('closed', () => { mainWindow = null; animeView = null; });
 }
 
-// ─── Anime Site BrowserView ───────────────────────────────────
+// ─── Anime BrowserView ────────────────────────────────────────
 
 function createAnimeView(url: string) {
   if (!mainWindow) return;
-
-  // Remove existing view
   if (animeView) {
     mainWindow.removeBrowserView(animeView);
     (animeView.webContents as any)?.destroy?.();
   }
+  videoFrameRef = null;
 
   animeView = new BrowserView({
     webPreferences: {
-      preload: path.join(__dirname, 'anime-preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
+      webSecurity: false,
     },
   });
-
   mainWindow.addBrowserView(animeView);
-
-  // Position: leave space for sidebar (350px)
-  const bounds = mainWindow.getContentBounds();
-  animeView.setBounds({
-    x: 0,
-    y: 40, // title bar height
-    width: bounds.width - 350,
-    height: bounds.height - 40,
-  });
-  animeView.setAutoResize({ width: true, height: true });
+  updateAnimeViewBounds();
 
   animeView.webContents.loadURL(url);
 
-  // Inject content script after page loads
-  animeView.webContents.on('did-finish-load', () => {
-    injectContentScript();
+  // Handle fullscreen enter/exit
+  animeView.webContents.on('enter-html-full-screen', () => {
+    if (!mainWindow || !animeView) return;
+    const [w, h] = mainWindow.getContentSize();
+    animeView.setBounds({ x: 0, y: 0, width: w, height: h });
+  });
+  animeView.webContents.on('leave-html-full-screen', () => {
+    updateAnimeViewBounds();
   });
 
-  // Handle navigation within anime site
-  animeView.webContents.on('will-navigate', (_e, navUrl) => {
-    mainWindow?.webContents.send('anime:navigated', navUrl);
+  // Recalculate bounds on window resize
+  mainWindow.on('resize', () => {
+    if (animeView && !animeView.webContents.isDestroyed()) {
+      // Only update if not in fullscreen
+      if (!(animeView.webContents as any).isFullscreen?.()) {
+        updateAnimeViewBounds();
+      }
+    }
   });
+
+  // Inject on every frame load
+  const doInject = () => {
+    setTimeout(() => injectAllFrames(), 300);
+    setTimeout(() => injectAllFrames(), 1500);
+    setTimeout(() => injectAllFrames(), 4000);
+  };
+  animeView.webContents.on('did-finish-load', doInject);
+  animeView.webContents.on('did-frame-finish-load', doInject);
+
+  // Track URL changes
+  const notifyUrl = (newUrl: string) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('anime:navigated', newUrl);
+    }
+  };
+  animeView.webContents.on('did-navigate', (_e: any, newUrl: string) => notifyUrl(newUrl));
+  animeView.webContents.on('did-navigate-in-page', (_e: any, newUrl: string) => notifyUrl(newUrl));
 }
 
-async function injectContentScript() {
-  if (!animeView) return;
+// BrowserView bounds — driven by renderer measurements
+let lastAnimeBounds = { x: 0, y: 164, w: 800, h: 600 };
 
-  try {
-    // Inject the player detection & control script
-    await animeView.webContents.executeJavaScript(`
-      (function() {
-        if (window.__anisync_injected) return;
-        window.__anisync_injected = true;
+function updateAnimeViewBounds() {
+  if (!mainWindow || !animeView) return;
+  const b = lastAnimeBounds;
+  const x = Math.round(b.x);
+  const y = Math.round(b.y);
+  const w = Math.max(200, Math.round(b.w));
+  const h = Math.max(100, Math.round(b.h));
+  console.log('[AniSync] setBounds:', { x, y, w, h });
+  animeView.setBounds({ x, y, width: w, height: h });
+}
 
-        // Player detection system
-        const PlayerDetector = {
-          detected: null,
-          observers: [],
+// ─── Player Script ───────────────────────────────────────────
 
-          scan() {
-            // 1. Direct HTML5 video
-            const video = document.querySelector('video');
-            if (video && video.src) {
-              this.attach('html5', video);
-              return;
-            }
+const PLAYER_SCRIPT = `
+(function() {
+  if (window.__anisync_injected) return;
+  window.__anisync_injected = true;
+  var ignoreUntil = 0;
 
-            // 2. JWPlayer
-            if (window.jwplayer && typeof window.jwplayer === 'function') {
-              try {
-                const jw = window.jwplayer();
-                if (jw && jw.getState) {
-                  this.attach('jwplayer', jw);
-                  return;
-                }
-              } catch(e) {}
-            }
-
-            // 3. iframe players
-            const iframes = document.querySelectorAll('iframe');
-            for (const iframe of iframes) {
-              if (iframe.src && (iframe.src.includes('player') || iframe.src.includes('embed'))) {
-                this.attach('iframe', iframe);
-                return;
-              }
-            }
-          },
-
-          attach(type, element) {
-            this.detected = { type, element };
-            window.__anisync_player = { type, element };
-
-            // Notify Electron
-            if (window.__anisync_bridge) {
-              window.__anisync_bridge.postMessage('player:detected', { type });
-            }
-          },
-
-          watch() {
-            // MutationObserver for dynamically loaded players
-            const observer = new MutationObserver(() => {
-              if (!this.detected) this.scan();
-            });
-            observer.observe(document.body, { childList: true, subtree: true });
-            this.observers.push(observer);
-
-            // Retry scan with backoff
-            let retries = 0;
-            const retry = () => {
-              if (this.detected || retries > 15) return;
-              retries++;
-              this.scan();
-              setTimeout(retry, Math.min(1000 * retries, 5000));
-            };
-            retry();
-          },
-
-          destroy() {
-            this.observers.forEach(o => o.disconnect());
-            this.observers = [];
-          }
-        };
-
-        // Player Control API (exposed to Electron via IPC)
-        window.__anisync_api = {
-          play() {
-            const p = window.__anisync_player;
-            if (!p) return;
-            if (p.type === 'html5') p.element.play();
-            else if (p.type === 'jwplayer') p.element.play();
-          },
-          pause() {
-            const p = window.__anisync_player;
-            if (!p) return;
-            if (p.type === 'html5') p.element.pause();
-            else if (p.type === 'jwplayer') p.element.pause();
-          },
-          seek(time) {
-            const p = window.__anisync_player;
-            if (!p) return;
-            if (p.type === 'html5') p.element.currentTime = time;
-            else if (p.type === 'jwplayer') p.element.seek(time);
-          },
-          getTime() {
-            const p = window.__anisync_player;
-            if (!p) return 0;
-            if (p.type === 'html5') return p.element.currentTime;
-            if (p.type === 'jwplayer') return p.element.getPosition();
-            return 0;
-          },
-          getDuration() {
-            const p = window.__anisync_player;
-            if (!p) return 0;
-            if (p.type === 'html5') return p.element.duration;
-            if (p.type === 'jwplayer') return p.element.getDuration();
-            return 0;
-          },
-          getState() {
-            const p = window.__anisync_player;
-            if (!p) return 'unknown';
-            if (p.type === 'html5') return p.element.paused ? 'paused' : 'playing';
-            if (p.type === 'jwplayer') return p.element.getState();
-            return 'unknown';
-          },
-          setSpeed(speed) {
-            const p = window.__anisync_player;
-            if (!p) return;
-            if (p.type === 'html5') p.element.playbackRate = speed;
-            else if (p.type === 'jwplayer') p.element.setPlaybackRate(speed);
-          }
-        };
-
-        PlayerDetector.scan();
-        PlayerDetector.watch();
-      })();
-    `);
-  } catch (err) {
-    console.error('[Inject] Content script injection failed:', err);
+  function findVideo() {
+    var videos = document.querySelectorAll('video');
+    for (var i = 0; i < videos.length; i++) {
+      var v = videos[i];
+      if (v.readyState > 0 || v.src || v.currentSrc) {
+        hookVideo(v);
+        return true;
+      }
+    }
+    // Also check for any video element even without src
+    if (videos.length > 0) {
+      hookVideo(videos[0]);
+      return true;
+    }
+    return false;
   }
+
+  function hookVideo(v) {
+    console.log('[AniSync] Video HOOKED in:', window.location.href.substring(0, 80));
+    window.__anisync_has_video = true;
+    window.__anisync_api = {
+      play: function() { ignoreUntil = Date.now() + 1000; v.play(); },
+      pause: function() { ignoreUntil = Date.now() + 1000; v.pause(); },
+      seek: function(t) { ignoreUntil = Date.now() + 1000; v.currentTime = t; },
+      getTime: function() { return v.currentTime || 0; },
+      getDuration: function() { return v.duration || 0; },
+      getState: function() { return v.paused ? 'paused' : 'playing'; },
+      getEvent: function() { var e = window.__anisync_event; window.__anisync_event = null; return e; },
+      hasVideo: true
+    };
+
+    v.addEventListener('play', function() {
+      if (Date.now() < ignoreUntil) return;
+      window.__anisync_event = { type: 'play', time: v.currentTime, ts: Date.now() };
+    });
+    v.addEventListener('pause', function() {
+      if (Date.now() < ignoreUntil) return;
+      window.__anisync_event = { type: 'pause', time: v.currentTime, ts: Date.now() };
+    });
+    v.addEventListener('seeked', function() {
+      if (Date.now() < ignoreUntil) return;
+      window.__anisync_event = { type: 'seek', time: v.currentTime, ts: Date.now() };
+    });
+
+    setInterval(function() {
+      if (!document.body.contains(v)) {
+        window.__anisync_injected = false;
+        window.__anisync_has_video = false;
+        window.__anisync_api = null;
+        findVideo() || startSearch();
+      }
+    }, 3000);
+  }
+
+  function startSearch() {
+    var attempts = 0;
+    var pi = setInterval(function() {
+      attempts++;
+      if (findVideo()) clearInterval(pi);
+      if (attempts > 120) clearInterval(pi);
+    }, 1000);
+    try {
+      var o = new MutationObserver(function() { if (findVideo()) o.disconnect(); });
+      o.observe(document.documentElement || document.body, { childList: true, subtree: true });
+    } catch(e) {}
+  }
+
+  if (!findVideo()) startSearch();
+})();
+`;
+
+async function injectAllFrames() {
+  if (!animeView) return;
+  const wc = animeView.webContents;
+
+  // Inject main frame
+  try { await wc.executeJavaScript(PLAYER_SCRIPT); } catch { }
+
+  // Inject ALL sub-frames
+  try {
+    const mf = wc.mainFrame;
+    if (mf && mf.framesInSubtree) {
+      for (const frame of mf.framesInSubtree) {
+        if (frame !== mf) {
+          try { await frame.executeJavaScript(PLAYER_SCRIPT); } catch { }
+        }
+      }
+    }
+  } catch { }
+
+  // After injection, scan for which frame has the video
+  setTimeout(() => scanForVideoFrame(), 2000);
 }
 
-// ─── System Tray ──────────────────────────────────────────────
+async function scanForVideoFrame() {
+  if (!animeView) return;
+  const wc = animeView.webContents;
 
-function createTray() {
-  // Use a simple icon (in production, use proper icon file)
-  const icon = nativeImage.createEmpty();
-  tray = new Tray(icon);
-  tray.setToolTip('AniSync');
+  // Check main frame
+  try {
+    const has = await wc.executeJavaScript('!!window.__anisync_has_video');
+    if (has) { videoFrameRef = null; console.log('[AniSync] Video in MAIN frame'); return; }
+  } catch { }
 
-  const contextMenu = Menu.buildFromTemplate([
-    { label: 'AniSync', type: 'normal', enabled: false },
-    { type: 'separator' },
-    { label: 'Göster', click: () => mainWindow?.show() },
-    { label: 'Çıkış', click: () => app.quit() },
-  ]);
-  tray.setContextMenu(contextMenu);
-  tray.on('click', () => mainWindow?.show());
+  // Check sub-frames
+  try {
+    const mf = wc.mainFrame;
+    if (mf && mf.framesInSubtree) {
+      for (const frame of mf.framesInSubtree) {
+        if (frame !== mf) {
+          try {
+            const has = await frame.executeJavaScript('!!window.__anisync_has_video');
+            if (has) { videoFrameRef = frame; console.log('[AniSync] Video in SUB-FRAME'); return; }
+          } catch { }
+        }
+      }
+    }
+  } catch { }
+  console.log('[AniSync] Video NOT FOUND in any frame');
+}
+
+// Execute in the cached video frame
+async function execVideo(js: string): Promise<any> {
+  if (!animeView) return null;
+
+  // If we have a cached frame ref, try it first
+  if (videoFrameRef) {
+    try {
+      const has = await videoFrameRef.executeJavaScript('!!window.__anisync_has_video');
+      if (has) return await videoFrameRef.executeJavaScript(js);
+    } catch { }
+    videoFrameRef = null; // Cache miss, rescan
+  }
+
+  // Try main frame
+  try {
+    const has = await animeView.webContents.executeJavaScript('!!window.__anisync_has_video');
+    if (has) return await animeView.webContents.executeJavaScript(js);
+  } catch { }
+
+  // Try all sub-frames
+  try {
+    const mf = animeView.webContents.mainFrame;
+    if (mf && mf.framesInSubtree) {
+      for (const frame of mf.framesInSubtree) {
+        if (frame !== mf) {
+          try {
+            const has = await frame.executeJavaScript('!!window.__anisync_has_video');
+            if (has) {
+              videoFrameRef = frame; // Cache it
+              return await frame.executeJavaScript(js);
+            }
+          } catch { }
+        }
+      }
+    }
+  } catch { }
+
+  return null;
 }
 
 // ─── IPC Handlers ─────────────────────────────────────────────
@@ -261,59 +297,73 @@ ipcMain.handle('window:maximize', () => {
 ipcMain.handle('window:close', () => mainWindow?.close());
 ipcMain.handle('window:isMaximized', () => mainWindow?.isMaximized());
 
-ipcMain.handle('anime:navigate', (_e, url: string) => {
+ipcMain.handle('anime:navigate', (_e: any, url: string) => {
+  console.log('[AniSync] Navigate to:', url);
   createAnimeView(url);
 });
-
 ipcMain.handle('anime:close', () => {
   if (animeView && mainWindow) {
     mainWindow.removeBrowserView(animeView);
     (animeView.webContents as any)?.destroy?.();
     animeView = null;
+    videoFrameRef = null;
+  }
+});
+ipcMain.handle('anime:goBack', () => {
+  if (animeView?.webContents.canGoBack()) animeView.webContents.goBack();
+});
+ipcMain.handle('anime:goForward', () => {
+  if (animeView?.webContents.canGoForward()) animeView.webContents.goForward();
+});
+ipcMain.handle('anime:getUrl', () => {
+  return animeView?.webContents.getURL() || '';
+});
+ipcMain.handle('anime:reload', () => {
+  animeView?.webContents.reload();
+});
+ipcMain.handle('anime:setBounds', (_e: any, rect: { x: number; y: number; w: number; h: number }) => {
+  lastAnimeBounds = rect;
+  if (!mainWindow || !animeView) return;
+  updateAnimeViewBounds();
+});
+ipcMain.handle('anime:hide', () => {
+  if (mainWindow && animeView) {
+    mainWindow.removeBrowserView(animeView);
+  }
+});
+ipcMain.handle('anime:show', () => {
+  if (mainWindow && animeView) {
+    mainWindow.addBrowserView(animeView);
+    updateAnimeViewBounds();
   }
 });
 
-ipcMain.handle('player:command', async (_e, command: string, ...args: any[]) => {
-  if (!animeView) return null;
-  try {
-    const result = await animeView.webContents.executeJavaScript(
-      `window.__anisync_api?.${command}(${args.map(a => JSON.stringify(a)).join(',')})`
-    );
-    return result;
-  } catch (err) {
-    console.error(`[IPC] Player command failed: ${command}`, err);
-    return null;
-  }
+ipcMain.handle('player:command', async (_e: any, cmd: string, ...args: any[]) => {
+  console.log('[AniSync] Player command:', cmd, args);
+  return await execVideo(`window.__anisync_api?.${cmd}(${args.map((a: any) => JSON.stringify(a)).join(',')})`);
 });
 
 ipcMain.handle('player:getState', async () => {
-  if (!animeView) return null;
-  try {
-    const [time, duration, state, speed] = await Promise.all([
-      animeView.webContents.executeJavaScript('window.__anisync_api?.getTime()'),
-      animeView.webContents.executeJavaScript('window.__anisync_api?.getDuration()'),
-      animeView.webContents.executeJavaScript('window.__anisync_api?.getState()'),
-      animeView.webContents.executeJavaScript('window.__anisync_api?.getSpeed?.() ?? 1'),
-    ]);
-    return { time, duration, state, speed };
-  } catch {
-    return null;
-  }
+  return await execVideo(`
+    (function() {
+      var a = window.__anisync_api;
+      if (!a || !a.hasVideo) return null;
+      return { time: a.getTime(), duration: a.getDuration(), state: a.getState(), speed: 1 };
+    })()
+  `);
+});
+
+ipcMain.handle('player:getEvent', async () => {
+  return await execVideo('window.__anisync_api?.getEvent()');
 });
 
 // ─── App Lifecycle ────────────────────────────────────────────
 
-app.whenReady().then(createWindow);
-
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit();
+app.whenReady().then(async () => {
+  console.log('[AniSync] Starting...');
+  createWindow();
 });
 
-app.on('activate', () => {
-  if (BrowserWindow.getAllWindows().length === 0) createWindow();
-});
-
-// Security: prevent new window creation
-app.on('web-contents-created', (_e, contents) => {
-  contents.setWindowOpenHandler(() => ({ action: 'deny' }));
-});
+app.on('window-all-closed', () => app.quit());
+app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
+app.on('web-contents-created', (_e: any, contents: any) => { contents.setWindowOpenHandler(() => ({ action: 'deny' })); });

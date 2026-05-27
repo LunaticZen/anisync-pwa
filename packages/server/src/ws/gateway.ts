@@ -43,18 +43,16 @@ export function initWebSocket(httpServer: HttpServer): TypedServer {
     },
   });
 
-  // ── Auth Middleware ──
+  // ── Auth Middleware (username only, no JWT) ──
   io.use(async (socket, next) => {
-    try {
-      const token = socket.handshake.auth?.token ?? socket.handshake.headers?.authorization?.replace('Bearer ', '');
-      if (!token) return next(new Error('AUTH_REQUIRED'));
-      const payload = verifyAccessToken(token);
-      socket.data.userId = payload.userId;
-      socket.data.username = payload.username;
-      next();
-    } catch {
-      next(new Error('AUTH_FAILED'));
+    const username = socket.handshake.auth?.username;
+    if (!username || typeof username !== 'string' || username.trim().length < 1) {
+      return next(new Error('USERNAME_REQUIRED'));
     }
+    // Use username as both userId and username (simple mode)
+    socket.data.userId = username.trim();
+    socket.data.username = username.trim();
+    next();
   });
 
   io.on('connection', (socket) => {

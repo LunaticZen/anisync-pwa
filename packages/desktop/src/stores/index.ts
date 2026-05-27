@@ -5,45 +5,52 @@
 
 import { create } from 'zustand';
 import type {
-  User, AuthTokens, RoomDetails, RoomMember, RoomSettings,
-  SyncState, ChatMessage, TypingIndicator, PresenceStatus,
+  RoomDetails, RoomMember, RoomSettings,
+  SyncState, ChatMessage, TypingIndicator,
 } from '@anisync/shared';
 
-// ─── Auth Store ───────────────────────────────────────────────
+// ─── Auth Store ────────────────────────────────────────────────
+
+interface UserInfo { username: string; displayName: string; }
 
 interface AuthState {
-  user: User | null;
-  tokens: AuthTokens | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  error: string | null;
-  setAuth: (user: User, tokens: AuthTokens) => void;
-  updateTokens: (tokens: AuthTokens) => void;
+  username: string;
+  user: UserInfo | null;
+  avatar: string;
+  isConnected: boolean;
+  setUser: (username: string, displayName?: string) => void;
+  setDisplayName: (displayName: string) => void;
+  setAvatar: (avatar: string) => void;
+  setConnected: (connected: boolean) => void;
   logout: () => void;
-  setLoading: (loading: boolean) => void;
-  setError: (error: string | null) => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
-  user: null,
-  tokens: null,
-  isAuthenticated: false,
-  isLoading: false,
-  error: null,
-  setAuth: (user, tokens) => {
-    localStorage.setItem('anisync_tokens', JSON.stringify(tokens));
-    set({ user, tokens, isAuthenticated: true, error: null });
+  username: localStorage.getItem('anisync_username') || '',
+  user: (() => {
+    const u = localStorage.getItem('anisync_username');
+    const d = localStorage.getItem('anisync_displayname');
+    return u ? { username: u, displayName: d || u } : null;
+  })(),
+  avatar: localStorage.getItem('anisync_avatar') || '',
+  isConnected: false,
+  setUser: (username, displayName) => {
+    localStorage.setItem('anisync_username', username);
+    const dn = displayName || username;
+    localStorage.setItem('anisync_displayname', dn);
+    set({ username, user: { username, displayName: dn } });
   },
-  updateTokens: (tokens) => {
-    localStorage.setItem('anisync_tokens', JSON.stringify(tokens));
-    set({ tokens });
+  setDisplayName: (displayName) => {
+    localStorage.setItem('anisync_displayname', displayName);
+    set((s) => ({ user: s.user ? { ...s.user, displayName } : { username: s.username, displayName } }));
   },
+  setAvatar: (avatar) => { localStorage.setItem('anisync_avatar', avatar); set({ avatar }); },
+  setConnected: (isConnected) => set({ isConnected }),
   logout: () => {
-    localStorage.removeItem('anisync_tokens');
-    set({ user: null, tokens: null, isAuthenticated: false });
+    localStorage.removeItem('anisync_username');
+    localStorage.removeItem('anisync_displayname');
+    set({ username: '', user: null, isConnected: false });
   },
-  setLoading: (isLoading) => set({ isLoading }),
-  setError: (error) => set({ error }),
 }));
 
 // ─── Room Store ───────────────────────────────────────────────
@@ -95,22 +102,26 @@ export const useRoomStore = create<RoomState>((set, get) => ({
 
 interface SyncStoreState {
   syncState: SyncState | null;
+  currentUrl: string | null;
   isPlayerReady: boolean;
   playerType: string | null;
   isSynced: boolean;
   lastDriftMs: number;
   setSyncState: (state: SyncState) => void;
+  setCurrentUrl: (url: string | null) => void;
   setPlayerReady: (ready: boolean, type?: string) => void;
   setDrift: (driftMs: number) => void;
 }
 
 export const useSyncStore = create<SyncStoreState>((set) => ({
   syncState: null,
+  currentUrl: null,
   isPlayerReady: false,
   playerType: null,
   isSynced: true,
   lastDriftMs: 0,
   setSyncState: (syncState) => set({ syncState }),
+  setCurrentUrl: (currentUrl) => set({ currentUrl }),
   setPlayerReady: (isPlayerReady, playerType) => set({
     isPlayerReady,
     playerType: playerType ?? null,
@@ -169,7 +180,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
 // ─── UI Store ─────────────────────────────────────────────────
 
-export type AppView = 'login' | 'register' | 'lobby' | 'room' | 'profile' | 'friends' | 'discover';
+export type AppView = 'home' | 'login' | 'register' | 'lobby' | 'room' | 'profile' | 'friends' | 'discover';
 
 interface UIState {
   currentView: AppView;
@@ -193,7 +204,7 @@ export interface Toast {
 let toastCounter = 0;
 
 export const useUIStore = create<UIState>((set, get) => ({
-  currentView: 'login',
+  currentView: 'home',
   sidebarOpen: true,
   toasts: [],
   theme: 'dark',
