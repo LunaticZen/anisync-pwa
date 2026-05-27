@@ -164,7 +164,7 @@ export default function RoomPage() {
   }, [currentUrl]);
 
   // ── Mobile: Receive sync events → control anime WebView via bridge ──
-  // FIX: Added drift threshold to prevent micro-seek stuttering
+  // FIX: Drift correction with threshold to prevent micro-seek stuttering
   useEffect(() => {
     if (!isMobile || !currentUrl || !currentRoom) return;
     const socket = getSocket();
@@ -173,14 +173,17 @@ export default function RoomPage() {
     const bridge = (window as any).AniSyncBridge;
     if (!bridge?.controlAnime) return;
 
-    let lastSyncTime = 0; // Prevent rapid re-syncs
+    let lastSyncTime = 0; // Debounce rapid re-syncs
+    let lastHostTime = 0; // Track host's reported time
 
     const onPlay = (d: any) => {
       if (d.originUserId === useAuthStore.getState().username) return;
+      bridge.controlAnime('seek', d.time || 0);
       bridge.controlAnime('play', d.time || 0);
     };
     const onPause = (d: any) => {
       if (d.originUserId === useAuthStore.getState().username) return;
+      bridge.controlAnime('seek', d.time || 0);
       bridge.controlAnime('pause', d.time || 0);
     };
     const onSeek = (d: any) => {
@@ -190,19 +193,25 @@ export default function RoomPage() {
     const onTimecheck = (d: any) => {
       if (d.userId === useAuthStore.getState().username) return;
 
-      // ── DRIFT THRESHOLD FIX ──
-      // Only seek if drift is significant (>3 seconds).
-      // Without this, every 5s timecheck causes a micro-seek that looks like stuttering.
-      // Mobile WebView video time reporting has ~1-2s natural variance.
+      // ── SMART DRIFT CORRECTION ──
+      // Debounce: max 1 correction per 8 seconds to prevent stuttering
       const now = Date.now();
-      if (now - lastSyncTime < 4000) return; // Debounce: max 1 sync per 4s
+      if (now - lastSyncTime < 8000) return;
 
-      // We can't easily read the current video time from the bridge,
-      // so we trust the server's time and only apply corrections for play/pause state.
-      // The drift correction is handled by play/pause/seek events, not timecheck.
-      // Only sync play/pause state, don't seek on every timecheck.
+      // Track host time and estimate drift
+      // If host time jumped significantly (>3s from expected), correct
+      const expectedHostTime = lastHostTime + (now - lastSyncTime) / 1000;
+      const hostDrift = Math.abs(d.time - expectedHostTime);
+      lastHostTime = d.time;
       lastSyncTime = now;
-      // Don't seek here — it causes stuttering. Only correct play/pause state.
+
+      // Only seek if drift is significant (>3 seconds)
+      // This prevents the micro-seek stutter but keeps APK in sync with EXE
+      if (hostDrift > 3) {
+        bridge.controlAnime('seek', d.time || 0);
+      }
+      // Always sync play/pause state
+      if (d.playing) bridge.controlAnime('play', d.time || 0);
     };
 
     socket.on('sync:play', onPlay);
@@ -319,9 +328,15 @@ export default function RoomPage() {
     useSyncStore.getState().setCurrentUrl(url);
   };
 
+  // On mobile with anime loaded, app__main should NOT flex-grow (video is in native WebView)
+  const mobileAnimeActive = isMobile && !!currentUrl;
+
   return (
     <>
-      <div className="app__main" style={{ display: 'flex', flexDirection: 'column' }}>
+      <div className="app__main" style={{
+        display: 'flex', flexDirection: 'column',
+        ...(mobileAnimeActive ? { flex: 'none' } : {}),
+      }}>
         {/* Header */}
         <div className="sync-bar">
           <button className="btn btn--ghost btn--sm" onClick={() => setShowLeaveConfirm(true)}>
@@ -476,9 +491,11 @@ export default function RoomPage() {
 
       {/* Sidebar — only chat now, members moved to popup */}
       <div className="app__sidebar" style={{
-        ...(isPortrait && !isElectron
-          ? { height: sidebarWidth, width: '100%', maxHeight: '70vh', minHeight: 100 }
-          : { width: sidebarWidth, minWidth: 120, maxWidth: '75vw' }),
+        ...(mobileAnimeActive
+          ? { flex: 1, width: '100%', minHeight: 80 }
+          : isPortrait && !isElectron
+            ? { height: sidebarWidth, width: '100%', maxHeight: '70vh', minHeight: 100 }
+            : { width: sidebarWidth, minWidth: 120, maxWidth: '75vw' }),
         flexShrink: 0, display: 'flex', flexDirection: 'column',
       }}>
         <ChatPanel roomId={currentRoom.id} />
