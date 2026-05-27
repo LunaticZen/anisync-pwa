@@ -24,7 +24,6 @@ export default function RoomPage() {
   const resizingRef = useRef(false);
   const animeAreaRef = useRef<HTMLDivElement>(null);
 
-  // Helper: measure anime area and send exact bounds to Electron
   const syncBoundsToElectron = () => {
     if (!isElectron || !animeAreaRef.current) return;
     const rect = animeAreaRef.current.getBoundingClientRect();
@@ -33,7 +32,11 @@ export default function RoomPage() {
 
   if (!currentRoom) return null;
 
-  // ── PC (Electron): Open anime in BrowserView ──
+  // ══════════════════════════════════════════════════════════
+  // SYNC LOGIC — DO NOT MODIFY
+  // ══════════════════════════════════════════════════════════
+
+  // ── PC: Open anime in BrowserView ──
   useEffect(() => {
     if (isElectron && currentUrl) {
       (window as any).anisync.anime.navigate(currentUrl);
@@ -46,7 +49,6 @@ export default function RoomPage() {
     }
   }, [currentUrl]);
 
-  // ── PC (Electron): Keep BrowserView in sync with layout changes ──
   useEffect(() => {
     if (!isElectron) return;
     const ro = new ResizeObserver(() => syncBoundsToElectron());
@@ -55,12 +57,10 @@ export default function RoomPage() {
     return () => { ro.disconnect(); window.removeEventListener('resize', syncBoundsToElectron); };
   }, [animeLoaded]);
 
-  // ── PC (Electron): Track host URL changes → broadcast to room ──
   useEffect(() => {
     if (!isElectron || !currentRoom) return;
     const isHost = currentRoom.hostId === useAuthStore.getState().username;
     if (!isHost) return;
-
     const cleanup = (window as any).anisync.anime.onNavigated((newUrl: string) => {
       const socket = getSocket();
       if (!socket || !currentRoom) return;
@@ -73,12 +73,11 @@ export default function RoomPage() {
     return cleanup;
   }, [currentRoom?.id, currentRoom?.hostId]);
 
-  // ── PC (Electron): Video Sync Bridge (event-driven) ──
+  // ── PC: Video Sync Bridge ──
   useEffect(() => {
     if (!isElectron || !currentUrl || !currentRoom) return;
     const socket = getSocket();
     if (!socket) return;
-
     let ignoreUntil = 0;
     let lastEventTs = 0;
 
@@ -141,7 +140,6 @@ export default function RoomPage() {
     socket.on('sync:pause', onPause);
     socket.on('sync:seek', onSeek);
     socket.on('sync:timecheck', onTimecheck);
-
     return () => {
       clearInterval(eventPoll);
       clearInterval(timecheckPoll);
@@ -152,7 +150,7 @@ export default function RoomPage() {
     };
   }, [currentUrl, currentRoom?.id]);
 
-  // ── Mobile: Open anime in second WebView via native bridge ──
+  // ── Mobile: Open anime via bridge ──
   useEffect(() => {
     if (isMobile && currentUrl) {
       if ((window as any).AniSyncBridge?.openAnime) {
@@ -163,18 +161,16 @@ export default function RoomPage() {
     }
   }, [currentUrl]);
 
-  // ── Mobile: Receive sync events → control anime WebView via bridge ──
-  // FIX: Drift correction with threshold to prevent micro-seek stuttering
+  // ── Mobile: Sync events with drift correction ──
   useEffect(() => {
     if (!isMobile || !currentUrl || !currentRoom) return;
     const socket = getSocket();
     if (!socket) return;
-
     const bridge = (window as any).AniSyncBridge;
     if (!bridge?.controlAnime) return;
 
-    let lastSyncTime = 0; // Debounce rapid re-syncs
-    let lastHostTime = 0; // Track host's reported time
+    let lastSyncTime = 0;
+    let lastHostTime = 0;
 
     const onPlay = (d: any) => {
       if (d.originUserId === useAuthStore.getState().username) return;
@@ -192,25 +188,15 @@ export default function RoomPage() {
     };
     const onTimecheck = (d: any) => {
       if (d.userId === useAuthStore.getState().username) return;
-
-      // ── SMART DRIFT CORRECTION ──
-      // Debounce: max 1 correction per 8 seconds to prevent stuttering
       const now = Date.now();
       if (now - lastSyncTime < 8000) return;
-
-      // Track host time and estimate drift
-      // If host time jumped significantly (>3s from expected), correct
       const expectedHostTime = lastHostTime + (now - lastSyncTime) / 1000;
       const hostDrift = Math.abs(d.time - expectedHostTime);
       lastHostTime = d.time;
       lastSyncTime = now;
-
-      // Only seek if drift is significant (>3 seconds)
-      // This prevents the micro-seek stutter but keeps APK in sync with EXE
       if (hostDrift > 3) {
         bridge.controlAnime('seek', d.time || 0);
       }
-      // Always sync play/pause state
       if (d.playing) bridge.controlAnime('play', d.time || 0);
     };
 
@@ -218,7 +204,6 @@ export default function RoomPage() {
     socket.on('sync:pause', onPause);
     socket.on('sync:seek', onSeek);
     socket.on('sync:timecheck', onTimecheck);
-
     return () => {
       socket.off('sync:play', onPlay);
       socket.off('sync:pause', onPause);
@@ -227,12 +212,11 @@ export default function RoomPage() {
     };
   }, [currentUrl, currentRoom?.id]);
 
-  // ── Mobile: Track host URL changes from Android WebView ──
+  // ── Mobile: Host URL tracking ──
   useEffect(() => {
     if (!isMobile || !currentRoom) return;
     const isHost = currentRoom.hostId === useAuthStore.getState().username;
     if (!isHost) return;
-
     (window as any).__anisyncUrlChanged = (newUrl: string) => {
       const socket = getSocket();
       const current = useSyncStore.getState().currentUrl;
@@ -244,8 +228,13 @@ export default function RoomPage() {
     return () => { delete (window as any).__anisyncUrlChanged; };
   }, [currentRoom?.id, currentRoom?.hostId]);
 
+  // ══════════════════════════════════════════════════════════
+  // UI STATE
+  // ══════════════════════════════════════════════════════════
+
   const [showProfileModal, setShowProfileModal] = useState(false);
   const avatar = useAuthStore(s => s.avatar);
+  const myUsername = useAuthStore(s => s.username);
   const [isPortrait, setIsPortrait] = useState(() => !isElectron && window.innerHeight > window.innerWidth);
 
   useEffect(() => {
@@ -281,7 +270,7 @@ export default function RoomPage() {
     navigator.clipboard?.writeText(currentRoom.code).catch(() => { });
   };
 
-  // ── Sidebar resize handler ──
+  // ── Sidebar resize (desktop & mobile pre-anime) ──
   useEffect(() => {
     const onMove = (clientX: number, clientY: number) => {
       if (!resizingRef.current) return;
@@ -309,13 +298,10 @@ export default function RoomPage() {
     };
   }, [isPortrait]);
 
-  // ── Track URL from BrowserView ──
   useEffect(() => {
     if (!isElectron || !currentUrl) return;
     setDisplayUrl(currentUrl);
-    const cleanup = (window as any).anisync.anime.onNavigated((url: string) => {
-      setDisplayUrl(url);
-    });
+    const cleanup = (window as any).anisync.anime.onNavigated((url: string) => { setDisplayUrl(url); });
     return cleanup;
   }, [currentUrl]);
 
@@ -328,21 +314,93 @@ export default function RoomPage() {
     useSyncStore.getState().setCurrentUrl(url);
   };
 
-  // On mobile with anime loaded, app__main should NOT flex-grow (video is in native WebView)
+  // ══════════════════════════════════════════════════════════
+  // MOBILE + ANIME ACTIVE → Full chat interface (reference design)
+  // ══════════════════════════════════════════════════════════
   const mobileAnimeActive = isMobile && !!currentUrl;
 
+  if (mobileAnimeActive) {
+    return (
+      <div style={{
+        display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw',
+        background: '#0d0d1a', color: '#e2e8f0', fontFamily: 'var(--font-family)',
+      }}>
+        {/* ── Compact Header ── */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          padding: '8px 12px', background: '#13132b',
+          borderBottom: '1px solid rgba(255,255,255,0.06)', flexShrink: 0,
+        }}>
+          <button onClick={() => setShowLeaveConfirm(true)} style={{
+            background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer',
+            padding: 4, display: 'flex',
+          }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
+          </button>
+          <div onClick={() => setShowProfileModal(true)} style={{
+            width: 32, height: 32, borderRadius: '50%', flexShrink: 0, cursor: 'pointer',
+            background: avatar ? `url(${avatar}) center/cover` : 'linear-gradient(135deg, #5b7cff, #a855f7)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 12, fontWeight: 700, color: 'white',
+          }}>
+            {!avatar && (myUsername || '?')[0].toUpperCase()}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontWeight: 700, fontSize: 14, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{currentRoom.name}</div>
+            <div style={{ fontSize: 11, color: '#64748b', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ color: '#22c55e', fontWeight: 600 }}>● CANLI</span>
+              <span onClick={handleCopyCode} style={{ cursor: 'pointer' }}>{currentRoom.code}</span>
+            </div>
+          </div>
+          <button onClick={() => setShowMembers(!showMembers)} style={{
+            background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer',
+            padding: 4, display: 'flex', alignItems: 'center', gap: 4, position: 'relative',
+          }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" />
+              <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
+            </svg>
+            <span style={{ fontSize: 12, fontWeight: 700 }}>{members.length}</span>
+          </button>
+        </div>
+
+        {/* ── Members Popup ── */}
+        {showMembers && <MemberPopup members={members} onClose={() => setShowMembers(false)} />}
+
+        {/* ── Chat Messages ── */}
+        <ChatPanel roomId={currentRoom.id} members={members} />
+
+        {/* ── Leave Confirm ── */}
+        {showLeaveConfirm && (
+          <LeaveConfirmModal
+            roomName={currentRoom.name}
+            onConfirm={handleLeave}
+            onCancel={() => setShowLeaveConfirm(false)}
+          />
+        )}
+
+        {/* ── Profile Modal ── */}
+        {showProfileModal && (
+          <RoomProfileModal onClose={() => {
+            setShowProfileModal(false);
+            if (isElectron && animeLoaded) (window as any).anisync?.anime?.show?.();
+          }} />
+        )}
+      </div>
+    );
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // DESKTOP / MOBILE PRE-ANIME → Standard layout
+  // ══════════════════════════════════════════════════════════
   return (
     <>
-      <div className="app__main" style={{
-        display: 'flex', flexDirection: 'column',
-        ...(mobileAnimeActive ? { flex: 'none' } : {}),
-      }}>
+      <div className="app__main" style={{ display: 'flex', flexDirection: 'column' }}>
         {/* Header */}
         <div className="sync-bar">
           <button className="btn btn--ghost btn--sm" onClick={() => setShowLeaveConfirm(true)}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
           </button>
-          {/* Mini avatar */}
           <div onClick={() => setShowProfileModal(true)} style={{
             width: 32, height: 32, borderRadius: '50%', cursor: 'pointer', flexShrink: 0,
             background: avatar ? `url(${avatar}) center/cover` : 'var(--accent-gradient)',
@@ -350,7 +408,7 @@ export default function RoomPage() {
             fontSize: 12, fontWeight: 700, color: 'white',
             border: '1.5px solid rgba(91,124,255,0.3)',
           }} title="Profil fotoğrafını değiştir">
-            {!avatar && (useAuthStore.getState().username || '?')[0].toUpperCase()}
+            {!avatar && (myUsername || '?')[0].toUpperCase()}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontWeight: 700, fontSize: 15 }}>{currentRoom.name}</div>
@@ -358,44 +416,20 @@ export default function RoomPage() {
               <span onClick={handleCopyCode} style={{ cursor: 'pointer' }}>
                 Kod: <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent-secondary)' }}>{currentRoom.code}</span>
               </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" /></svg>
+                {members.length}/{currentRoom.maxMembers}
+              </span>
             </div>
           </div>
-          {/* Members popup trigger */}
-          <button
-            className="btn btn--ghost btn--sm"
-            onClick={() => setShowMembers(!showMembers)}
-            title="Üyeler"
-            style={{ position: 'relative', padding: '6px 10px' }}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" />
-              <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
-            </svg>
-            <span style={{
-              position: 'absolute', top: 2, right: 2, minWidth: 16, height: 16,
-              borderRadius: 8, background: 'var(--accent-gradient)', fontSize: 10,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: 'white', fontWeight: 700,
-            }}>{members.length}</span>
-          </button>
           {!currentUrl && (
             <button className="btn btn--secondary btn--sm" onClick={() => setShowUrlInput(!showUrlInput)}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3" /></svg>
-              {!isMobile && ' Anime Aç'}
+              Anime Aç
             </button>
           )}
         </div>
 
-        {/* Members Popup */}
-        {showMembers && (
-          <MemberPopup
-            members={members}
-            hostId={currentRoom.hostId}
-            onClose={() => setShowMembers(false)}
-          />
-        )}
-
-        {/* URL Input */}
         {showUrlInput && !currentUrl && (
           <div style={{ padding: '8px 16px', background: 'var(--bg-tertiary)', borderBottom: '1px solid var(--border)', display: 'flex', gap: 8 }}>
             <input className="form-input" value={animeUrl} onChange={e => setAnimeUrl(e.target.value)}
@@ -407,7 +441,6 @@ export default function RoomPage() {
           </div>
         )}
 
-        {/* Browser Nav Bar (PC only) */}
         {isElectron && currentUrl && (
           <div style={{
             height: 32, display: 'flex', alignItems: 'center', gap: 4,
@@ -446,8 +479,10 @@ export default function RoomPage() {
             }}>
               {animeLoaded ? (
                 <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
-                  <p style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="2" width="20" height="20" rx="2.18" /><path d="M7 2v20M17 2v20M2 12h20M2 7h5M2 17h5M17 7h5M17 17h5" /></svg> Anime BrowserView'da açıldı</p>
-                  <p style={{ fontSize: 11, marginTop: 4, color: 'var(--text-muted)', opacity: 0.6 }}>{currentUrl}</p>
+                  <p style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="2" width="20" height="20" rx="2.18" /><path d="M7 2v20M17 2v20M2 12h20M2 7h5M2 17h5M17 7h5M17 17h5" /></svg>
+                    Anime BrowserView'da açıldı
+                  </p>
                 </div>
               ) : (
                 <p style={{ color: 'var(--text-muted)' }}>Yükleniyor...</p>
@@ -476,8 +511,7 @@ export default function RoomPage() {
       </div>
 
       {/* Resize handle */}
-      <div
-        className="resize-handle"
+      <div className="resize-handle"
         onMouseDown={() => { resizingRef.current = true; document.body.style.cursor = isPortrait && !isElectron ? 'ns-resize' : 'ew-resize'; }}
         onTouchStart={() => { resizingRef.current = true; }}
         style={{
@@ -489,42 +523,21 @@ export default function RoomPage() {
         }}
       />
 
-      {/* Sidebar — only chat now, members moved to popup */}
+      {/* Sidebar */}
       <div className="app__sidebar" style={{
-        ...(mobileAnimeActive
-          ? { flex: 1, width: '100%', minHeight: 80 }
-          : isPortrait && !isElectron
-            ? { height: sidebarWidth, width: '100%', maxHeight: '70vh', minHeight: 100 }
-            : { width: sidebarWidth, minWidth: 120, maxWidth: '75vw' }),
+        ...(isPortrait && !isElectron
+          ? { height: sidebarWidth, width: '100%', maxHeight: '70vh', minHeight: 100 }
+          : { width: sidebarWidth, minWidth: 120, maxWidth: '75vw' }),
         flexShrink: 0, display: 'flex', flexDirection: 'column',
       }}>
-        <ChatPanel roomId={currentRoom.id} />
+        <MemberList members={members} hostId={currentRoom.hostId} />
+        <ChatPanel roomId={currentRoom.id} members={members} />
       </div>
 
-      {/* Leave Confirmation Dialog */}
       {showLeaveConfirm && (
-        <div className="modal-overlay" onClick={() => setShowLeaveConfirm(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 340, textAlign: 'center' }}>
-            <div style={{ fontSize: 40, marginBottom: 12 }}>🚪</div>
-            <h3 style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>
-              Odadan Ayrıl
-            </h3>
-            <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 24, lineHeight: 1.5 }}>
-              <strong>{currentRoom.name}</strong> odasından ayrılmak istediğine emin misin?
-            </p>
-            <div style={{ display: 'flex', gap: 12 }}>
-              <button className="btn btn--secondary" style={{ flex: 1 }} onClick={() => setShowLeaveConfirm(false)}>
-                Vazgeç
-              </button>
-              <button className="btn btn--primary" style={{ flex: 1, background: '#ef4444' }} onClick={handleLeave}>
-                Ayrıl
-              </button>
-            </div>
-          </div>
-        </div>
+        <LeaveConfirmModal roomName={currentRoom.name} onConfirm={handleLeave} onCancel={() => setShowLeaveConfirm(false)} />
       )}
 
-      {/* Profile Modal */}
       {showProfileModal && (
         <RoomProfileModal onClose={() => {
           setShowProfileModal(false);
@@ -535,16 +548,15 @@ export default function RoomPage() {
   );
 }
 
-// ─── Web Anime Card ───────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════
+// SUB-COMPONENTS
+// ═══════════════════════════════════════════════════════════
 
+// ─── Web Anime Card ───────────────────────────────────────
 function WebAnimeCard({ url }: { url: string }) {
   const [opened, setOpened] = useState(false);
   const domain = (() => { try { return new URL(url).hostname; } catch { return url; } })();
-
-  useEffect(() => {
-    if (!opened) { window.open(url, '_blank'); setOpened(true); }
-  }, [url]);
-
+  useEffect(() => { if (!opened) { window.open(url, '_blank'); setOpened(true); } }, [url]);
   return (
     <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-primary)', padding: 24 }}>
       <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 16, padding: 32, maxWidth: 400, width: '100%', textAlign: 'center' }}>
@@ -557,52 +569,91 @@ function WebAnimeCard({ url }: { url: string }) {
   );
 }
 
-// ─── Member Popup ─────────────────────────────────────────────
+// ─── Leave Confirm Modal ──────────────────────────────────
+function LeaveConfirmModal({ roomName, onConfirm, onCancel }: { roomName: string; onConfirm: () => void; onCancel: () => void }) {
+  return (
+    <div className="modal-overlay" onClick={onCancel}>
+      <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 340, textAlign: 'center' }}>
+        <div style={{ fontSize: 40, marginBottom: 12 }}>🚪</div>
+        <h3 style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>Odadan Ayrıl</h3>
+        <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 24, lineHeight: 1.5 }}>
+          <strong>{roomName}</strong> odasından ayrılmak istediğine emin misin?
+        </p>
+        <div style={{ display: 'flex', gap: 12 }}>
+          <button className="btn btn--secondary" style={{ flex: 1 }} onClick={onCancel}>Vazgeç</button>
+          <button className="btn btn--primary" style={{ flex: 1, background: '#ef4444' }} onClick={onConfirm}>Ayrıl</button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
-function MemberPopup({ members, hostId: _hostId, onClose }: { members: any[]; hostId: string; onClose: () => void }) {
-  void _hostId; // used for future host-specific styling
+// ─── Member List (Desktop sidebar) ────────────────────────
+function MemberList({ members, hostId }: { members: any[]; hostId: string }) {
+  return (
+    <div className="members">
+      <div className="members__title">ÜYELER — {members.length}</div>
+      {members.map(m => {
+        const name = m.displayName ?? m.username ?? '?';
+        const memberAvatar = m.avatar || null;
+        return (
+          <div key={m.userId} className="member" style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '8px 0' }}>
+            {memberAvatar ? (
+              <img src={memberAvatar} alt="" style={{ width: 42, height: 42, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, boxShadow: '0 0 20px rgba(91,124,255,0.25)' }} />
+            ) : (
+              <div className="member__avatar">{name[0].toUpperCase()}</div>
+            )}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontWeight: 600, fontSize: 14 }}>{name}</span>
+                {m.role === 'host' && <span className="badge badge--primary" style={{ fontSize: 10, padding: '1px 6px' }}>HOST</span>}
+                {m.userId === hostId && <span title="Ekran kontrolü" style={{ fontSize: 13, marginLeft: 2, opacity: 0.7 }}>🎬</span>}
+              </div>
+            </div>
+            <div className={`member__status member__status--${m.presence?.isConnected ? 'online' : 'offline'}`} />
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── Member Popup (Mobile) ────────────────────────────────
+function MemberPopup({ members, onClose }: { members: any[]; onClose: () => void }) {
   return (
     <>
-      {/* Backdrop */}
-      <div onClick={onClose} style={{
-        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-        zIndex: 998,
-      }} />
-      {/* Popup */}
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 998 }} />
       <div style={{
-        position: 'absolute', top: 52, right: 8, zIndex: 999,
-        background: 'var(--bg-card)', border: '1px solid var(--border)',
-        borderRadius: 12, padding: 12, minWidth: 220, maxWidth: 300,
-        boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-        maxHeight: '60vh', overflowY: 'auto',
+        position: 'absolute', top: 48, right: 8, zIndex: 999,
+        background: '#1a1a3e', border: '1px solid rgba(255,255,255,0.08)',
+        borderRadius: 12, padding: '8px 0', minWidth: 200, maxWidth: 280,
+        boxShadow: '0 12px 40px rgba(0,0,0,0.5)',
+        maxHeight: '50vh', overflowY: 'auto',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-          <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: 1 }}>
-            Üyeler — {members.length}
-          </span>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 16, padding: '2px 6px' }}>✕</button>
-        </div>
         {members.map(m => {
           const name = m.displayName ?? m.username ?? '?';
           const memberAvatar = m.avatar || null;
+          const clr = avatarColor(name);
           return (
-            <div key={m.userId} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0' }}>
+            <div key={m.userId} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 14px' }}>
               {memberAvatar ? (
-                <img src={memberAvatar} alt="" style={{ width: 34, height: 34, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                <img src={memberAvatar} alt="" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
               ) : (
                 <div style={{
-                  width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
-                  background: 'var(--accent-gradient)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
+                  background: clr, display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: 13, fontWeight: 700, color: 'white',
                 }}>{name[0].toUpperCase()}</div>
               )}
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ fontWeight: 600, fontSize: 13, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</span>
-                  {m.role === 'host' && <span className="badge badge--primary" style={{ fontSize: 9, padding: '1px 5px' }}>HOST</span>}
-                </div>
+                <div style={{ fontWeight: 600, fontSize: 13 }}>{name}</div>
+                {m.role === 'host' && <span style={{ fontSize: 10, color: '#5b7cff', fontWeight: 700 }}>HOST</span>}
               </div>
-              <div className={`member__status member__status--${m.presence?.isConnected ? 'online' : 'offline'}`} />
+              <div style={{
+                width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
+                background: m.presence?.isConnected ? '#22c55e' : '#475569',
+                boxShadow: m.presence?.isConnected ? '0 0 8px #22c55e' : 'none',
+              }} />
             </div>
           );
         })}
@@ -611,9 +662,8 @@ function MemberPopup({ members, hostId: _hostId, onClose }: { members: any[]; ho
   );
 }
 
-// ─── Chat Panel ───────────────────────────────────────────────
-
-function ChatPanel({ roomId }: { roomId: string }) {
+// ─── Chat Panel (reference design) ────────────────────────
+function ChatPanel({ roomId, members }: { roomId: string; members: any[] }) {
   const { messages, typingUsers } = useChatStore();
   const { username } = useAuthStore();
   const [text, setText] = useState('');
@@ -623,19 +673,11 @@ function ChatPanel({ roomId }: { roomId: string }) {
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
-  // ── Keyboard-aware: scroll input into view when focused ──
   useEffect(() => {
     if (!isMobile) return;
     const input = inputRef.current;
     if (!input) return;
-
-    const handleFocus = () => {
-      // Wait for keyboard to open, then scroll input into view
-      setTimeout(() => {
-        input.scrollIntoView({ behavior: 'smooth', block: 'end' });
-      }, 300);
-    };
-
+    const handleFocus = () => { setTimeout(() => { input.scrollIntoView({ behavior: 'smooth', block: 'end' }); }, 300); };
     input.addEventListener('focus', handleFocus);
     return () => input.removeEventListener('focus', handleFocus);
   }, []);
@@ -660,57 +702,129 @@ function ChatPanel({ roomId }: { roomId: string }) {
   };
 
   const activeTypers = typingUsers.filter(t => t.userId !== username && t.isTyping);
-  const colors = ['#f87171', '#fb923c', '#fbbf24', '#34d399', '#22d3ee', '#818cf8', '#c084fc', '#f472b6'];
-  const nameColor = (n: string) => { let h = 0; for (let i = 0; i < n.length; i++) h = n.charCodeAt(i) + ((h << 5) - h); return colors[Math.abs(h) % colors.length]; };
+
+  // Find member avatar by userId
+  const getMemberAvatar = (userId: string) => {
+    const m = members.find(x => x.userId === userId);
+    return m?.avatar || null;
+  };
 
   return (
-    <div className="chat" style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-      <div className="chat__header" style={{ flexShrink: 0 }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" /></svg> Sohbet
-        </span>
-        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{messages.length} mesaj</span>
+    <div className="chat" style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+      {/* Chat Header */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '10px 14px', borderBottom: '1px solid rgba(255,255,255,0.06)', flexShrink: 0,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" /></svg>
+          <span style={{ fontWeight: 700, fontSize: 14 }}>Sohbet</span>
+        </div>
+        <span style={{ fontSize: 11, color: '#64748b' }}>{messages.length} mesaj</span>
       </div>
-      <div className="chat__messages" style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
-        {messages.length === 0 && <div style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)', fontSize: 13 }}>Henüz mesaj yok</div>}
-        {messages.map(msg => (
-          <div key={msg.id} className={`chat__message ${msg.type === 'system' ? 'chat__message--system' : ''}`}>
-            {msg.type === 'system' ? <span>{msg.text}</span> : (
-              <>
-                <span className="chat__author" style={{ color: msg.userId === username ? 'var(--accent-secondary)' : nameColor(msg.username) }}>{msg.displayName ?? msg.username}</span>
-                <span className="chat__text">{msg.text}</span>
-              </>
-            )}
-          </div>
-        ))}
+
+      {/* Messages */}
+      <div style={{
+        flex: 1, minHeight: 0, overflowY: 'auto', padding: '8px 10px',
+        display: 'flex', flexDirection: 'column', gap: 4,
+        WebkitOverflowScrolling: 'touch' as any,
+      }}>
+        {messages.length === 0 && (
+          <div style={{ textAlign: 'center', padding: 32, color: '#475569', fontSize: 13 }}>Henüz mesaj yok</div>
+        )}
+        {messages.map(msg => {
+          if (msg.type === 'system') {
+            return (
+              <div key={msg.id} style={{ textAlign: 'center', color: '#475569', fontSize: 11, padding: '6px 0' }}>
+                {msg.text}
+              </div>
+            );
+          }
+          const displayName = msg.displayName ?? msg.username;
+          const msgAvatar = getMemberAvatar(msg.userId);
+          const clr = avatarColor(msg.username);
+          const isMe = msg.userId === username;
+          const time = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) : '';
+
+          return (
+            <div key={msg.id} style={{
+              display: 'flex', alignItems: 'flex-start', gap: 10, padding: '6px 4px',
+              borderRadius: 8,
+            }}>
+              {/* Avatar */}
+              {msgAvatar ? (
+                <img src={msgAvatar} alt="" style={{
+                  width: 34, height: 34, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, marginTop: 2,
+                }} />
+              ) : (
+                <div style={{
+                  width: 34, height: 34, borderRadius: '50%', flexShrink: 0, marginTop: 2,
+                  background: clr, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 13, fontWeight: 700, color: 'white',
+                }}>{(displayName || '?')[0].toUpperCase()}</div>
+              )}
+              {/* Content */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                  <span style={{
+                    fontWeight: 700, fontSize: 13,
+                    color: isMe ? '#5b7cff' : avatarColor(msg.username),
+                  }}>{displayName}</span>
+                  {time && <span style={{ fontSize: 10, color: '#475569', marginLeft: 'auto', flexShrink: 0 }}>{time}</span>}
+                </div>
+                <div style={{ fontSize: 13, color: '#cbd5e1', lineHeight: 1.4, wordBreak: 'break-word', marginTop: 1 }}>{msg.text}</div>
+              </div>
+            </div>
+          );
+        })}
         <div ref={endRef} />
       </div>
-      {activeTypers.length > 0 && <div className="chat__typing" style={{ flexShrink: 0 }}>{activeTypers.map(t => t.username).join(', ')} yazıyor...</div>}
-      <div className="chat__input-area" style={{ flexShrink: 0, display: 'flex', gap: 8, padding: '8px 12px', borderTop: '1px solid var(--border)', background: 'var(--bg-secondary)' }}>
+
+      {/* Typing indicator */}
+      {activeTypers.length > 0 && (
+        <div style={{ padding: '4px 14px', fontSize: 11, color: '#64748b', flexShrink: 0 }}>
+          {activeTypers.map(t => t.username).join(', ')} yazıyor...
+        </div>
+      )}
+
+      {/* Input Area — matching reference design */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 8,
+        padding: '8px 10px',
+        paddingBottom: 'max(8px, env(safe-area-inset-bottom, 8px))',
+        borderTop: '1px solid rgba(255,255,255,0.06)',
+        background: '#111128', flexShrink: 0,
+      }}>
         <input
           ref={inputRef}
-          className="chat__input"
           value={text}
           onChange={e => handleTyping(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSend())}
           placeholder="Mesaj yaz..."
           maxLength={500}
-          style={{ flex: 1 }}
+          style={{
+            flex: 1, height: 38, padding: '0 14px',
+            background: '#1a1a3e', border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: 20, color: '#e2e8f0', fontSize: 14,
+            fontFamily: 'inherit', outline: 'none', minWidth: 0,
+          }}
         />
         <button
           onClick={handleSend}
           disabled={!text.trim()}
           style={{
-            background: text.trim() ? 'var(--accent-gradient)' : 'transparent',
-            border: text.trim() ? 'none' : '1px solid var(--border)',
-            color: text.trim() ? 'white' : 'var(--text-muted)',
-            borderRadius: 8, width: 38, height: 38, cursor: text.trim() ? 'pointer' : 'default',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: text.trim() ? '#3b82f6' : '#1e293b',
+            border: 'none', borderRadius: 20,
+            color: text.trim() ? 'white' : '#475569',
+            padding: '8px 16px', fontSize: 13, fontWeight: 700,
+            cursor: text.trim() ? 'pointer' : 'default',
+            display: 'flex', alignItems: 'center', gap: 6,
             flexShrink: 0, transition: 'all 0.2s ease',
+            whiteSpace: 'nowrap',
           }}
-          title="Gönder"
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          Gönder
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" />
           </svg>
         </button>
@@ -719,8 +833,7 @@ function ChatPanel({ roomId }: { roomId: string }) {
   );
 }
 
-// ─── Room Profile Modal ─────────────────────────────────────
-
+// ─── Room Profile Modal ─────────────────────────────────
 function RoomProfileModal({ onClose }: { onClose: () => void }) {
   const { avatar, setAvatar, username } = useAuthStore();
   const [preview, setPreview] = useState(avatar);
@@ -794,4 +907,22 @@ function RoomProfileModal({ onClose }: { onClose: () => void }) {
       </div>
     </div>
   );
+}
+
+// ─── Avatar Color Helper ──────────────────────────────────
+const AVATAR_COLORS = [
+  'linear-gradient(135deg, #667eea, #764ba2)',
+  'linear-gradient(135deg, #f093fb, #f5576c)',
+  'linear-gradient(135deg, #4facfe, #00f2fe)',
+  'linear-gradient(135deg, #43e97b, #38f9d7)',
+  'linear-gradient(135deg, #fa709a, #fee140)',
+  'linear-gradient(135deg, #a18cd1, #fbc2eb)',
+  'linear-gradient(135deg, #fccb90, #d57eeb)',
+  'linear-gradient(135deg, #f6d365, #fda085)',
+];
+
+function avatarColor(name: string): string {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h);
+  return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
 }
