@@ -1,45 +1,56 @@
 # 🎬 AniSync Wiki
 
-> Anime birlikte izleme platformu — Desktop (Electron), Mobile (Android APK), Web (Render.com)
+> Anime birlikte izleme platformu — Gerçek zamanlı senkronizasyon ile arkadaşlarınla anime izle.
 
-## 📋 Proje Özeti
+## Hızlı Linkler
 
-AniSync, kullanıcıların birlikte anime izlemesini sağlayan gerçek zamanlı bir senkronizasyon platformudur. Kullanıcılar oda oluşturur, paylaştıkları anime linklerini senkronize şekilde izler ve sohbet eder.
+| Sayfa | Açıklama |
+|-------|----------|
+| [[Mimari Genel Bakış]] | Sistem mimarisi, veri akışı, karar gerekçeleri |
+| [[Dosya Yapısı]] | Tüm dosyaların konumu ve görevi |
+| [[Teknoloji Stack]] | Kullanılan teknolojiler ve versiyonlar |
+| [[Sunucu (Render Server)]] | Express + Socket.IO sunucu detayları |
+| [[Socket Olayları]] | Tüm WebSocket event'leri ve payload'ları |
+| [[State Management]] | Zustand store'ları ve veri modelleri |
+| [[Mobil (APK)]] | Android WebView uygulaması |
+| [[Masaüstü (EXE)]] | Electron uygulaması |
+| [[Senkronizasyon]] | Video sync mantığı ve drift correction |
+| [[UI Bileşenleri]] | React component'leri ve tasarım |
+| [[Build ve Deploy]] | Derleme, paketleme ve yayınlama |
+| [[Bilinen Sorunlar ve Çözümler]] | Geçmişte karşılaşılan buglar |
 
-## 🗺️ Wiki Haritası
+## Proje Özeti
 
-### Mimari & Yapı
-- [[Mimari Genel Bakış]] — Monorepo yapısı, paketler arası ilişki
-- [[Teknoloji Stack]] — Kullanılan tüm teknolojiler
-- [[Dosya Yapısı]] — Tüm dosya ve klasörlerin listesi
+- **Platform**: Web + Desktop (Electron/EXE) + Mobil (Android/APK)
+- **Sunucu**: Render.com üzerinde Node.js (free tier)
+- **Canlı URL**: https://anisync-server.onrender.com/app
+- **GitHub Repo (Server)**: https://github.com/LunaticZen/anisync-server.git
+- **Proje Dizini**: `C:\Users\emin\.gemini\antigravity\scratch\anisync\`
 
-### Paketler
-- [[Desktop Paketi]] — Electron + React UI (packages/desktop)
-- [[Server Paketi]] — Express + Socket.IO backend (packages/server)
-- [[Render Server]] — Render.com deploy edilen basitleştirilmiş sunucu
-- [[Mobile Paketi]] — Android WebView APK (packages/mobile)
-- [[Shared Paketi]] — Ortak tipler ve sabitler
-- [[Render Adapter]] — Anime sayfalarına enjekte edilen senkronizasyon scripti
+## Nasıl Çalışır?
 
-### State & İletişim
-- [[Zustand Store'ları]] — AuthStore, RoomStore, SyncStore, ChatStore, UIStore
-- [[Socket Olayları]] — Tüm WebSocket event'leri ve payload'ları
-- [[IPC Bridge]] — Electron ve Android WebView köprüsü
+```
+┌──────────┐     WebSocket      ┌──────────────┐     WebSocket      ┌──────────┐
+│  EXE     │◄──────────────────►│  Render.com  │◄──────────────────►│   APK    │
+│ Electron │   Socket.IO        │  server.js   │   Socket.IO        │ WebView  │
+│ +Browser │                    │ Express+CORS │                    │ +Bridge  │
+│  View    │                    └──────────────┘                    └──────────┘
+└──────────┘                          ▲
+                                      │ HTTPS
+                                      │
+                                ┌─────┴──────┐
+                                │  Web Tarayıcı │
+                                │  /app route   │
+                                └──────────────┘
+```
 
-### Build & Deploy
-- [[Build Sistemi]] — full-build.ps1, Vite, Electron Builder, Gradle
-- [[Deploy Süreci]] — Render.com deploy, APK dağıtım
+## Son Durum (28 Mayıs 2026)
 
-### Geliştirme Notları
-- [[Bilinen Sorunlar]] — Açık buglar ve TODO'lar
-- [[Changelog]] — Sürüm geçmişi (v1-v42)
-
-## 🔢 Mevcut Sürüm
-
-**v42** — Son build tarihi: 22 Mayıs 2026
-
-## 🔗 Bağlantılar
-
-- **Render URL**: `https://anisync-server.onrender.com`
-- **GitHub Repo**: `github.com/LunaticZen/anisync-server` (render-server)
-- **Proje Dizini**: `C:\Users\emin\.gemini\antigravity\scratch\anisync`
+- ✅ APK + EXE + Web tamamen çalışıyor
+- ✅ Gerçek zamanlı video senkronizasyonu
+- ✅ Chat sistemi (avatar, typing indicator)
+- ✅ Oda oluşturma/katılma (kod ile)
+- ✅ Mobil UI referans tasarıma uygun
+- ✅ Disconnect grace period (30s)
+- ✅ Auto-rejoin on reconnect
+- ⚠️ Xiaomi siyah ekran fix'i APK rebuild gerektirir

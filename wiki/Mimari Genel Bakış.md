@@ -1,67 +1,123 @@
 # Mimari Genel Bakış
 
-## Monorepo Yapısı
+> AniSync sistem mimarisi, veri akışı ve tasarım kararları.
 
-AniSync bir **npm workspaces** monorepo'dur. Tüm paketler `packages/` altında bulunur.
+## Üst Düzey Mimari
 
-```
-anisync/
-├── packages/
-│   ├── shared/          ← Ortak TypeScript tipleri (@anisync/shared)
-│   ├── server/          ← Tam özellikli backend (Express + Socket.IO + PostgreSQL + Redis)
-│   ├── desktop/         ← Electron + React UI (hem EXE hem web UI)
-│   ├── mobile/          ← Android WebView wrapper (APK)
-│   ├── render-server/   ← Render.com için basitleştirilmiş sunucu (in-memory)
-│   └── render-server-adapter/ ← Anime sayfalarına enjekte edilen JS
-├── full-build.ps1       ← Tek tuşla tam build scripti
-├── version.txt          ← Otomatik artan build numarası
-└── package.json         ← Workspace root
-```
-
-## Paket İlişki Diyagramı
-
-```
-┌──────────────┐     ┌──────────────┐
-│  @anisync/   │     │   render-    │
-│   shared     │◄────│   server     │ (runtime bağımlı değil, tipler ortak)
-│  (types)     │     │  (deploy)    │
-└──────┬───────┘     └──────┬───────┘
-       │                    │
-       ▼                    ▼
-┌──────────────┐     ┌──────────────┐
-│  @anisync/   │     │   render-    │
-│   desktop    │────►│   server-    │
-│ (React+E-)   │     │   adapter    │
-│              │     │  (adapter.js)│
-└──────┬───────┘     └──────────────┘
-       │
-       ▼
-┌──────────────┐
-│   mobile     │ (Android WebView — render-server'ın web UI'ını yükler)
-│   (APK)      │
-└──────────────┘
+```mermaid
+graph TB
+    subgraph "Kullanıcı Cihazları"
+        EXE["🖥️ Electron EXE<br/>BrowserWindow + BrowserView"]
+        APK["📱 Android APK<br/>mainWebView + animeWebView"]
+        WEB["🌐 Web Tarayıcı<br/>Sadece chat + yeni sekme"]
+    end
+    
+    subgraph "Render.com (Free Tier)"
+        SRV["⚡ server.js<br/>Express + Socket.IO<br/>In-Memory State"]
+        STATIC["📁 public/<br/>Vite Build (React)"]
+    end
+    
+    EXE <-->|WebSocket| SRV
+    APK <-->|WebSocket| SRV
+    WEB <-->|WebSocket| SRV
+    APK -->|GET /app| STATIC
+    WEB -->|GET /app| STATIC
 ```
 
-## Aktif Mimari
+## Platform Farkları
 
-Şu an **render-server** aktif kullanımdadır. `packages/server` tam özellikli backend olarak yazılmış ama PostgreSQL/Redis gerektirdiğinden kullanılmıyor. `render-server` tamamen in-memory çalışır.
-
-### İletişim Akışı
-
-1. **Desktop (EXE)**: Electron uygulaması → Gömülü Express sunucu → React UI render eder → Socket.IO ile `render-server`'a bağlanır
-2. **Web (Browser)**: `https://anisync-server.onrender.com` → React UI yüklenir → Aynı sunucuya Socket.IO bağlantısı
-3. **Mobile (APK)**: Android WebView → Render.com URL'sini yükler → `AniSyncBridge` ile native köprü
-4. **Anime Sayfası**: `adapter.js` enjekte edilir → Video element'ini bulur → Socket.IO ile sync yapar
+| Özellik | EXE (Electron) | APK (Android) | Web |
+|---------|----------------|---------------|-----|
+| Video gösterim | BrowserView (ayrı process) | animeWebView (system WebView) | Yeni sekme |
+| UI rendering | BrowserWindow (React) | mainWebView (React) | Tarayıcı (React) |
+| Video kontrolü | Injected JS → IPC → preload | AniSyncBridge (Java ↔ JS) | Yok |
+| Sync gönderme | ✅ Host olarak | ❌ Sadece alır | ❌ |
+| Sync alma | ✅ seek/play/pause | ✅ controlAnime() | ❌ |
+| Offline desteği | ❌ | ❌ | ❌ |
+| Paketleme | electron-builder | Gradle (APK) | Yok (URL) |
 
 ## Veri Akışı
 
+### Anime URL Paylaşımı
 ```
-Kullanıcı Login → connectSocket(username) → Socket.IO bağlantı
-  → room:create/room:join → Oda'ya katılım
-    → sync:url-changed → Anime URL paylaşım (BrowserView / WebView açılır)
-      → sync:play/pause/seek → Video senkronizasyonu
-      → chat:message → Sohbet mesajları
+PC Host anime sitesini açar
+  → BrowserView URL değişir
+  → onNavigated callback tetiklenir
+  → socket.emit('sync:url-changed', { url })
+  → Sunucu: room.currentUrl = url
+  → io.to(roomId).emit('sync:url-changed')
+  → APK: AniSyncBridge.openAnime(url) → animeWebView.loadUrl(url)
+  → Web: useSyncStore.setCurrentUrl(url)
 ```
 
----
-[[Home]] | [[Teknoloji Stack]] | [[Dosya Yapısı]]
+### Video Sync (Play/Pause/Seek)
+```
+PC'de video event oluşur
+  → Injected JS: lastEvent = { type, time, ts }
+  → 500ms poll: anisync.player.getEvent()
+  → socket.emit('sync:play/pause/seek', { time })
+  → Sunucu: room.syncState güncellenir + broadcast
+  → Diğer PC'ler: anisync.player.seek(time) + play/pause()
+  → APK'lar: bridge.controlAnime(action, time)
+```
+
+### Chat
+```
+Kullanıcı mesaj yazar → socket.emit('chat:message', { text })
+  → Sunucu: { id, userId, username, text, timestamp } oluşturur
+  → io.to(roomId).emit('chat:message', msg)
+  → Tüm client'lar: useChatStore.addMessage(msg)
+  → React re-render: ChatPanel güncellenir
+```
+
+## Tasarım Kararları
+
+### Neden iframe değil BrowserView?
+- CORS kısıtlamaları: iframe ile anime siteleri yüklenemez
+- X-Frame-Options: Çoğu site iframe'ı engeller
+- BrowserView: Tam tarayıcı, ayrı process, kısıtlama yok
+
+### Neden tek dosya sunucu?
+- Basitlik: Render.com free tier için ideal
+- Bağımlılık: Sadece express + socket.io + cors
+- Deploy: `git push` ile anında deploy
+- Trade-off: Veritabanı yok, sunucu restart = veri kaybı
+
+### Neden Zustand?
+- Minimal: ~1KB, hiç boilerplate yok
+- React dışından erişim: `useStore.getState()` — socket handler'larda kritik
+- Selector: Fine-grained re-render optimizasyonu
+
+### Neden in-memory state?
+- Free tier PostgreSQL limitleri
+- Oda bilgileri geçici (izleme bitince oda kapanır)
+- Chat geçmişi saklanmasına gerek yok
+- Basitlik ve hız öncelikli
+
+### Neden ayrı git repo (render-server)?
+- Render.com bir repo'ya bağlanır ve o repo'nun root'unu deploy eder
+- Monorepo'da packages/render-server/ alt dizini doğrudan deploy edilemez
+- Ayrı repo = doğrudan push → deploy
+
+## Güvenlik Notları
+
+- **Auth yok**: Sadece username ile giriş (password yok)
+- **CORS**: `origin: '*'` — herkes bağlanabilir
+- **Avatar**: Base64 encoded, client-side resize (128x128)
+- **Chat**: Max 500 karakter, sunucu tarafında trim
+- **Oda kodu**: 6 karakter (26 harf + 8 rakam = ~1.07 milyar kombinasyon)
+
+## Ölçeklendirme Sınırları
+
+- **Max üye/oda**: 10 (sabit kod)
+- **Max oda**: Sınırsız (memory'ye bağlı)
+- **Socket.IO**: Tek instance, horizontal scaling yok
+- **Render.com free**: 512MB RAM, 0.1 CPU
+- **Keep-alive**: 5 dakikada bir self-ping
+
+## İlgili Sayfalar
+
+- [[Teknoloji Stack]] — Kullanılan teknolojiler
+- [[Dosya Yapısı]] — Proje yapısı
+- [[Senkronizasyon]] — Sync detayları
+- [[Socket Olayları]] — Event referansı

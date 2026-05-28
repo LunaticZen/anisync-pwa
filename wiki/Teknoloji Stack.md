@@ -1,69 +1,61 @@
 # Teknoloji Stack
 
-## Frontend (packages/desktop)
+> Kullanılan tüm teknolojiler ve versiyonları.
 
-| Teknoloji | Versiyon | Kullanım |
-|-----------|----------|----------|
-| React | 18.3 | UI framework |
-| TypeScript | 5.4 | Tip güvenliği |
-| Vite | 5.2 | Bundler / dev server |
-| Zustand | 4.5 | State management (5 store) |
-| Socket.IO Client | 4.7.5 | WebSocket iletişimi |
-| Framer Motion | 11.1 | Animasyonlar |
-| Lucide React | 0.378 | İkon seti |
+## Frontend (React)
 
-## Electron (Desktop wrapper)
+| Teknoloji | Versiyon | Amaç |
+|-----------|----------|------|
+| React | ^18.3.0 | UI framework |
+| Vite | ^5.2.0 | Build tool + dev server |
+| TypeScript | ^5.4.0 | Tip güvenliği |
+| Zustand | ^4.5.0 | State management |
+| Socket.IO Client | ^4.7.5 | WebSocket iletişimi |
+| React Router DOM | ^6.23.0 | Routing (şu an kullanılmıyor, view-based) |
+| Framer Motion | ^11.1.0 | Animasyonlar (import var, az kullanılıyor) |
+| Lucide React | ^0.378.0 | İkon seti (import var, SVG inline da kullanılıyor) |
 
-| Teknoloji | Versiyon | Kullanım |
-|-----------|----------|----------|
-| Electron | 30.5.1 | Desktop shell |
-| Electron Builder | 24.13 | Paketleme (.exe) |
-| BrowserView | - | Anime sayfası görüntüleme |
+## Backend (Sunucu)
 
-## Backend (packages/render-server — AKTİF)
+| Teknoloji | Versiyon | Amaç |
+|-----------|----------|------|
+| Node.js | v24+ | Runtime |
+| Express | ^4.19.0 | HTTP sunucu + statik dosya servisi |
+| Socket.IO | ^4.7.5 | WebSocket sunucusu |
+| CORS | ^2.8.5 | Cross-origin izinleri |
 
-| Teknoloji | Versiyon | Kullanım |
-|-----------|----------|----------|
-| Express | 4.x | HTTP sunucu |
-| Socket.IO Server | 4.x | WebSocket sunucu |
-| In-Memory Maps | - | Oda/kullanıcı state'i |
+## Desktop (Electron)
 
-## Backend (packages/server — PASIF, tam sürüm)
+| Teknoloji | Versiyon | Amaç |
+|-----------|----------|------|
+| Electron | 30.5.1 | Desktop uygulama çatısı |
+| Electron Builder | ^24.13.0 | EXE paketleme |
 
-| Teknoloji | Versiyon | Kullanım |
-|-----------|----------|----------|
-| Express | 4.19 | HTTP sunucu |
-| Socket.IO | 4.7.5 | WebSocket sunucu |
-| PostgreSQL | - | Veritabanı |
-| Redis | - | Cache & pub/sub |
-| Prisma | - | ORM |
-| Helmet | - | Güvenlik |
-| Morgan | - | Logging |
+## Mobile (Android)
 
-## Mobile (packages/mobile)
+| Teknoloji | Versiyon | Amaç |
+|-----------|----------|------|
+| Android SDK | API 33+ | Android platform |
+| Gradle | 8.5 | Build sistemi |
+| Java | JDK 17 | Dil |
+| WebView | System | Tarayıcı engine |
 
-| Teknoloji | Versiyon | Kullanım |
-|-----------|----------|----------|
-| Android SDK | 34 | Target API |
-| Gradle | 8.5 | Build tool |
-| WebView | - | UI rendering |
-| AppCompat | 1.6.1 | Uyumluluk |
+## Hosting
 
-## Build Araçları
+| Servis | Plan | Amaç |
+|--------|------|------|
+| Render.com | Free tier | Sunucu hosting |
+| GitHub | Free | Render-server repo |
 
-| Araç | Kullanım |
-|------|----------|
-| PowerShell | Build scriptleri (full-build.ps1) |
-| npm workspaces | Monorepo yönetimi |
-| Git | Versiyon kontrolü / Render deploy |
+## CSS
 
-## Deploy
+- **Vanilla CSS** — Framework yok
+- **CSS Variables** — Dark theme
+- **Google Fonts** — Inter, JetBrains Mono
+- **Responsive** — Media queries + flex layout
 
-| Platform | Kullanım |
-|----------|----------|
-| Render.com | Sunucu hosting (free tier) |
-| GitHub | render-server kaynak kodu |
-| Masaüstü kopyalama | EXE ve APK dağıtımı |
+## İlgili Sayfalar
 
----
-[[Home]] | [[Mimari Genel Bakış]] | [[Dosya Yapısı]]
+- [[Dosya Yapısı]] — Proje yapısı
+- [[Build ve Deploy]] — Derleme
+- [[Mimari Genel Bakış]] — Mimari
