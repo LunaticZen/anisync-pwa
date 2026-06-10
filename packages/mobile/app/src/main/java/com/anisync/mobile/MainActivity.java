@@ -2,6 +2,9 @@ package com.anisync.mobile;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.content.Intent;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
@@ -16,6 +19,7 @@ import android.view.WindowManager;
 import android.webkit.CookieManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.RenderProcessGoneDetail;
+import android.webkit.SslErrorHandler;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
@@ -23,14 +27,22 @@ import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.net.http.SslError;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.webkit.WebSettingsCompat;
+import androidx.webkit.WebViewFeature;
 
 import java.io.ByteArrayInputStream;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 public class MainActivity extends AppCompatActivity {
@@ -42,14 +54,55 @@ public class MainActivity extends AppCompatActivity {
     private WebView mainWebView;
     private WebView animeWebView;
     private LinearLayout rootLayout;
+    private FrameLayout frameContainer; // Reused across rotations to prevent black screen
     private boolean animeVisible = false;
     private ValueCallback<Uri[]> fileUploadCallback;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
+    // ── Fullscreen video tracking (activity-level so onConfigurationChanged can check) ──
+    private View fullscreenCustomView;
+    private WebChromeClient.CustomViewCallback fullscreenCallback;
+
+    // ── Redraw debounce: prevent postDelayed accumulation ──
+    private final Runnable pendingRedraw = () -> {
+        if (animeVisible && animeWebView != null) forceWebViewRedraw(animeWebView);
+        if (mainWebView != null) forceWebViewRedraw(mainWebView);
+    };
+    private final Runnable pendingAnimeRedraw = () -> {
+        if (animeWebView != null && animeVisible) forceWebViewRedraw(animeWebView);
+    };
+
+    // ── Page load counter for memory management ──
+    private int animePageLoadCount = 0;
+
     // Xiaomi / MIUI detection
     private boolean isXiaomiDevice = false;
 
-    private static final Set<String> AD_DOMAINS = new HashSet<>(Arrays.asList(
+    // ── Log Buffer ──
+    private static final int MAX_LOG_ENTRIES = 300;
+    private static final List<String> logBuffer = new ArrayList<>();
+    private static final SimpleDateFormat LOG_TIME_FMT = new SimpleDateFormat("HH:mm:ss.SSS", Locale.US);
+
+    private void appLog(String msg) {
+        String entry = LOG_TIME_FMT.format(new Date()) + " " + msg;
+        synchronized (logBuffer) {
+            logBuffer.add(entry);
+            if (logBuffer.size() > MAX_LOG_ENTRIES) logBuffer.remove(0);
+        }
+        Log.d(TAG, msg);
+    }
+
+    private void appLogError(String msg) {
+        String entry = LOG_TIME_FMT.format(new Date()) + " [ERROR] " + msg;
+        synchronized (logBuffer) {
+            logBuffer.add(entry);
+            if (logBuffer.size() > MAX_LOG_ENTRIES) logBuffer.remove(0);
+        }
+        Log.e(TAG, msg);
+    }
+
+    // ── Ad domain set: used for suffix-based matching ──
+    private static final Set<String> AD_DOMAIN_SUFFIXES = new HashSet<>(Arrays.asList(
             "doubleclick.net", "googlesyndication.com", "googleadservices.com",
             "google-analytics.com", "adservice.google.com",
             "facebook.net", "fbcdn.net",
@@ -78,7 +131,20 @@ public class MainActivity extends AppCompatActivity {
 
         // Detect Xiaomi / MIUI devices
         isXiaomiDevice = detectXiaomi();
-        Log.d(TAG, "Device: " + Build.MANUFACTURER + " " + Build.MODEL + " | Xiaomi: " + isXiaomiDevice);
+        appLog("Device: " + Build.MANUFACTURER + " " + Build.MODEL + " | Xiaomi: " + isXiaomiDevice);
+
+        // ── Start Foreground Service — prevents MIUI from killing network ──
+        try {
+            Intent keepAlive = new Intent(this, KeepAliveService.class);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(keepAlive);
+            } else {
+                startService(keepAlive);
+            }
+            appLog("KeepAliveService started");
+        } catch (Exception e) {
+            appLogError("KeepAliveService start failed: " + e.getMessage());
+        }
 
         rootLayout = new LinearLayout(this);
         rootLayout.setBackgroundColor(0xFF050816);
@@ -97,26 +163,21 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Creates the anime WebView with Xiaomi-optimized settings.
-     * On Xiaomi/MIUI devices:
-     * - Uses SOFTWARE layer type instead of HARDWARE (fixes black screen)
-     * - Disables hardware-accelerated video overlays
-     * - Forces WebView redraw after layout
+     * Creates the anime WebView with video-optimized settings.
+     * Previously used LAYER_TYPE_SOFTWARE on Xiaomi which BROKE video rendering
+     * (video uses hardware-decoded SurfaceView, SOFTWARE mode can't render it).
+     * Now uses LAYER_TYPE_NONE (default) which allows hardware video surfaces.
      */
     private void createAnimeWebView() {
         animeWebView = new WebView(this);
         animeWebView.setBackgroundColor(0xFF000000);
         animeWebView.setVisibility(View.GONE);
 
-        // ── Xiaomi Fix: Use SOFTWARE rendering ──
-        // MIUI's custom WebView implementation has bugs with hardware-accelerated
-        // rendering that cause black screen when loading external URLs.
-        if (isXiaomiDevice) {
-            animeWebView.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
-            Log.d(TAG, "Xiaomi detected — using software rendering for anime WebView");
-        } else {
-            animeWebView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
-        }
+        // Use NONE layer type — allows hardware video surfaces to render
+        // SOFTWARE was causing the black screen because it can't render
+        // hardware-decoded video SurfaceViews
+        animeWebView.setLayerType(View.LAYER_TYPE_NONE, null);
+        appLog("Anime WebView layer: NONE (allows HW video surfaces)");
 
         setupAnimeWebView();
     }
@@ -140,8 +201,20 @@ public class MainActivity extends AppCompatActivity {
         s.setDatabaseEnabled(true);
         s.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
         s.setMediaPlaybackRequiresUserGesture(false);
-        s.setCacheMode(WebSettings.LOAD_DEFAULT);
+        s.setCacheMode(WebSettings.LOAD_NO_CACHE);  // Always fetch latest from server
         s.setAllowFileAccess(true);
+
+        // ── Block MIUI Force Dark Mode injection ──
+        // MIUI injects its own dark theme CSS into WebViews, corrupting our themed UI.
+        // This disables it at the WebView level.
+        try {
+            if (WebViewFeature.isFeatureSupported(WebViewFeature.FORCE_DARK)) {
+                WebSettingsCompat.setForceDark(s, WebSettingsCompat.FORCE_DARK_OFF);
+                appLog("Force Dark Mode disabled for mainWebView");
+            }
+        } catch (Exception e) {
+            appLogError("Force Dark Mode disable failed: " + e.getMessage());
+        }
 
         CookieManager cm = CookieManager.getInstance();
         cm.setAcceptCookie(true);
@@ -162,6 +235,33 @@ public class MainActivity extends AppCompatActivity {
             @JavascriptInterface
             public void controlAnime(String command, double time) {
                 runOnUiThread(() -> executeVideoCommand(command, time));
+            }
+
+            @JavascriptInterface
+            public String getLogs() {
+                StringBuilder sb = new StringBuilder();
+                sb.append("=== AniSync Logs ===").append("\n");
+                sb.append("Device: ").append(Build.MANUFACTURER).append(" ").append(Build.MODEL).append("\n");
+                sb.append("Android: ").append(Build.VERSION.RELEASE).append(" (SDK ").append(Build.VERSION.SDK_INT).append(")\n");
+                sb.append("Xiaomi: ").append(isXiaomiDevice).append("\n");
+                sb.append("===================").append("\n\n");
+                synchronized (logBuffer) {
+                    for (String line : logBuffer) {
+                        sb.append(line).append("\n");
+                    }
+                }
+                return sb.toString();
+            }
+
+            @JavascriptInterface
+            public void copyLogs() {
+                String logs = getLogs();
+                runOnUiThread(() -> {
+                    ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+                    ClipData clip = ClipData.newPlainText("AniSync Logs", logs);
+                    clipboard.setPrimaryClip(clip);
+                    appLog("Logs copied to clipboard (" + logBuffer.size() + " entries)");
+                });
             }
         }, "AniSyncBridge");
 
@@ -288,22 +388,26 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onPageStarted(WebView view, String url, Bitmap favicon) {
                 super.onPageStarted(view, url, favicon);
-                Log.d(TAG, "Anime page loading: " + url);
+                appLog("Anime page loading: " + url);
 
-                // ── Xiaomi Fix: Force WebView to redraw during page load ──
-                if (isXiaomiDevice) {
-                    forceWebViewRedraw(view);
-                }
+                // Force WebView redraw during page load
+                forceWebViewRedraw(view);
             }
 
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
-                Log.d(TAG, "Anime page loaded: " + url);
+                appLog("Anime page loaded: " + url);
 
-                // Inject ad-blocker CSS
+                // Track page loads for periodic memory cleanup
+                animePageLoadCount++;
+
+                // Inject ad-blocker CSS — reuse element by ID to prevent accumulation
                 String adBlockCss = "(function(){" +
+                        "var existing=document.getElementById('anisync-adblock');" +
+                        "if(existing)return;" +
                         "var s=document.createElement('style');" +
+                        "s.id='anisync-adblock';" +
                         "s.textContent='" +
                         "[class*=\"ad-\"],[class*=\"ads-\"],[id*=\"ad-\"],[id*=\"ads-\"]," +
                         "[class*=\"banner\"],[class*=\"popup\"],[class*=\"reklam\"],[id*=\"reklam\"]," +
@@ -317,7 +421,10 @@ public class MainActivity extends AppCompatActivity {
                         "})();";
                 view.evaluateJavascript(adBlockCss, null);
 
+                // Remove popups — use global flag to prevent duplicate listeners
                 String removePopups = "(function(){" +
+                        "if(window.__anisyncPopupBlocked)return;" +
+                        "window.__anisyncPopupBlocked=true;" +
                         "window.open=function(){return null;};" +
                         "document.addEventListener('click',function(e){" +
                         "  var t=e.target;" +
@@ -329,12 +436,53 @@ public class MainActivity extends AppCompatActivity {
                         "})();";
                 view.evaluateJavascript(removePopups, null);
 
-                // ── Xiaomi Fix: Force redraw after page fully loads ──
-                if (isXiaomiDevice) {
-                    // Multiple delayed redraws to handle async content
-                    mainHandler.postDelayed(() -> forceWebViewRedraw(view), 300);
-                    mainHandler.postDelayed(() -> forceWebViewRedraw(view), 1000);
-                    mainHandler.postDelayed(() -> forceWebViewRedraw(view), 3000);
+                // Debounced redraw — cancel previous pending redraws first
+                mainHandler.removeCallbacks(pendingRedraw);
+                mainHandler.removeCallbacks(pendingAnimeRedraw);
+                mainHandler.postDelayed(pendingAnimeRedraw, 500);
+
+                // ── Video letterboxing: disconnect previous MutationObserver before creating new one ──
+                String letterboxJs = "(function(){" +
+                        "if(window.__anisyncOb){window.__anisyncOb.disconnect();window.__anisyncOb=null;}" +
+                        "var existing=document.getElementById('anisync-letterbox');" +
+                        "if(existing)existing.remove();" +
+                        "var s=document.createElement('style');" +
+                        "s.id='anisync-letterbox';" +
+                        "s.textContent='video{object-fit:contain!important;max-width:100%!important;max-height:100%!important;}';" +
+                        "document.head.appendChild(s);" +
+                        "var ob=new MutationObserver(function(){" +
+                        "  var vs=document.querySelectorAll('video');" +
+                        "  vs.forEach(function(v){v.style.objectFit='contain';});" +
+                        "});" +
+                        "window.__anisyncOb=ob;" +
+                        "ob.observe(document.body,{childList:true,subtree:true});" +
+                        "})();";
+                view.evaluateJavascript(letterboxJs, null);
+            }
+
+            // ── VPN/SSL Fix: Proton VPN & Cloudflare WARP re-sign SSL certs ──
+            // Xiaomi WebView silently rejects these modified certs → black screen.
+            // Samsung's WebView is more lenient. For anime content, strict SSL is unnecessary.
+            @Override
+            public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {
+                appLog("SSL error (proceeding): " + error.getPrimaryError() + " url=" + error.getUrl());
+                handler.proceed(); // Accept the VPN-modified certificate
+            }
+
+            // ── Network error handler: log errors and attempt reload for transient failures ──
+            @Override
+            public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
+                appLogError("WebView error [" + errorCode + "]: " + description + " url=" + failingUrl);
+                // Auto-retry once for common VPN-related transient errors
+                if (errorCode == WebViewClient.ERROR_CONNECT ||
+                    errorCode == WebViewClient.ERROR_TIMEOUT ||
+                    errorCode == WebViewClient.ERROR_HOST_LOOKUP) {
+                    appLog("VPN transient error, retrying in 2s...");
+                    mainHandler.postDelayed(() -> {
+                        if (animeVisible && view != null) {
+                            view.reload();
+                        }
+                    }, 2000);
                 }
             }
 
@@ -366,7 +514,7 @@ public class MainActivity extends AppCompatActivity {
             public boolean onRenderProcessGone(WebView view, RenderProcessGoneDetail detail) {
                 // ── WebView crash recovery ──
                 // Xiaomi devices sometimes kill the WebView render process
-                Log.e(TAG, "WebView render process gone! Recreating...");
+                appLogError("WebView render process gone! Recreating...");
                 if (view == animeWebView) {
                     rootLayout.removeView(animeWebView);
                     animeWebView.destroy();
@@ -381,19 +529,15 @@ public class MainActivity extends AppCompatActivity {
         });
 
         animeWebView.setWebChromeClient(new WebChromeClient() {
-            // Allow fullscreen video playback
-            private View customView;
-            private CustomViewCallback customViewCallback;
-
             @Override
             public void onShowCustomView(View view, CustomViewCallback callback) {
-                if (customView != null) {
+                if (fullscreenCustomView != null) {
                     callback.onCustomViewHidden();
                     return;
                 }
-                customView = view;
-                customViewCallback = callback;
-                rootLayout.addView(customView, new FrameLayout.LayoutParams(
+                fullscreenCustomView = view;
+                fullscreenCallback = callback;
+                rootLayout.addView(fullscreenCustomView, new FrameLayout.LayoutParams(
                         FrameLayout.LayoutParams.MATCH_PARENT,
                         FrameLayout.LayoutParams.MATCH_PARENT));
                 mainWebView.setVisibility(View.GONE);
@@ -404,65 +548,63 @@ public class MainActivity extends AppCompatActivity {
                         View.SYSTEM_UI_FLAG_FULLSCREEN |
                         View.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
                         View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
+                appLog("Fullscreen video started");
             }
 
             @Override
             public void onHideCustomView() {
-                if (customView == null) return;
-                rootLayout.removeView(customView);
-                customViewCallback.onCustomViewHidden();
-                customView = null;
-                customViewCallback = null;
+                if (fullscreenCustomView == null) return;
+                rootLayout.removeView(fullscreenCustomView);
+                fullscreenCallback.onCustomViewHidden();
+                fullscreenCustomView = null;
+                fullscreenCallback = null;
                 mainWebView.setVisibility(View.VISIBLE);
                 animeWebView.setVisibility(animeVisible ? View.VISIBLE : View.GONE);
 
                 // Restore system UI
                 getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_VISIBLE);
+                appLog("Fullscreen video ended");
             }
         });
     }
 
     /**
-     * Force WebView to redraw — fixes Xiaomi/MIUI black screen.
-     * Toggles visibility and calls requestLayout+invalidate to force
-     * the rendering pipeline to re-render the WebView surface.
+     * Force WebView to redraw — workaround for rendering glitches.
+     * Uses requestLayout + invalidate which is lighter weight than visibility toggling.
      */
     private void forceWebViewRedraw(WebView view) {
         if (view == null || view.getVisibility() != View.VISIBLE) return;
-
-        // Method 1: Invalidate and request layout
         view.requestLayout();
         view.invalidate();
-
-        // Method 2: Toggle visibility (nuclear option for stubborn MIUI)
-        mainHandler.postDelayed(() -> {
-            if (view.getVisibility() == View.VISIBLE) {
-                view.setVisibility(View.INVISIBLE);
-                mainHandler.postDelayed(() -> {
-                    view.setVisibility(View.VISIBLE);
-                    view.requestLayout();
-                }, 50);
-            }
-        }, 100);
+        // Also poke the WebView via JS to force a repaint
+        view.evaluateJavascript(
+            "(function(){" +
+            "  document.body.style.opacity='0.999';" +
+            "  setTimeout(function(){document.body.style.opacity='1';},50);" +
+            "})()", null);
     }
 
     private void loadAnime(String url) {
-        Log.d(TAG, "Loading anime: " + url);
+        appLog("Loading anime: " + url);
         animeVisible = true;
         animeWebView.setVisibility(View.VISIBLE);
 
-        // ── Xiaomi Fix: Set WebView opaque before loading ──
-        if (isXiaomiDevice) {
-            animeWebView.setBackgroundColor(0xFF000000);
-            // Small delay before loading to let layout settle
-            mainHandler.postDelayed(() -> {
-                animeWebView.loadUrl(url);
-                // Force redraw after load starts
-                mainHandler.postDelayed(() -> forceWebViewRedraw(animeWebView), 500);
-            }, 100);
-        } else {
-            animeWebView.loadUrl(url);
+        // ── Clear previous page resources before loading new URL ──
+        animeWebView.clearHistory();
+
+        // Periodic deeper cleanup every 5 page loads
+        if (animePageLoadCount > 0 && animePageLoadCount % 5 == 0) {
+            animeWebView.clearCache(false); // false = don't delete disk cache files
+            appLog("Periodic WebView cache trim (page load #" + animePageLoadCount + ")");
         }
+
+        // ── Load anime URL ──
+        animeWebView.loadUrl(url);
+
+        // Debounced redraw — cancel any pending ones first
+        mainHandler.removeCallbacks(pendingRedraw);
+        mainHandler.removeCallbacks(pendingAnimeRedraw);
+        mainHandler.postDelayed(pendingAnimeRedraw, 1500);
 
         applyLayout();
     }
@@ -475,58 +617,152 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void applyLayout() {
+        // Detach views from any existing parent first
+        if (mainWebView.getParent() != null) {
+            ((android.view.ViewGroup) mainWebView.getParent()).removeView(mainWebView);
+        }
+        if (animeWebView.getParent() != null) {
+            ((android.view.ViewGroup) animeWebView.getParent()).removeView(animeWebView);
+        }
+        // Remove frameContainer from rootLayout if present
+        if (frameContainer != null && frameContainer.getParent() != null) {
+            ((android.view.ViewGroup) frameContainer.getParent()).removeView(frameContainer);
+        }
         rootLayout.removeAllViews();
+
         boolean isPortrait = getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT;
-        rootLayout.setOrientation(isPortrait ? LinearLayout.VERTICAL : LinearLayout.HORIZONTAL);
 
         if (animeVisible) {
-            LinearLayout.LayoutParams animeParams;
-            LinearLayout.LayoutParams mainParams;
             if (isPortrait) {
-                animeParams = new LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.MATCH_PARENT, 0, 6f);
-                mainParams = new LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.MATCH_PARENT, 0, 4f);
+                // PORTRAIT: Anime top (60%), Main bottom (40%) — vertical stack
+                rootLayout.setOrientation(LinearLayout.VERTICAL);
+                rootLayout.addView(animeWebView, new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT, 0, 6f));
+                mainWebView.setBackgroundColor(0xFF050816);
+                // Reset mainWebView to hardware rendering in portrait
+                mainWebView.setLayerType(View.LAYER_TYPE_NONE, null);
+                rootLayout.addView(mainWebView, new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT, 0, 4f));
             } else {
-                animeParams = new LinearLayout.LayoutParams(
-                        0, LinearLayout.LayoutParams.MATCH_PARENT, 65f);
-                mainParams = new LinearLayout.LayoutParams(
-                        0, LinearLayout.LayoutParams.MATCH_PARENT, 35f);
+                // LANDSCAPE: Anime full screen, Main WebView overlaid (transparent for ticker)
+                rootLayout.setOrientation(LinearLayout.VERTICAL);
+                // Reuse FrameLayout to prevent black screen on rotation
+                if (frameContainer == null) {
+                    frameContainer = new FrameLayout(this);
+                }
+                frameContainer.removeAllViews();
+                frameContainer.addView(animeWebView, new FrameLayout.LayoutParams(
+                        FrameLayout.LayoutParams.MATCH_PARENT,
+                        FrameLayout.LayoutParams.MATCH_PARENT));
+                mainWebView.setBackgroundColor(0x00000000); // Transparent
+                // Xiaomi fix: software-render the transparent overlay WebView
+                // so MIUI compositor can composite it over hardware video surface.
+                // Samsung handles dual-HW-WebView overlay fine, Xiaomi cannot.
+                if (isXiaomiDevice) {
+                    mainWebView.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
+                    appLog("Landscape Xiaomi: mainWebView → SOFTWARE layer");
+                } else {
+                    mainWebView.setLayerType(View.LAYER_TYPE_NONE, null);
+                }
+                frameContainer.addView(mainWebView, new FrameLayout.LayoutParams(
+                        FrameLayout.LayoutParams.MATCH_PARENT,
+                        FrameLayout.LayoutParams.MATCH_PARENT));
+                rootLayout.addView(frameContainer, new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.MATCH_PARENT));
             }
-            rootLayout.addView(animeWebView, animeParams);
-            rootLayout.addView(mainWebView, mainParams);
         } else {
-            LinearLayout.LayoutParams fullParams = new LinearLayout.LayoutParams(
+            rootLayout.setOrientation(LinearLayout.VERTICAL);
+            mainWebView.setBackgroundColor(0xFF050816);
+            // Reset mainWebView to hardware rendering when anime is off
+            mainWebView.setLayerType(View.LAYER_TYPE_NONE, null);
+            rootLayout.addView(mainWebView, new LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
-                    LinearLayout.LayoutParams.MATCH_PARENT);
-            rootLayout.addView(mainWebView, fullParams);
+                    LinearLayout.LayoutParams.MATCH_PARENT));
         }
+
+        // Force layout pass
+        rootLayout.requestLayout();
+        rootLayout.invalidate();
+        // Debounced redraw for slow rendering devices — cancel previous first
+        mainHandler.removeCallbacks(pendingRedraw);
+        mainHandler.postDelayed(pendingRedraw, 300);
     }
 
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
+
+        // ── Skip layout changes during fullscreen video playback ──
+        // applyLayout() calls rootLayout.removeAllViews() which destroys
+        // the fullscreen customView, causing black screen on Xiaomi.
+        if (fullscreenCustomView != null) {
+            appLog("Orientation changed during fullscreen — skipping applyLayout");
+            // Just re-apply immersive flags (they can reset on rotation)
+            getWindow().getDecorView().setSystemUiVisibility(
+                    View.SYSTEM_UI_FLAG_FULLSCREEN |
+                    View.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
+                    View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
+            return;
+        }
+
         applyLayout();
+
+        // Notify web layer of orientation change via JS bridge
+        boolean isPortrait = newConfig.orientation == Configuration.ORIENTATION_PORTRAIT;
+        mainHandler.postDelayed(() -> {
+            if (mainWebView != null) {
+                mainWebView.evaluateJavascript(
+                    "window.__anisyncSetOrientation && window.__anisyncSetOrientation(" + isPortrait + ")",
+                    null);
+            }
+        }, 100);
+
+        // Redraws after orientation change — Xiaomi needs staged redraws
+        // because MIUI compositor wakes up slowly after rotation
+        if (animeVisible) {
+            mainHandler.removeCallbacks(pendingRedraw);
+            mainHandler.removeCallbacks(pendingAnimeRedraw);
+            if (isXiaomiDevice) {
+                // Staged redraws for MIUI compositor
+                mainHandler.postDelayed(pendingRedraw, 200);
+                mainHandler.postDelayed(pendingAnimeRedraw, 600);
+                mainHandler.postDelayed(pendingRedraw, 1200);
+            } else {
+                mainHandler.postDelayed(pendingRedraw, 500);
+            }
+        }
     }
 
+    /**
+     * Optimized ad-domain check using suffix matching instead of O(N) contains loop.
+     * Splits host into domain suffixes and checks HashSet membership.
+     */
     private boolean isAdDomain(String host) {
-        if (host == null)
+        if (host == null || host.isEmpty())
             return false;
-        for (String ad : AD_DOMAINS) {
-            if (host.contains(ad))
+        // Quick prefix checks for common ad patterns
+        if (host.startsWith("ads.") || host.startsWith("ad.") || host.startsWith("tracking."))
+            return true;
+        // Suffix matching: check "host", then "parent.host", etc.
+        String domain = host;
+        while (domain.contains(".")) {
+            if (AD_DOMAIN_SUFFIXES.contains(domain))
                 return true;
+            int dot = domain.indexOf('.');
+            domain = domain.substring(dot + 1);
         }
-        return host.contains("ads.") || host.contains(".ad.") || host.contains("tracking.");
+        return false;
     }
 
     @Override
     public void onBackPressed() {
         if (animeVisible && animeWebView.canGoBack()) {
             animeWebView.goBack();
-        } else if (animeVisible) {
-            hideAnime();
-        } else if (mainWebView.canGoBack()) {
-            mainWebView.goBack();
+        } else if (mainWebView != null) {
+            // Tarayıcı geçmişinde geri gitmek (goBack) siyah ekrana sebep oluyor.
+            // Bunun yerine arayüze özel bir sinyal (Event) gönderiyoruz:
+            mainWebView.evaluateJavascript("window.dispatchEvent(new Event('hardwareBackPress'));", null);
         } else {
             super.onBackPressed();
         }
@@ -540,7 +776,26 @@ public class MainActivity extends AppCompatActivity {
 
         // ── Xiaomi Fix: Force redraw when app returns from background ──
         if (isXiaomiDevice && animeVisible && animeWebView != null) {
-            mainHandler.postDelayed(() -> forceWebViewRedraw(animeWebView), 300);
+            mainHandler.removeCallbacks(pendingAnimeRedraw);
+            mainHandler.postDelayed(pendingAnimeRedraw, 300);
+        }
+
+        // ── Check if room is still active after returning from background ──
+        // If the socket disconnected while in background and the room was lost,
+        // the web layer will have navigated back to home. We need to sync the
+        // native anime WebView state with the web layer.
+        if (animeVisible && mainWebView != null) {
+            mainHandler.postDelayed(() -> {
+                mainWebView.evaluateJavascript(
+                    "(function(){ try { return window.__anisyncRoomActive ? 'active' : 'inactive'; } catch(e) { return 'inactive'; } })()",
+                    result -> {
+                        if (result != null && result.contains("inactive")) {
+                            appLog("Room no longer active after resume, hiding anime");
+                            runOnUiThread(() -> hideAnime());
+                        }
+                    }
+                );
+            }, 1500); // Delay to let socket reconnect first
         }
     }
 
@@ -552,8 +807,33 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onStop() {
+        super.onStop();
+        // When app is being finished (back button or swipe from recents),
+        // force leave room and disconnect socket immediately
+        if (isFinishing() && mainWebView != null) {
+            appLog("App finishing - forcing room leave and socket disconnect");
+            mainWebView.evaluateJavascript(
+                "(function(){" +
+                "  try {" +
+                "    var stores = window.__zustandStores;" +
+                "    if(window.__anisyncForceLeave) window.__anisyncForceLeave();" +
+                "  } catch(e){}" +
+                "})()", null);
+        }
+    }
+
+    @Override
     protected void onDestroy() {
+        // Force leave room via JS before destroying WebViews
         if (mainWebView != null) {
+            appLog("onDestroy - forcing room leave");
+            mainWebView.evaluateJavascript(
+                "(function(){" +
+                "  try { if(window.__anisyncForceLeave) window.__anisyncForceLeave(); } catch(e){}" +
+                "})()", null);
+            // Small delay to let the emit go through before destroying
+            try { Thread.sleep(100); } catch (InterruptedException ignored) {}
             mainWebView.destroy();
             mainWebView = null;
         }
