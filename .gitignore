@@ -14,4 +14,7 @@ packages/desktop/release/
 packages/mobile/app/build/
 packages/mobile/.gradle/
 packages/mobile/.idea/
+packages/mobile/gradle-temp/
 packages/mobile/local.properties
+realesrgan/
+*.zip
