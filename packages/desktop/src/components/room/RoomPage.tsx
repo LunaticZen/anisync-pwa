@@ -291,17 +291,30 @@ export default function RoomPage() {
   // ── Mobile: Track viewport height for keyboard detection ──
   useEffect(() => {
     if (!isMobile) return;
+    
+    // Fallback if visualViewport is unavailable
+    const vv = window.visualViewport;
+    
     const initTimer = setTimeout(() => {
-      initialVpHeight.current = window.innerHeight;
+      initialVpHeight.current = vv ? vv.height : window.innerHeight;
+      setViewportHeight(vv ? vv.height : window.innerHeight);
     }, 500);
+
     const onResize = () => {
-      const h = window.innerHeight;
+      const h = vv ? vv.height : window.innerHeight;
       setViewportHeight(h);
       setIsKeyboardOpen(h < initialVpHeight.current * 0.75);
     };
-    window.addEventListener('resize', onResize);
+
+    if (vv) {
+      vv.addEventListener('resize', onResize);
+    } else {
+      window.addEventListener('resize', onResize);
+    }
+
     return () => {
-      window.removeEventListener('resize', onResize);
+      if (vv) vv.removeEventListener('resize', onResize);
+      else window.removeEventListener('resize', onResize);
       clearTimeout(initTimer);
     };
   }, []);
