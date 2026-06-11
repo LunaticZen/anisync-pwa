@@ -88,6 +88,7 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
   // When keyboard opens, ensure messages are scrolled to bottom
   useEffect(() => {
     if (!messagesRef.current) return;
+    let timer: ReturnType<typeof setTimeout> | undefined;
     if (isKeyboardOpen) {
       // Keyboard opened — scroll immediately
       requestAnimationFrame(() => {
@@ -95,11 +96,13 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
       });
     } else {
       // Keyboard closed — wait for Android dismiss animation (~200ms)
-      const timer = setTimeout(() => {
+      timer = setTimeout(() => {
         endRef.current?.scrollIntoView({ behavior: 'smooth' });
       }, 200);
-      return () => clearTimeout(timer);
     }
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
   }, [isKeyboardOpen]);
 
   useEffect(() => {
@@ -197,7 +200,8 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
           const nextMsg = i < messages.length - 1 ? messages[i + 1] : null;
           
           const isConsecutivePrev = prevMsg && prevMsg.type !== 'system' && prevMsg.userId === msg.userId;
-          const isConsecutiveNext = nextMsg && nextMsg.type !== 'system' && nextMsg.userId === msg.userId;
+          const isConsecutiveNext = (nextMsg && nextMsg.type !== 'system' && nextMsg.userId === msg.userId) ||
+            (i === messages.length - 1 && activeTypers.some(t => t.userId === msg.userId));
 
           const displayName = msg.displayName ?? msg.username;
           const msgAvatar = getMemberAvatar(msg.userId);
@@ -283,19 +287,57 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
         {activeTypers.length > 0 && activeTypers.map((t) => {
           const bubbleBg = activeTheme.isLight ? '#f1f5f9' : (activeTheme.isImage ? 'rgba(0,0,0,0.5)' : '#334155');
           const dotColor = activeTheme.isLight ? '#8E8E93' : 'rgba(255,255,255,0.5)';
-          const marginT = isKeyboardOpen ? 6 : 12;
+          const avaSize = isKeyboardOpen ? 20 : 28;
+          
+          const lastMsg = messages.length > 0 ? messages[messages.length - 1] : null;
+          const isConsecutivePrev = lastMsg && lastMsg.type !== 'system' && lastMsg.userId === t.userId;
+          
+          const marginT = isConsecutivePrev ? 2 : (isKeyboardOpen ? 6 : 12);
+          const typingRadius = isConsecutivePrev ? '4px 18px 18px 18px' : '18px 18px 18px 18px';
+
+          // Find typing user's details
+          const m = members.find(x => x.userId === t.userId);
+          const msgAvatar = m?.avatar || null;
+          const displayName = m?.displayName ?? t.username ?? t.userId;
+          const clr = avatarColor(t.username ?? t.userId);
+
           return (
             <div key={`typing-${t.userId}`} style={{
-              display: 'flex', alignItems: 'flex-end', gap: '8px',
+              display: 'flex',
+              flexDirection: 'row',
+              alignItems: 'flex-end',
+              gap: 8,
               padding: '0 4px',
               marginTop: marginT,
               animation: 'messageSlideIn 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) forwards',
               transformOrigin: 'bottom left',
             }}>
-              <div className="typing-bubble" style={{ background: bubbleBg }}>
-                <div className="typing-dot" style={{ background: dotColor }} />
-                <div className="typing-dot" style={{ background: dotColor }} />
-                <div className="typing-dot" style={{ background: dotColor }} />
+              {/* Avatar for the typing user */}
+              <div style={{ width: avaSize, height: avaSize, flexShrink: 0, transition: 'all 0.2s ease' }}>
+                {msgAvatar ? (
+                  <img src={msgAvatar} alt="" style={{ width: avaSize, height: avaSize, borderRadius: '50%', objectFit: 'cover' }} />
+                ) : (
+                  <div style={{
+                    width: avaSize, height: avaSize, borderRadius: '50%',
+                    background: clr, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: avaSize * 0.4, fontWeight: 700, color: 'white'
+                  }}>{(displayName || '?')[0].toUpperCase()}</div>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                <div className="typing-bubble" style={{
+                  background: bubbleBg,
+                  padding: isKeyboardOpen ? '8px 14px' : '10px 16px',
+                  minHeight: isKeyboardOpen ? 28 : 34,
+                  borderRadius: typingRadius,
+                  boxShadow: activeTheme.isImage ? '0 2px 8px rgba(0,0,0,0.2)' : 'none',
+                  border: `1px solid ${activeTheme.isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)'}`,
+                }}>
+                  <div className="typing-dot" style={{ background: dotColor }} />
+                  <div className="typing-dot" style={{ background: dotColor }} />
+                  <div className="typing-dot" style={{ background: dotColor }} />
+                </div>
               </div>
             </div>
           );
