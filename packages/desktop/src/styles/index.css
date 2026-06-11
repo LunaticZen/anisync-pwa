@@ -1678,16 +1678,17 @@ body {
 .typing-bubble {
     border-radius: 18px;
     border-bottom-left-radius: 4px;
-    padding: 0 16px;
-    height: 36px;
-    display: flex;
+    padding: 12px 18px !important;
+    display: inline-flex;
     align-items: center;
-    gap: 4px;
-    animation: typingBubbleIn 0.25s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    justify-content: center;
+    gap: 6px;
+    height: auto !important;
+    animation: messageSlideIn 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 .typing-dot {
-    width: 6px;
-    height: 6px;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
     animation: typingWave 1.4s infinite ease-in-out;
 }
@@ -1696,7 +1697,7 @@ body {
 .typing-dot:nth-child(3) { animation-delay: 0.3s; }
 
 @keyframes typingWave {
-    0%, 60%, 100% { transform: translateY(0); opacity: 0.6; }
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
     30% { transform: translateY(-4px); opacity: 1; }
 }
 @keyframes typingBubbleIn {

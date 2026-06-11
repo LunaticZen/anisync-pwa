@@ -282,7 +282,7 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
         {/* Typing indicator */}
         {activeTypers.length > 0 && activeTypers.map((t) => {
           const bubbleBg = activeTheme.isLight ? '#f1f5f9' : (activeTheme.isImage ? 'rgba(0,0,0,0.5)' : '#334155');
-          const dotColor = activeTheme.isLight ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.5)';
+          const dotColor = activeTheme.isLight ? '#8E8E93' : 'rgba(255,255,255,0.5)';
           const marginT = isKeyboardOpen ? 6 : 12;
           return (
             <div key={`typing-${t.userId}`} style={{
@@ -292,7 +292,7 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
               animation: 'messageSlideIn 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) forwards',
               transformOrigin: 'bottom left',
             }}>
-              <div className="typing-bubble" style={{ background: bubbleBg, padding: isKeyboardOpen ? '6px 12px' : '8px 14px' }}>
+              <div className="typing-bubble" style={{ background: bubbleBg }}>
                 <div className="typing-dot" style={{ background: dotColor }} />
                 <div className="typing-dot" style={{ background: dotColor }} />
                 <div className="typing-dot" style={{ background: dotColor }} />
