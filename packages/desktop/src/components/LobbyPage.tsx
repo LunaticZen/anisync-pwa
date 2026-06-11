@@ -15,6 +15,20 @@ export default function LobbyPage() {
   const [publicRooms, setPublicRooms] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Reactive bridge detection — Samsung WebView sometimes delays interface exposure
+  const [hasBridge, setHasBridge] = useState(() => typeof (window as any).AniSyncBridge !== 'undefined');
+  useEffect(() => {
+    if (hasBridge) return;
+    const check = setInterval(() => {
+      if (typeof (window as any).AniSyncBridge !== 'undefined') {
+        setHasBridge(true);
+        clearInterval(check);
+      }
+    }, 500);
+    const stop = setTimeout(() => clearInterval(check), 10000);
+    return () => { clearInterval(check); clearTimeout(stop); };
+  }, [hasBridge]);
+
   useEffect(() => {
     loadPublicRooms();
   }, []);
@@ -63,6 +77,21 @@ export default function LobbyPage() {
             </div>
           </div>
           <div className="lobby__actions">
+            {/* Log copy button — only on APK */}
+            {/* Log copy button — only on APK */}
+            {hasBridge && (
+              <button className="btn btn--ghost btn--sm" onClick={() => {
+                try {
+                  (window as any).AniSyncBridge.copyLogs();
+                  useUIStore.getState().addToast({ type: 'success', title: 'APK logları kopyalandı', message: 'Panoya yapıştırabilirsin' });
+                } catch(e) {
+                  useUIStore.getState().addToast({ type: 'error', title: 'Hata', message: 'Loglar kopyalanamadı' });
+                }
+              }} title="APK hata loglarını kopyala" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
+                Loglar
+              </button>
+            )}
             <button className="btn btn--secondary btn--sm" onClick={handleLogout}>Çıkış</button>
             <button className="btn btn--secondary" onClick={() => setShowJoin(true)}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3" /></svg>
@@ -114,22 +143,51 @@ export default function LobbyPage() {
 // ─── Room Card ────────────────────────────────────────────────
 
 function RoomCard({ room }: { room: any }) {
+  const [joining, setJoining] = useState(false);
+
   const handleJoin = () => {
     const socket = getSocket();
-    if (!socket) return;
-    socket.emit('room:join', { code: room.code }, (res) => {
-      if (res.success && res.room) {
+    if (!socket || joining) return;
+    setJoining(true);
+
+    // Timeout protection: Xiaomi WebView sometimes drops socket.emit callbacks
+    let responded = false;
+    const timeout = setTimeout(() => {
+      if (!responded) {
+        responded = true;
+        setJoining(false);
+        useUIStore.getState().addToast({
+          type: 'warning',
+          title: 'Bağlantı yavaş',
+          message: `Yanıt alınamadı. Oda kodu ile dene: ${room.code}`,
+          duration: 8000,
+        });
+      }
+    }, 8000);
+
+    socket.emit('room:join', { code: room.code }, (res: any) => {
+      if (responded) return; // Already timed out
+      responded = true;
+      clearTimeout(timeout);
+      setJoining(false);
+
+      if (res?.success && res?.room) {
         useRoomStore.getState().setRoom(res.room);
         if (res.syncState) useSyncStore.getState().setSyncState(res.syncState);
+        if (res.currentUrl) useSyncStore.getState().setCurrentUrl(res.currentUrl);
         useUIStore.getState().setView('room');
       } else {
-        useUIStore.getState().addToast({ type: 'error', title: 'Katılma başarısız', message: res.error });
+        useUIStore.getState().addToast({
+          type: 'error',
+          title: 'Katılma başarısız',
+          message: res?.error || `Oda kodu ile dene: ${room.code}`,
+        });
       }
     });
   };
 
   return (
-    <div className="room-card" onClick={handleJoin}>
+    <div className="room-card" onClick={handleJoin} style={{ opacity: joining ? 0.6 : 1, pointerEvents: joining ? 'none' : 'auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
         <div className="room-card__name">{room.name}</div>
         <span className={`room-card__badge room-card__badge--${room.isPublic ? 'public' : 'private'}`}>
@@ -143,6 +201,11 @@ function RoomCard({ room }: { room: any }) {
       {room.hostName && (
         <div style={{ marginTop: 8, fontSize: 12, color: 'var(--text-muted)' }}>
           Host: {room.hostName}
+        </div>
+      )}
+      {joining && (
+        <div style={{ marginTop: 6, fontSize: 11, color: 'var(--accent-primary)', display: 'flex', alignItems: 'center', gap: 4 }}>
+          <span className="spinner" style={{ width: 12, height: 12 }} /> Katılınıyor...
         </div>
       )}
     </div>

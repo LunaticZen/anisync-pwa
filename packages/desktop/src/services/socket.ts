@@ -58,12 +58,19 @@ export async function warmUpServer(): Promise<boolean> {
 }
 
 export function connectSocket(username: string): TypedSocket {
-  if (socket?.connected) return socket;
+  // Clean up old socket before creating new one
+  if (socket) {
+    socket.removeAllListeners();
+    if (socket.connected) socket.disconnect();
+    socket = null;
+  }
 
   const avatar = useAuthStore.getState().avatar || null;
+  const accessCode = useAuthStore.getState().accessCode || '';
 
   socket = io(getServerUrl(), {
-    auth: { username, avatar },
+    auth: { username, avatar, accessCode },
+    forceNew: true,
     reconnection: true,
     reconnectionDelay: 1000,
     reconnectionDelayMax: 10000,
@@ -97,6 +104,9 @@ export function connectSocket(username: string): TypedSocket {
           useRoomStore.getState().leaveRoom();
           useChatStore.getState().clear();
           useSyncStore.getState().setCurrentUrl(null);
+          // Close anime on native side
+          if ((window as any).AniSyncBridge?.closeAnime) (window as any).AniSyncBridge.closeAnime();
+          if ((window as any).anisync?.anime?.close) (window as any).anisync.anime.close();
           useUIStore.getState().setView('home');
           useUIStore.getState().addToast({ type: 'info', title: 'Oda kapandı', message: 'Bağlantı koptuğunda oda kapanmış' });
         }
@@ -114,6 +124,14 @@ export function connectSocket(username: string): TypedSocket {
 
   socket.on('connect_error', (err) => {
     console.error('[WS] Connection error:', err.message);
+    if (err.message === 'INVALID_ACCESS_CODE') {
+      useAuthStore.getState().setAccessCode('');
+      useAuthStore.getState().setConnected(false);
+      useUIStore.getState().setView('access');
+      useUIStore.getState().addToast({ type: 'error', title: 'Erişim Reddedildi', message: 'Geçersiz davetiye kodu' });
+      // Stop reconnection attempts for invalid code
+      socket?.disconnect();
+    }
   });
 
   // ── Room Events ──
@@ -162,6 +180,10 @@ export function connectSocket(username: string): TypedSocket {
     if (data.userId === myName) {
       useRoomStore.getState().leaveRoom();
       useChatStore.getState().clear();
+      useSyncStore.getState().setCurrentUrl(null);
+      // Close anime on native side
+      if ((window as any).AniSyncBridge?.closeAnime) (window as any).AniSyncBridge.closeAnime();
+      if ((window as any).anisync?.anime?.close) (window as any).anisync.anime.close();
       useUIStore.getState().setView('home');
       useUIStore.getState().addToast({ type: 'error', title: 'Odadan atıldınız' });
     } else {
@@ -172,6 +194,10 @@ export function connectSocket(username: string): TypedSocket {
   socket.on('room:closed', (data) => {
     useRoomStore.getState().leaveRoom();
     useChatStore.getState().clear();
+    useSyncStore.getState().setCurrentUrl(null);
+    // Close anime on native side
+    if ((window as any).AniSyncBridge?.closeAnime) (window as any).AniSyncBridge.closeAnime();
+    if ((window as any).anisync?.anime?.close) (window as any).anisync.anime.close();
     useUIStore.getState().setView('home');
     useUIStore.getState().addToast({ type: 'info', title: 'Oda kapandı', message: data.reason });
   });
@@ -240,15 +266,71 @@ export function connectSocket(username: string): TypedSocket {
   socket.on('chat:typing', (data) => useChatStore.getState().setTyping(data));
   socket.on('chat:deleted', (data) => useChatStore.getState().removeMessage(data.messageId));
 
+  // ── Join Approval Events ──
+  (socket as any).on('room:join-request', (data: any) => {
+    useRoomStore.getState().addPendingRequest({
+      userId: data.userId, username: data.username, avatar: data.avatar || null,
+      roomId: data.roomId, timestamp: data.timestamp,
+    });
+    useUIStore.getState().addToast({ type: 'info', title: 'Katılma isteği', message: `${data.username} odaya katılmak istiyor` });
+  });
+  (socket as any).on('room:request-cancelled', (data: any) => {
+    useRoomStore.getState().removePendingRequest(data.userId);
+  });
+  (socket as any).on('room:join-approved', (data: any) => {
+    useRoomStore.getState().setRoom(data.room);
+    if (data.syncState) useSyncStore.getState().setSyncState(data.syncState);
+    if (data.currentUrl) useSyncStore.getState().setCurrentUrl(data.currentUrl);
+    useUIStore.getState().setView('room');
+    useUIStore.getState().addToast({ type: 'success', title: 'Onaylandı!', message: 'Odaya katıldın' });
+  });
+  (socket as any).on('room:join-rejected', (data: any) => {
+    useUIStore.getState().addToast({ type: 'error', title: 'Reddedildi', message: data.reason || 'Katılma isteği reddedildi' });
+  });
+
   // ── Error ──
   socket.on('error', (data) => {
     useUIStore.getState().addToast({ type: 'error', title: 'Hata', message: data.message });
   });
 
+  // ── Room Theme ──
+  (socket as any).on('room:theme-changed', (data: any) => {
+    useRoomStore.getState().setTheme(data.themeId);
+  });
+
+  // ── Force Leave: called by Android native on app close ──
+  (window as any).__anisyncForceLeave = () => {
+    const room = useRoomStore.getState().currentRoom;
+    if (room && socket?.connected) {
+      console.log('[WS] Force leaving room on app close:', room.name);
+      socket.emit('room:leave', { roomId: room.id });
+    }
+    if (socket?.connected) {
+      socket.disconnect();
+    }
+  };
+
+  // ── Page unload: emit leave before page closes ──
+  const onPageHide = () => {
+    const room = useRoomStore.getState().currentRoom;
+    if (room && socket?.connected) {
+      console.log('[WS] Page hide — force leaving room');
+      socket.emit('room:leave', { roomId: room.id });
+      socket.disconnect();
+    }
+  };
+  window.addEventListener('pagehide', onPageHide);
+  window.addEventListener('beforeunload', onPageHide);
+
   return socket;
 }
 
 export function disconnectSocket(): void {
+  // Also force leave room before disconnecting
+  const room = useRoomStore.getState().currentRoom;
+  if (room && socket?.connected) {
+    socket.emit('room:leave', { roomId: room.id });
+  }
   socket?.disconnect();
   socket = null;
 }

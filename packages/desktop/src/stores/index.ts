@@ -17,10 +17,12 @@ interface AuthState {
   username: string;
   user: UserInfo | null;
   avatar: string;
+  accessCode: string;
   isConnected: boolean;
   setUser: (username: string, displayName?: string) => void;
   setDisplayName: (displayName: string) => void;
   setAvatar: (avatar: string) => void;
+  setAccessCode: (code: string) => void;
   setConnected: (connected: boolean) => void;
   logout: () => void;
 }
@@ -33,6 +35,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     return u ? { username: u, displayName: d || u } : null;
   })(),
   avatar: localStorage.getItem('anisync_avatar') || '',
+  accessCode: localStorage.getItem('anisync_access_code') || '',
   isConnected: false,
   setUser: (username, displayName) => {
     localStorage.setItem('anisync_username', username);
@@ -45,6 +48,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     set((s) => ({ user: s.user ? { ...s.user, displayName } : { username: s.username, displayName } }));
   },
   setAvatar: (avatar) => { localStorage.setItem('anisync_avatar', avatar); set({ avatar }); },
+  setAccessCode: (code) => { localStorage.setItem('anisync_access_code', code); set({ accessCode: code }); },
   setConnected: (isConnected) => set({ isConnected }),
   logout: () => {
     localStorage.removeItem('anisync_username');
@@ -55,32 +59,49 @@ export const useAuthStore = create<AuthState>((set) => ({
 
 // ─── Room Store ───────────────────────────────────────────────
 
+interface PendingJoinRequest {
+  userId: string;
+  username: string;
+  avatar: string | null;
+  roomId: string;
+  timestamp: number;
+}
+
 interface RoomState {
   currentRoom: RoomDetails | null;
   members: RoomMember[];
   settings: RoomSettings | null;
+  theme: string;
   isJoining: boolean;
   error: string | null;
+  pendingJoinRequests: PendingJoinRequest[];
   setRoom: (room: RoomDetails) => void;
   updateMembers: (members: RoomMember[]) => void;
   addMember: (member: RoomMember) => void;
   removeMember: (userId: string) => void;
   updateSettings: (settings: Partial<RoomSettings>) => void;
+  setTheme: (theme: string) => void;
   leaveRoom: () => void;
   setJoining: (joining: boolean) => void;
   setError: (error: string | null) => void;
+  addPendingRequest: (req: PendingJoinRequest) => void;
+  removePendingRequest: (userId: string) => void;
+  clearPendingRequests: () => void;
 }
 
 export const useRoomStore = create<RoomState>((set, get) => ({
   currentRoom: null,
   members: [],
   settings: null,
+  theme: 'night',
   isJoining: false,
   error: null,
+  pendingJoinRequests: [],
   setRoom: (room) => set({
     currentRoom: room,
     members: room.members ?? [],
     settings: room.settings ?? null,
+    theme: (room as any).theme || 'night',
     error: null,
   }),
   updateMembers: (members) => set({ members }),
@@ -91,11 +112,19 @@ export const useRoomStore = create<RoomState>((set, get) => ({
   updateSettings: (updates) => set({
     settings: { ...get().settings!, ...updates },
   }),
+  setTheme: (theme) => set({ theme }),
   leaveRoom: () => set({
-    currentRoom: null, members: [], settings: null, error: null,
+    currentRoom: null, members: [], settings: null, theme: 'night', error: null, pendingJoinRequests: [],
   }),
   setJoining: (isJoining) => set({ isJoining }),
   setError: (error) => set({ error }),
+  addPendingRequest: (req) => set({
+    pendingJoinRequests: [...get().pendingJoinRequests.filter(r => r.userId !== req.userId), req],
+  }),
+  removePendingRequest: (userId) => set({
+    pendingJoinRequests: get().pendingJoinRequests.filter(r => r.userId !== userId),
+  }),
+  clearPendingRequests: () => set({ pendingJoinRequests: [] }),
 }));
 
 // ─── Sync Store ───────────────────────────────────────────────
@@ -134,6 +163,10 @@ export const useSyncStore = create<SyncStoreState>((set) => ({
 
 // ─── Chat Store ───────────────────────────────────────────────
 
+// Mobile detection for memory-conscious limits
+const _isMobileDevice = typeof navigator !== 'undefined' && /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);
+const MAX_CHAT_MESSAGES = _isMobileDevice ? 100 : 200;
+
 interface ChatState {
   messages: ChatMessage[];
   typingUsers: TypingIndicator[];
@@ -157,7 +190,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   addMessage: (message) => {
     const { messages, isOpen } = get();
     set({
-      messages: [...messages.slice(-200), message], // Keep last 200
+      messages: [...messages.slice(-MAX_CHAT_MESSAGES), message],
       unreadCount: isOpen ? 0 : get().unreadCount + 1,
     });
   },
@@ -166,8 +199,12 @@ export const useChatStore = create<ChatState>((set, get) => ({
     messages: get().messages.filter(m => m.id !== messageId),
   }),
   setTyping: (indicator) => {
-    const current = get().typingUsers.filter(t => t.userId !== indicator.userId);
-    if (indicator.isTyping) current.push(indicator);
+    // Clean stale typing indicators (>10s old) to prevent phantom "typing..." states
+    const now = Date.now();
+    const current = get().typingUsers.filter(t =>
+      t.userId !== indicator.userId && (!((t as any)._ts) || now - (t as any)._ts < 10000)
+    );
+    if (indicator.isTyping) current.push({ ...indicator, _ts: now } as any);
     set({ typingUsers: current });
   },
   clearTyping: (userId) => set({
@@ -180,7 +217,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
 // ─── UI Store ─────────────────────────────────────────────────
 
-export type AppView = 'home' | 'login' | 'register' | 'lobby' | 'room' | 'profile' | 'friends' | 'discover';
+export type AppView = 'home' | 'login' | 'register' | 'lobby' | 'room' | 'profile' | 'friends' | 'discover' | 'access';
 
 interface UIState {
   currentView: AppView;
