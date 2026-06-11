@@ -363,6 +363,17 @@ electron_1.ipcMain.handle('anime:setBounds', (_e, rect) => {
         return;
     updateAnimeViewBounds();
 });
+electron_1.ipcMain.handle('anime:hide', () => {
+    if (mainWindow && animeView) {
+        mainWindow.removeBrowserView(animeView);
+    }
+});
+electron_1.ipcMain.handle('anime:show', () => {
+    if (mainWindow && animeView) {
+        mainWindow.addBrowserView(animeView);
+        updateAnimeViewBounds();
+    }
+});
 electron_1.ipcMain.handle('player:command', async (_e, cmd, ...args) => {
     console.log('[AniSync] Player command:', cmd, args);
     return await execVideo(`window.__anisync_api?.${cmd}(${args.map((a) => JSON.stringify(a)).join(',')})`);

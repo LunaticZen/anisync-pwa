@@ -11,3 +11,7 @@ coverage/
 packages/server/prisma/*.db
 packages/desktop/out/
 packages/desktop/release/
+packages/mobile/app/build/
+packages/mobile/.gradle/
+packages/mobile/.idea/
+packages/mobile/local.properties

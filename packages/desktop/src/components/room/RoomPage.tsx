@@ -645,8 +645,8 @@ export default function RoomPage() {
     return (
       <div style={{
         display: 'flex', flexDirection: 'column',
-        height: viewportHeight,
-        width: '100vw',
+        height: '100%',
+        width: '100%',
         background: activeTheme.isImage ? '#050816' : activeTheme.bg,
         color: activeTheme.textColor,
         fontFamily: 'var(--font-family)',
