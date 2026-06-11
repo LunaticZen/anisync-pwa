@@ -279,25 +279,20 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
           );
         })}
 
-        {/* Typing indicator (moved inside the chat list like SecretChat) */}
+        {/* Typing indicator */}
         {activeTypers.length > 0 && activeTypers.map((t) => {
-          const avatar = getMemberAvatar(t.userId);
           const bubbleBg = activeTheme.isLight ? '#f1f5f9' : (activeTheme.isImage ? 'rgba(0,0,0,0.5)' : '#334155');
           const dotColor = activeTheme.isLight ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.5)';
+          const marginT = isKeyboardOpen ? 6 : 12;
           return (
             <div key={`typing-${t.userId}`} style={{
               display: 'flex', alignItems: 'flex-end', gap: '8px',
-              padding: '2px 4px 6px',
+              padding: '0 4px',
+              marginTop: marginT,
+              animation: 'messageSlideIn 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) forwards',
+              transformOrigin: 'bottom left',
             }}>
-              <div style={{
-                width: 28, height: 28, borderRadius: '50%',
-                background: avatar ? `url(${avatar}) center/cover` : activeTheme.accent,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: '#fff', fontSize: 11, fontWeight: 600, flexShrink: 0,
-              }}>
-                {!avatar && t.username.substring(0, 2).toUpperCase()}
-              </div>
-              <div className="typing-bubble" style={{ background: bubbleBg }}>
+              <div className="typing-bubble" style={{ background: bubbleBg, padding: isKeyboardOpen ? '6px 12px' : '8px 14px' }}>
                 <div className="typing-dot" style={{ background: dotColor }} />
                 <div className="typing-dot" style={{ background: dotColor }} />
                 <div className="typing-dot" style={{ background: dotColor }} />
