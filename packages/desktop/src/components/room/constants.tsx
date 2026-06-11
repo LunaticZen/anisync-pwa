@@ -166,7 +166,7 @@ export function getTheme(id: string): ResolvedTheme {
       accent: imgTheme.accentColor,
       isLight: imgTheme.isLight,
       isImage: true,
-      image: imgTheme.image,
+      image: isElectron ? imgTheme.image.replace('./themes/', './themes_4k/') : imgTheme.image,
       glassColor: imgTheme.glassColor,
       textColor: imgTheme.textColor,
       menuBg: imgTheme.menuBg,
