@@ -225,7 +225,7 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
               position: 'absolute',
               top: '50%',
               transform: `translate(0px, -50%) scale(0)`,
-              [isMe ? 'right' : 'left']: isMe ? -24 : -24,
+              [isMe ? 'right' : 'left']: 0,
               opacity: 0,
               width: 28, height: 28,
               borderRadius: '50%',
