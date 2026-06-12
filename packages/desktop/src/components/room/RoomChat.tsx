@@ -73,27 +73,94 @@ function ChatTicker({ tickerItems, onRemoveTickerItem }: {
 
 // ─── Swipable Message Component ─────────────────────────────
 function SwipableMessage({ msg, i, username, members, messages, activeTypers, isKeyboardOpen, activeTheme, onReply }: any) {
-  const [swipeX, setSwipeX] = useState(0);
-  const startX = useRef<number | null>(null);
   const isMe = msg.userId === username;
+  
+  const bubbleRef = useRef<HTMLDivElement>(null);
+  const iconRef = useRef<HTMLDivElement>(null);
+  const startX = useRef<number>(0);
+  const startY = useRef<number>(0);
+  const currentX = useRef<number>(0);
+  const swiping = useRef<boolean>(false);
+  const locked = useRef<boolean>(false);
 
-  const handleStart = (clientX: number) => { startX.current = clientX; };
-  const handleMove = (clientX: number) => {
-    if (startX.current === null) return;
-    const diff = clientX - startX.current;
-    if (isMe) {
-      if (diff < 0 && diff > -80) setSwipeX(diff);
-    } else {
-      if (diff > 0 && diff < 80) setSwipeX(diff);
-    }
+  const handleStart = (clientX: number, clientY: number) => {
+    startX.current = clientX;
+    startY.current = clientY;
+    currentX.current = clientX;
+    swiping.current = false;
+    locked.current = false;
   };
+
+  const handleMove = (clientX: number, clientY: number) => {
+    if (!bubbleRef.current || !iconRef.current) return;
+    const diffX = clientX - startX.current;
+    const diffY = clientY - startY.current;
+
+    if (!locked.current) {
+      if (Math.abs(diffX) > 8 || Math.abs(diffY) > 8) {
+        locked.current = true;
+        if (Math.abs(diffY) > Math.abs(diffX)) {
+          swiping.current = false;
+          return;
+        }
+        swiping.current = true;
+        bubbleRef.current.style.transition = 'none';
+        iconRef.current.style.transition = 'none';
+      }
+      return;
+    }
+
+    if (!swiping.current) return;
+    currentX.current = clientX;
+
+    let rawDiff = isMe ? (startX.current - currentX.current) : (currentX.current - startX.current);
+    let diff = Math.max(0, rawDiff);
+    
+    // Rubber-band effect after threshold
+    const threshold = 64;
+    const maxSwipe = 100;
+    if (diff > threshold) {
+      diff = threshold + (diff - threshold) * 0.3;
+    }
+    diff = Math.min(diff, maxSwipe);
+
+    // Only move the bubble
+    const translateX = isMe ? -diff : diff;
+    bubbleRef.current.style.transform = `translateX(${translateX}px)`;
+
+    // Icon appears and follows bubble slightly
+    const progress = Math.min(diff / threshold, 1);
+    const followOffset = diff * 0.15;
+    const iconTranslateX = isMe ? -followOffset : followOffset;
+    const scaleVal = progress >= 1 ? 1.0 : (0.3 + progress * 0.7);
+    
+    iconRef.current.style.opacity = progress.toString();
+    iconRef.current.style.transform = `translate(${iconTranslateX}px, -50%) scale(${scaleVal})`;
+  };
+
   const handleEnd = () => {
-    if (Math.abs(swipeX) > 40) {
+    if (!swiping.current || !bubbleRef.current || !iconRef.current) return;
+    const threshold = 64;
+    let rawDiff = isMe ? (startX.current - currentX.current) : (currentX.current - startX.current);
+    const triggered = rawDiff > threshold;
+
+    bubbleRef.current.style.transition = 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+    bubbleRef.current.style.transform = 'translateX(0)';
+
+    iconRef.current.style.transition = 'opacity 0.25s ease, transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+    
+    if (triggered) {
+      iconRef.current.style.transform = 'translate(0px, -50%) scale(1.3)';
+      iconRef.current.style.opacity = '0';
       onReply(msg);
       if (navigator.vibrate) navigator.vibrate(50);
+    } else {
+      iconRef.current.style.transform = 'translate(0px, -50%) scale(0)';
+      iconRef.current.style.opacity = '0';
     }
-    setSwipeX(0);
-    startX.current = null;
+
+    swiping.current = false;
+    locked.current = false;
   };
   const prevMsg = i > 0 ? messages[i - 1] : null;
   const nextMsg = i < messages.length - 1 ? messages[i + 1] : null;
@@ -116,11 +183,12 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
 
   return (
     <div
-      onTouchStart={e => handleStart(e.touches[0].clientX)}
-      onTouchMove={e => handleMove(e.touches[0].clientX)}
+      onTouchStart={e => handleStart(e.touches[0].clientX, e.touches[0].clientY)}
+      onTouchMove={e => handleMove(e.touches[0].clientX, e.touches[0].clientY)}
       onTouchEnd={handleEnd}
-      onMouseDown={e => handleStart(e.clientX)}
-      onMouseMove={e => { if (e.buttons === 1) handleMove(e.clientX); }}
+      onTouchCancel={handleEnd}
+      onMouseDown={e => handleStart(e.clientX, e.clientY)}
+      onMouseMove={e => { if (e.buttons === 1) handleMove(e.clientX, e.clientY); }}
       onMouseUp={handleEnd}
       onMouseLeave={handleEnd}
       style={{
@@ -132,26 +200,6 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
         transformOrigin: isMe ? 'bottom right' : 'bottom left',
       }}
     >
-      {/* Reply Icon appearing on swipe */}
-      <div style={{
-        position: 'absolute',
-        top: '50%',
-        transform: `translateY(-50%) scale(${Math.min(1, Math.abs(swipeX) / 40)})`,
-        [isMe ? 'right' : 'left']: isMe ? 12 : 44, // Hidden behind the bubble, revealed when bubble translates
-        opacity: Math.min(1, Math.abs(swipeX) / 30),
-        width: 28, height: 28,
-        borderRadius: '50%',
-        background: activeTheme.isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.15)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        color: activeTheme.textColor,
-        transition: swipeX === 0 ? 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)' : 'none',
-      }}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="9 10 4 15 9 20"></polyline>
-          <path d="M20 4v7a4 4 0 0 1-4 4H4"></path>
-        </svg>
-      </div>
-
       {!isMe && (
         <div style={{ width: avaSize, height: avaSize, flexShrink: 0, opacity: isConsecutiveNext ? 0 : 1, transition: 'all 0.2s ease' }}>
           {msgAvatar ? (
@@ -165,12 +213,7 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
           )}
         </div>
       )}
-      <div style={{ 
-        display: 'flex', flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start', maxWidth: '78%',
-        transition: swipeX === 0 ? 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)' : 'none',
-        transform: `translateX(${swipeX}px)`,
-        position: 'relative', zIndex: 2
-      }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start', maxWidth: '78%' }}>
         {!isMe && !isConsecutivePrev && (
           <span style={{ fontSize: 11, fontWeight: 600, color: clr, marginLeft: 4, marginBottom: 4 }}>{displayName}</span>
         )}
