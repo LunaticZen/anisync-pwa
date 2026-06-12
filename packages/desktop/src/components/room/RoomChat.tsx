@@ -217,15 +217,43 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
         {!isMe && !isConsecutivePrev && (
           <span style={{ fontSize: 11, fontWeight: 600, color: clr, marginLeft: 4, marginBottom: 4 }}>{displayName}</span>
         )}
-        <div style={{
-          background: bubbleBg, color: textColor,
-          padding: isKeyboardOpen ? '6px 10px' : '8px 12px',
-          borderRadius: borderRadius, fontSize: isKeyboardOpen ? 12 : 13,
-          lineHeight: 1.4, wordBreak: 'break-word',
-          boxShadow: activeTheme.isImage && !isMe ? '0 2px 8px rgba(0,0,0,0.2)' : 'none',
-          border: isMe ? 'none' : `1px solid ${activeTheme.isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)'}`,
-          transition: 'padding 0.2s ease, font-size 0.2s ease',
-        }}>
+        <div style={{ position: 'relative' }}>
+          {/* SecretChat Reply Icon */}
+          <div 
+            ref={iconRef}
+            style={{
+              position: 'absolute',
+              top: '50%',
+              transform: `translate(0px, -50%) scale(0)`,
+              [isMe ? 'right' : 'left']: isMe ? -24 : -24,
+              opacity: 0,
+              width: 28, height: 28,
+              borderRadius: '50%',
+              background: activeTheme.isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.1)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: activeTheme.isLight ? '#555' : '#ccc',
+              pointerEvents: 'none',
+              zIndex: 1
+            }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z"/>
+            </svg>
+          </div>
+
+          <div 
+            ref={bubbleRef}
+            style={{
+              background: bubbleBg, color: textColor,
+              padding: isKeyboardOpen ? '6px 10px' : '8px 12px',
+              borderRadius: borderRadius, fontSize: isKeyboardOpen ? 12 : 13,
+              lineHeight: 1.4, wordBreak: 'break-word',
+              boxShadow: activeTheme.isImage && !isMe ? '0 2px 8px rgba(0,0,0,0.2)' : 'none',
+              border: isMe ? 'none' : `1px solid ${activeTheme.isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)'}`,
+              transition: 'padding 0.2s ease, font-size 0.2s ease',
+              position: 'relative', zIndex: 2
+            }}
+          >
           {msg.replyTo && (
             <div style={{
               background: isMe ? 'rgba(0,0,0,0.15)' : (activeTheme.isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.08)'),
@@ -240,6 +268,7 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
             </div>
           )}
           {msg.text}
+          </div>
         </div>
       </div>
     </div>
