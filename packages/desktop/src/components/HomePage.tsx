@@ -9,6 +9,20 @@ import { connectSocket, getSocket, getServerUrl, setServerUrl, warmUpServer } fr
 
 const isElectron = !!(window as any).anisync;
 const isMobile = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) && !isElectron;
+const APP_VERSION = "1.0.1";
+
+// ═══════════════════════════════════════════════════════════════
+// AURA BACKGROUND (Gemini Style)
+// ═══════════════════════════════════════════════════════════════
+function AuraBackground() {
+  return (
+    <div className="gemini-aura-container">
+      <div className="aura-blob aura-blob--1" />
+      <div className="aura-blob aura-blob--2" />
+      <div className="aura-blob aura-blob--3" />
+    </div>
+  );
+}
 
 export default function HomePage() {
   const username = useAuthStore(s => s.username);
@@ -51,6 +65,7 @@ function UsernameSetup() {
 
   return (
     <div className="main-menu">
+      <AuraBackground />
       <div className="main-menu__inner" style={{ justifyContent: 'center', minHeight: '100%' }}>
         <div style={{ textAlign: 'center', maxWidth: 360, width: '100%', margin: '0 auto' }}>
           <div className="main-menu__logo" style={{ marginBottom: 32 }}>
@@ -78,6 +93,7 @@ function UsernameSetup() {
           </button>
         </div>
       </div>
+      <div style={{ position: 'absolute', bottom: 8, left: 12, fontSize: 10, color: 'rgba(255,255,255,0.2)', pointerEvents: 'none', zIndex: 20 }}>v{APP_VERSION}</div>
     </div>
   );
 }
@@ -176,6 +192,7 @@ function MainMenu() {
   if (pendingRoom) {
     return (
       <div className="main-menu">
+        <AuraBackground />
         <div className="main-menu__inner" style={{ justifyContent: 'center', minHeight: '100%' }}>
           <div style={{ textAlign: 'center', maxWidth: 340, margin: '0 auto' }}>
             <div className="approval-spinner">
@@ -194,6 +211,7 @@ function MainMenu() {
             </button>
           </div>
         </div>
+        <div style={{ position: 'absolute', bottom: 8, left: 12, fontSize: 10, color: 'rgba(255,255,255,0.2)', pointerEvents: 'none', zIndex: 20 }}>v{APP_VERSION}</div>
       </div>
     );
   }
@@ -201,6 +219,7 @@ function MainMenu() {
   // ── Main Menu Layout ──
   return (
     <div className="main-menu">
+      <AuraBackground />
       <div className="main-menu__inner">
         {/* Logo + Settings */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexShrink: 0 }}>
@@ -315,6 +334,7 @@ function MainMenu() {
       {showCreate && <CreateRoomModal onClose={() => setShowCreate(false)} />}
       {showJoin && <JoinRoomModal onClose={() => setShowJoin(false)} />}
       {showProfile && <ProfileEditModal onClose={() => setShowProfile(false)} />}
+      <div style={{ position: 'absolute', bottom: 8, left: 12, fontSize: 10, color: 'rgba(255,255,255,0.2)', pointerEvents: 'none', zIndex: 20 }}>v{APP_VERSION}</div>
     </div>
   );
 }

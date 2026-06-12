@@ -1700,3 +1700,78 @@ body {
     0%   { transform: scale(0.8) translateY(10px); opacity: 0; transform-origin: bottom left; }
     100% { transform: scale(1) translateY(0); opacity: 1; transform-origin: bottom left; }
 }
+
+/* === Gemini Style Aura Animation === */
+.gemini-aura-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  z-index: 0;
+  pointer-events: none;
+  background: var(--body-bg); /* Base dark background */
+}
+
+.gemini-aura-container::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  backdrop-filter: blur(100px); /* Smoothly blends the blobs */
+  z-index: 2;
+}
+
+.aura-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: 0.6;
+  animation: auraFloat 15s infinite ease-in-out alternate;
+  z-index: 1;
+}
+
+.aura-blob--1 {
+  width: 300px;
+  height: 300px;
+  background: linear-gradient(135deg, #5b7cff, #a855f7);
+  top: -100px;
+  left: -50px;
+  animation-delay: 0s;
+}
+
+.aura-blob--2 {
+  width: 400px;
+  height: 400px;
+  background: linear-gradient(135deg, #ff5b8e, #7d68ff);
+  bottom: -150px;
+  right: -100px;
+  animation-delay: -5s;
+  animation-duration: 18s;
+}
+
+.aura-blob--3 {
+  width: 250px;
+  height: 250px;
+  background: linear-gradient(135deg, #22c55e, #5b7cff);
+  top: 40%;
+  left: 60%;
+  animation-delay: -10s;
+  animation-duration: 20s;
+}
+
+@keyframes auraFloat {
+  0% { transform: translate(0, 0) scale(1); opacity: 0.4; }
+  33% { transform: translate(30px, -40px) scale(1.1); opacity: 0.6; }
+  66% { transform: translate(-20px, 40px) scale(0.9); opacity: 0.5; }
+  100% { transform: translate(0, 0) scale(1); opacity: 0.4; }
+}
+
+.main-menu {
+  position: relative; /* Make sure children can sit on top */
+}
+
+.main-menu__inner {
+  position: relative;
+  z-index: 10; /* Keep UI above aura */
+}
