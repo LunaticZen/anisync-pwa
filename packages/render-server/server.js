@@ -390,6 +390,7 @@ io.on('connection', (socket) => {
       avatarUrl: null, text: (data.text || '').slice(0, 500), type: data.type || 'text',
       reactions: [], createdAt: new Date().toISOString(), editedAt: null,
       timestamp: Date.now(),
+      replyTo: data.replyTo || undefined,
     };
     io.to(data.roomId).emit('chat:message', msg);
   });

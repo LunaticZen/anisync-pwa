@@ -71,6 +71,109 @@ function ChatTicker({ tickerItems, onRemoveTickerItem }: {
   );
 }
 
+// ─── Swipable Message Component ─────────────────────────────
+function SwipableMessage({ msg, i, username, members, messages, activeTypers, isKeyboardOpen, activeTheme, onReply }: any) {
+  const [swipeX, setSwipeX] = useState(0);
+  const startX = useRef<number | null>(null);
+
+  const handleStart = (clientX: number) => { startX.current = clientX; };
+  const handleMove = (clientX: number) => {
+    if (startX.current === null) return;
+    const diff = clientX - startX.current;
+    if (diff > 0 && diff < 80) setSwipeX(diff);
+  };
+  const handleEnd = () => {
+    if (swipeX > 40) {
+      onReply(msg);
+      if (navigator.vibrate) navigator.vibrate(50);
+    }
+    setSwipeX(0);
+    startX.current = null;
+  };
+
+  const isMe = msg.userId === username;
+  const prevMsg = i > 0 ? messages[i - 1] : null;
+  const nextMsg = i < messages.length - 1 ? messages[i + 1] : null;
+  const isConsecutivePrev = prevMsg && prevMsg.type !== 'system' && prevMsg.userId === msg.userId;
+  const isConsecutiveNext = (nextMsg && nextMsg.type !== 'system' && nextMsg.userId === msg.userId) ||
+    (i === messages.length - 1 && activeTypers.some((t: any) => t.userId === msg.userId));
+  const displayName = msg.displayName ?? msg.username;
+  const msgAvatar = members.find((x: any) => x.userId === msg.userId)?.avatar || null;
+  const clr = avatarColor(msg.username);
+
+  const topRadius = 18; const bottomRadius = 18; const smallRadius = 4;
+  const borderRadius = isMe
+    ? `${topRadius}px ${isConsecutivePrev ? smallRadius : topRadius}px ${isConsecutiveNext ? smallRadius : bottomRadius}px ${bottomRadius}px`
+    : `${isConsecutivePrev ? smallRadius : topRadius}px ${topRadius}px ${bottomRadius}px ${isConsecutiveNext ? smallRadius : bottomRadius}px`;
+
+  const bubbleBg = isMe ? activeTheme.accent : (activeTheme.isLight ? '#f1f5f9' : (activeTheme.isImage ? 'rgba(0,0,0,0.5)' : '#334155'));
+  const textColor = isMe ? 'white' : (activeTheme.isLight ? '#0f172a' : '#f8fafc');
+  const marginT = isConsecutivePrev ? 2 : (isKeyboardOpen ? 6 : 12);
+  const avaSize = isKeyboardOpen ? 20 : 28;
+
+  return (
+    <div
+      onTouchStart={e => handleStart(e.touches[0].clientX)}
+      onTouchMove={e => handleMove(e.touches[0].clientX)}
+      onTouchEnd={handleEnd}
+      onMouseDown={e => handleStart(e.clientX)}
+      onMouseMove={e => { if (e.buttons === 1) handleMove(e.clientX); }}
+      onMouseUp={handleEnd}
+      onMouseLeave={handleEnd}
+      style={{
+        display: 'flex', flexDirection: isMe ? 'row-reverse' : 'row',
+        alignItems: 'flex-end', gap: 8, marginTop: marginT, padding: '0 4px',
+        transition: swipeX === 0 ? 'transform 0.2s ease, margin 0.2s ease' : 'margin 0.2s ease',
+        transform: `translateX(${swipeX}px)`,
+        animation: isMe ? 'none' : 'messageSlideIn 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) forwards',
+        transformOrigin: isMe ? 'bottom right' : 'bottom left',
+      }}
+    >
+      {!isMe && (
+        <div style={{ width: avaSize, height: avaSize, flexShrink: 0, opacity: isConsecutiveNext ? 0 : 1, transition: 'all 0.2s ease' }}>
+          {msgAvatar ? (
+            <img src={msgAvatar} alt="" style={{ width: avaSize, height: avaSize, borderRadius: '50%', objectFit: 'cover' }} />
+          ) : (
+            <div style={{
+              width: avaSize, height: avaSize, borderRadius: '50%',
+              background: clr, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: avaSize * 0.4, fontWeight: 700, color: 'white'
+            }}>{(displayName || '?')[0].toUpperCase()}</div>
+          )}
+        </div>
+      )}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start', maxWidth: '78%' }}>
+        {!isMe && !isConsecutivePrev && (
+          <span style={{ fontSize: 11, fontWeight: 600, color: clr, marginLeft: 4, marginBottom: 4 }}>{displayName}</span>
+        )}
+        <div style={{
+          background: bubbleBg, color: textColor,
+          padding: isKeyboardOpen ? '6px 10px' : '8px 12px',
+          borderRadius: borderRadius, fontSize: isKeyboardOpen ? 12 : 13,
+          lineHeight: 1.4, wordBreak: 'break-word',
+          boxShadow: activeTheme.isImage && !isMe ? '0 2px 8px rgba(0,0,0,0.2)' : 'none',
+          border: isMe ? 'none' : `1px solid ${activeTheme.isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)'}`,
+          transition: 'padding 0.2s ease, font-size 0.2s ease',
+        }}>
+          {msg.replyTo && (
+            <div style={{
+              background: isMe ? 'rgba(0,0,0,0.15)' : (activeTheme.isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)'),
+              borderLeft: `3px solid ${isMe ? 'rgba(255,255,255,0.6)' : activeTheme.accent}`,
+              padding: '4px 8px', borderRadius: 4, marginBottom: 6, fontSize: 11, opacity: 0.9
+            }}>
+              <div style={{ fontWeight: 700, marginBottom: 2 }}>{msg.replyTo.username}</div>
+              <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>
+                {msg.replyTo.text}
+              </div>
+            </div>
+          )}
+          {msg.text}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Chat Panel (Portrait / Desktop) ──────────────────────
 // Wrapped in React.memo for render optimization
 const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpen }: {
@@ -81,6 +184,7 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
   const { messages, typingUsers } = useChatStore();
   const { username } = useAuthStore();
   const [text, setText] = useState('');
+  const [replyToMsg, setReplyToMsg] = useState<any>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -131,8 +235,13 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
 
   const handleSend = () => {
     if (!text.trim()) return;
-    getSocket()?.emit('chat:message', { roomId, text: text.trim() });
+    getSocket()?.emit('chat:message', { 
+      roomId, 
+      text: text.trim(),
+      replyTo: replyToMsg ? { id: replyToMsg.id, username: replyToMsg.displayName ?? replyToMsg.username, text: replyToMsg.text } : undefined
+    });
     setText('');
+    setReplyToMsg(null);
     getSocket()?.emit('chat:typing', { roomId, isTyping: false });
     // Keep keyboard open — refocus input after send
     if (isMobile) {
@@ -203,92 +312,7 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
             );
           }
 
-          const isMe = msg.userId === username;
-          const prevMsg = i > 0 ? messages[i - 1] : null;
-          const nextMsg = i < messages.length - 1 ? messages[i + 1] : null;
-          
-          const isConsecutivePrev = prevMsg && prevMsg.type !== 'system' && prevMsg.userId === msg.userId;
-          const isConsecutiveNext = (nextMsg && nextMsg.type !== 'system' && nextMsg.userId === msg.userId) ||
-            (i === messages.length - 1 && activeTypers.some(t => t.userId === msg.userId));
-
-          const displayName = msg.displayName ?? msg.username;
-          const msgAvatar = getMemberAvatar(msg.userId);
-          const clr = avatarColor(msg.username);
-
-          // Bubble styling
-          const topRadius = 18;
-          const bottomRadius = 18;
-          const smallRadius = 4;
-
-          const borderRadius = isMe
-            ? `${topRadius}px ${isConsecutivePrev ? smallRadius : topRadius}px ${isConsecutiveNext ? smallRadius : bottomRadius}px ${bottomRadius}px`
-            : `${isConsecutivePrev ? smallRadius : topRadius}px ${topRadius}px ${bottomRadius}px ${isConsecutiveNext ? smallRadius : bottomRadius}px`;
-
-          const bubbleBg = isMe
-            ? activeTheme.accent
-            : (activeTheme.isLight ? '#f1f5f9' : (activeTheme.isImage ? 'rgba(0,0,0,0.5)' : '#334155'));
-            
-          const textColor = isMe 
-            ? 'white' 
-            : (activeTheme.isLight ? '#0f172a' : '#f8fafc');
-
-          const marginT = isConsecutivePrev ? 2 : (isKeyboardOpen ? 6 : 12);
-          const avaSize = isKeyboardOpen ? 20 : 28;
-
-          return (
-            <div key={msg.id} style={{
-              display: 'flex', 
-              flexDirection: isMe ? 'row-reverse' : 'row',
-              alignItems: 'flex-end',
-              gap: 8,
-              marginTop: marginT,
-              padding: '0 4px',
-              transition: 'margin 0.2s ease',
-              animation: isMe ? 'none' : 'messageSlideIn 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) forwards',
-              transformOrigin: isMe ? 'bottom right' : 'bottom left',
-            }}>
-              {/* Avatar for Others (only show visibly on the last message in block to align with bottom of bubble) */}
-              {!isMe && (
-                <div style={{ width: avaSize, height: avaSize, flexShrink: 0, opacity: isConsecutiveNext ? 0 : 1, transition: 'all 0.2s ease' }}>
-                  {msgAvatar ? (
-                    <img src={msgAvatar} alt="" style={{ width: avaSize, height: avaSize, borderRadius: '50%', objectFit: 'cover' }} />
-                  ) : (
-                    <div style={{
-                      width: avaSize, height: avaSize, borderRadius: '50%',
-                      background: clr, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: avaSize * 0.4, fontWeight: 700, color: 'white'
-                    }}>{(displayName || '?')[0].toUpperCase()}</div>
-                  )}
-                </div>
-              )}
-
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start', maxWidth: '78%' }}>
-                {/* Name (only show on first message of others) */}
-                {!isMe && !isConsecutivePrev && (
-                  <span style={{
-                    fontSize: 11, fontWeight: 600, color: clr,
-                    marginLeft: 4, marginBottom: 4
-                  }}>{displayName}</span>
-                )}
-
-                {/* Bubble */}
-                <div style={{
-                  background: bubbleBg,
-                  color: textColor,
-                  padding: isKeyboardOpen ? '6px 10px' : '8px 12px',
-                  borderRadius: borderRadius,
-                  fontSize: isKeyboardOpen ? 12 : 13,
-                  lineHeight: 1.4,
-                  wordBreak: 'break-word',
-                  boxShadow: activeTheme.isImage && !isMe ? '0 2px 8px rgba(0,0,0,0.2)' : 'none',
-                  border: isMe ? 'none' : `1px solid ${activeTheme.isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)'}`,
-                  transition: 'padding 0.2s ease, font-size 0.2s ease',
-                }}>
-                  {msg.text}
-                </div>
-              </div>
-            </div>
-          );
+          return <SwipableMessage key={msg.id} msg={msg} i={i} username={username} members={members} messages={messages} activeTypers={activeTypers} isKeyboardOpen={isKeyboardOpen} activeTheme={activeTheme} onReply={setReplyToMsg} />;
         })}
 
         {/* Typing indicator */}
@@ -355,6 +379,34 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
       </div>
 
 
+
+      {/* Reply Preview Banner */}
+      {replyToMsg && (
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '8px 14px',
+          background: activeTheme.isLight ? '#f8fafc' : (activeTheme.isImage ? 'rgba(0,0,0,0.4)' : '#1e293b'),
+          borderTop: `1px solid ${activeTheme.isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.06)'}`,
+          borderLeft: `4px solid ${activeTheme.accent}`,
+          color: activeTheme.textColor, flexShrink: 0,
+          backdropFilter: activeTheme.isImage ? 'blur(16px)' : 'none',
+        }}>
+          <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: activeTheme.accent, marginBottom: 2 }}>
+              Yanıtlanıyor: {replyToMsg.displayName ?? replyToMsg.username}
+            </span>
+            <span style={{ fontSize: 12, opacity: 0.8, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {replyToMsg.text}
+            </span>
+          </div>
+          <button
+            onClick={() => setReplyToMsg(null)}
+            style={{ background: 'none', border: 'none', color: activeTheme.textColor, opacity: 0.6, cursor: 'pointer', padding: 4 }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+        </div>
+      )}
 
       {/* Input Area — ultra-compact when keyboard open */}
       <div style={{

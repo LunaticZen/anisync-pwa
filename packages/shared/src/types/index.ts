@@ -243,6 +243,11 @@ export interface ChatMessage {
   reactions: MessageReaction[];
   createdAt: string;
   editedAt: string | null;
+  replyTo?: {
+    id: string;
+    username: string;
+    text: string;
+  };
 }
 
 export type MessageType = 'text' | 'system' | 'gif' | 'emoji';
@@ -256,6 +261,11 @@ export interface MessageReaction {
 export interface SendMessageRequest {
   text: string;
   type?: MessageType;
+  replyTo?: {
+    id: string;
+    username: string;
+    text: string;
+  };
 }
 
 export interface TypingIndicator {
