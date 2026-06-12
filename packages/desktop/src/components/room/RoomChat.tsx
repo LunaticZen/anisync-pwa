@@ -243,7 +243,63 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
 
           <div 
             ref={bubbleRef}
-            style={{
+            style={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              alignItems: isMe ? 'flex-end' : 'flex-start',
+              position: 'relative', 
+              zIndex: 2 
+            }}
+          >
+            {msg.replyTo && (
+              <div style={{
+                display: 'flex',
+                flexDirection: isMe ? 'row-reverse' : 'row',
+                alignItems: 'stretch',
+                marginBottom: 4,
+                opacity: 0.95,
+                maxWidth: '100%',
+              }}>
+                {/* Vertical Line */}
+                <div style={{
+                  width: 3,
+                  borderRadius: 2,
+                  background: activeTheme.isLight ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.25)',
+                  marginRight: isMe ? 0 : 6,
+                  marginLeft: isMe ? 6 : 0,
+                  flexShrink: 0
+                }} />
+                
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start', justifyContent: 'center', minWidth: 0 }}>
+                  {/* Label */}
+                  <span style={{ 
+                    fontSize: 11, 
+                    fontWeight: 600,
+                    marginBottom: 4,
+                    color: activeTheme.isLight ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.6)',
+                  }}>
+                    {isMe ? 'Yanıt verdin' : (msg.replyTo.userId === username ? 'sana yanıt verdi' : `${msg.replyTo.username} adlı kişiye yanıt verdi`)}
+                  </span>
+                  
+                  {/* Reply Preview Capsule */}
+                  <div style={{
+                    background: isMe ? 'rgba(255,255,255,0.15)' : (activeTheme.isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.1)'),
+                    color: activeTheme.textColor,
+                    padding: '6px 12px',
+                    borderRadius: 14,
+                    fontSize: 12,
+                    maxWidth: '100%',
+                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                    border: `1px solid ${activeTheme.isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.04)'}`,
+                  }}>
+                    {msg.replyTo.text}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Actual Message Bubble */}
+            <div style={{
               background: bubbleBg, color: textColor,
               padding: isKeyboardOpen ? '6px 10px' : '8px 12px',
               borderRadius: borderRadius, fontSize: isKeyboardOpen ? 12 : 13,
@@ -251,23 +307,9 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
               boxShadow: activeTheme.isImage && !isMe ? '0 2px 8px rgba(0,0,0,0.2)' : 'none',
               border: isMe ? 'none' : `1px solid ${activeTheme.isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)'}`,
               transition: 'padding 0.2s ease, font-size 0.2s ease',
-              position: 'relative', zIndex: 2
-            }}
-          >
-          {msg.replyTo && (
-            <div style={{
-              background: isMe ? 'rgba(0,0,0,0.15)' : (activeTheme.isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.08)'),
-              borderLeft: `3px solid ${isMe ? 'rgba(255,255,255,0.7)' : activeTheme.accent}`,
-              padding: '6px 10px', borderRadius: '8px 8px 4px 4px', marginBottom: 4, fontSize: 11, opacity: 0.95,
-              display: 'flex', flexDirection: 'column', gap: 2
             }}>
-              <div style={{ fontWeight: 700 }}>{msg.replyTo.username}</div>
-              <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%', opacity: 0.85 }}>
-                {msg.replyTo.text}
-              </div>
+              {msg.text}
             </div>
-          )}
-          {msg.text}
           </div>
         </div>
       </div>
