@@ -277,6 +277,12 @@ export default function RoomPage() {
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
   const initialVpHeight = useRef(window.innerHeight);
 
+  // ── Native fullscreen state (Android bridge) ──
+  const [isNativeFullscreen, setIsNativeFullscreen] = useState(false);
+
+  // Portrait + fullscreen → behave like landscape (show danmaku, hide header)
+  const effectiveLandscape = !isPortrait || isNativeFullscreen;
+
   // ── Landscape ticker state ──
   const [tickerItems, setTickerItems] = useState<TickerItem[]>([]);
   const shownTickerIds = useRef(new Set<string>());
@@ -340,10 +346,19 @@ export default function RoomPage() {
     };
   }, []);
 
-  // ── Landscape + anime: make body transparent so video shows through ──
+  // ── Native fullscreen listener (Android bridge signal) ──
   useEffect(() => {
-    const isLandscapeAnime = isMobile && !!currentUrl && !isPortrait;
-    if (isLandscapeAnime) {
+    if (!isMobile) return;
+    (window as any).__anisyncSetFullscreen = (fs: boolean) => {
+      setIsNativeFullscreen(fs);
+    };
+    return () => { delete (window as any).__anisyncSetFullscreen; };
+  }, []);
+
+  // ── Overlay mode (landscape OR fullscreen): make body transparent so video shows through ──
+  useEffect(() => {
+    const isOverlayMode = isMobile && !!currentUrl && effectiveLandscape;
+    if (isOverlayMode) {
       document.documentElement.style.background = 'transparent';
       document.body.style.background = 'transparent';
       const root = document.getElementById('root');
@@ -360,12 +375,12 @@ export default function RoomPage() {
       const root = document.getElementById('root');
       if (root) root.style.background = '';
     };
-  }, [isPortrait, currentUrl]);
+  }, [effectiveLandscape, currentUrl]);
 
   // ── Landscape ticker: add new messages ──
   const landscapeSeeded = useRef(false);
   useEffect(() => {
-    if (!isMobile || isPortrait || !currentUrl) {
+    if (!isMobile || !effectiveLandscape || !currentUrl) {
       landscapeSeeded.current = false;
       return;
     }
@@ -404,7 +419,7 @@ export default function RoomPage() {
         }
       }
     }
-  }, [chatMessages, isPortrait, currentUrl]);
+  }, [chatMessages, effectiveLandscape, currentUrl]);
 
   const removeTickerItem = (key: number) => {
     setTickerItems(prev => prev.filter(item => item.key !== key));
@@ -561,7 +576,7 @@ export default function RoomPage() {
   // ══════════════════════════════════════════════════════════
   const mobileAnimeActive = isMobile && !!currentUrl;
   const mode: RoomMode = mobileAnimeActive
-    ? (isPortrait ? 'mobile-portrait' : 'mobile-landscape')
+    ? (effectiveLandscape ? 'mobile-landscape' : 'mobile-portrait')
     : 'desktop';
 
   // ══════════════════════════════════════════════════════════
@@ -629,7 +644,7 @@ export default function RoomPage() {
         overflow: 'hidden',
         pointerEvents: 'none',
       }}>
-        <RoomHeader {...headerProps} />
+        {/* Header hidden in landscape/fullscreen for clean video view */}
         <RoomChat
           mode={mode}
           roomId={currentRoom.id}

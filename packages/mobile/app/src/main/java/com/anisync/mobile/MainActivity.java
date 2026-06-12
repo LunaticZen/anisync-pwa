@@ -15,6 +15,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.webkit.CookieManager;
 import android.webkit.JavascriptInterface;
@@ -537,33 +538,71 @@ public class MainActivity extends AppCompatActivity {
                 }
                 fullscreenCustomView = view;
                 fullscreenCallback = callback;
-                rootLayout.addView(fullscreenCustomView, new FrameLayout.LayoutParams(
+
+                // ── Danmaku Fix: mainWebView'ı gizlemek yerine fullscreen video
+                // ── üstüne transparan overlay olarak yerleştir
+                // Detach mainWebView from current parent
+                if (mainWebView.getParent() != null) {
+                    ((ViewGroup) mainWebView.getParent()).removeView(mainWebView);
+                }
+                animeWebView.setVisibility(View.GONE);
+
+                // FrameLayout: fullscreen video altta, mainWebView şeffaf overlay üstte
+                FrameLayout fsContainer = new FrameLayout(MainActivity.this);
+                fsContainer.addView(fullscreenCustomView, new FrameLayout.LayoutParams(
                         FrameLayout.LayoutParams.MATCH_PARENT,
                         FrameLayout.LayoutParams.MATCH_PARENT));
-                mainWebView.setVisibility(View.GONE);
-                animeWebView.setVisibility(View.GONE);
+
+                mainWebView.setBackgroundColor(0x00000000); // Transparent
+                if (isXiaomiDevice) {
+                    mainWebView.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
+                }
+                fsContainer.addView(mainWebView, new FrameLayout.LayoutParams(
+                        FrameLayout.LayoutParams.MATCH_PARENT,
+                        FrameLayout.LayoutParams.MATCH_PARENT));
+
+                rootLayout.removeAllViews();
+                rootLayout.addView(fsContainer, new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.MATCH_PARENT));
+
+                // React'e fullscreen sinyali gönder
+                mainHandler.postDelayed(() -> mainWebView.evaluateJavascript(
+                    "window.__anisyncSetFullscreen && window.__anisyncSetFullscreen(true)", null), 100);
 
                 // Fullscreen flags
                 getWindow().getDecorView().setSystemUiVisibility(
                         View.SYSTEM_UI_FLAG_FULLSCREEN |
                         View.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
                         View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
-                appLog("Fullscreen video started");
+                appLog("Fullscreen video started (danmaku overlay active)");
             }
 
             @Override
             public void onHideCustomView() {
                 if (fullscreenCustomView == null) return;
-                rootLayout.removeView(fullscreenCustomView);
+
+                // Detach mainWebView from fullscreen container
+                if (mainWebView.getParent() != null) {
+                    ((ViewGroup) mainWebView.getParent()).removeView(mainWebView);
+                }
+
+                rootLayout.removeAllViews();
                 fullscreenCallback.onCustomViewHidden();
                 fullscreenCustomView = null;
                 fullscreenCallback = null;
-                mainWebView.setVisibility(View.VISIBLE);
+
+                // Normal layout'a geri dön
                 animeWebView.setVisibility(animeVisible ? View.VISIBLE : View.GONE);
+                applyLayout();
+
+                // React'e fullscreen bitti sinyali
+                mainWebView.evaluateJavascript(
+                    "window.__anisyncSetFullscreen && window.__anisyncSetFullscreen(false)", null);
 
                 // Restore system UI
                 getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_VISIBLE);
-                appLog("Fullscreen video ended");
+                appLog("Fullscreen video ended (normal layout restored)");
             }
         });
     }
