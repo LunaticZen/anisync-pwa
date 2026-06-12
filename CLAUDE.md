@@ -3,12 +3,17 @@
 2. Only read raw files if I explicitly say so.
 
 ## Proje Özeti (AniSync)
-Bu proje bir monorepo yapısındadır. Ana kodlar `/packages` klasörü içindedir:
-- `/packages/desktop`: Masaüstü uygulaması.
-- `/packages/mobile`: Mobil uygulaması (APK).
-- `/packages/server`: Ana backend sunucusu.
-- `/packages/render-server`: Render işlemleri sunucusu.
+Bu proje tam teşekküllü bir **monorepo** yapısındadır. Eski `anisync-server` reposu iptal edilmiş olup her şey bu repodan (main branch) yönetilmektedir:
+- `/packages/desktop`: Masaüstü uygulaması (Electron + React).
+- `/packages/mobile`: Mobil uygulaması (APK - Android).
+- `/packages/render-server`: Render.com üzerinde deploy edilen tek dosyalık sunucu.
 - `/packages/shared`: Ortak kullanılan kodlar.
+
+### Genel Kurallar
+- Sürüm numaraları `packages/desktop/package.json`, `packages/mobile/package.json` ve `packages/desktop/src/components/HomePage.tsx` içerisinde güncellenir (Örn: v1.0.1).
+- Uygulama arka planında "Aura" (Gemini tarzı dinamik gradyanlar) kullanılmaktadır. CSS'te düz renkler yerine gradientler tercih edilmelidir.
+- Render.com güncellemeleri, GitHub `main` branchine doğrudan atılan pushlar ile otomatik gerçekleşir. (`packages/render-server` içinde asla `.git` klasörü barındırmayın).
+
 
 ## Detaylı Bilgi (Bilgi Havuzu)
 Projenin detaylı kuralları, teknolojileri ve dosya yapısı `/wiki` klasöründe tutulmaktadır. 

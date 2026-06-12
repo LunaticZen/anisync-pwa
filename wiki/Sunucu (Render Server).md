@@ -10,7 +10,7 @@
 | Hosting | Render.com (free tier) |
 | Veritabanı | Yok — tamamen in-memory |
 | URL | https://anisync-server.onrender.com |
-| GitHub | https://github.com/LunaticZen/anisync-server.git |
+| GitHub | https://github.com/LunaticZen/anisync_1.0.git (Monorepo) |
 | Port | `process.env.PORT` veya `3000` |
 
 ## Önemli Dosyalar
@@ -93,6 +93,8 @@ setInterval(() => {
 
 ## Deploy Akışı
 
+Render.com artık ana `anisync_1.0` deposundan beslenmektedir:
+
 ```bash
 # 1. Desktop'u build et
 cd packages/desktop
@@ -101,13 +103,20 @@ node ../../node_modules/vite/bin/vite.js build
 # 2. Build çıktısını render-server'a kopyala
 Copy-Item -Path "dist/*" -Destination "../render-server/public/" -Recurse -Force
 
-# 3. Render-server'ı push et
-cd ../render-server
-git add -A
+# 3. Ana repo üzerinden push et
+cd ../../
+git add packages/render-server
 git commit -m "deploy: update"
-git push origin master
+git push origin_1.0 main
 # Render.com otomatik deploy eder (1-2 dk)
 ```
+
+**Önemli Render Ayarları:**
+- **Branch:** `main`
+- **Root Directory:** `packages/render-server`
+- **Build Command:** `cd packages/render-server && npm install`
+- **Start Command:** `cd packages/render-server && node server.js`
+- **Runtime:** `Node`
 
 ## İlgili Sayfalar
 

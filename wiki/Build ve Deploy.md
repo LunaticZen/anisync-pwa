@@ -45,6 +45,8 @@ node ../../node_modules/vite/bin/vite.js build
 
 ## Render.com'a Deploy
 
+Render.com, ana projemiz olan `anisync_1.0` reposundaki `main` branch'ini dinleyecek şekilde yapılandırılmıştır. Tüm klasörler tek bir repo içindedir (Monorepo).
+
 ```powershell
 # 1. Web UI'ı build et
 cd packages/desktop
@@ -53,14 +55,18 @@ node ../../node_modules/vite/bin/vite.js build
 # 2. Build çıktısını render-server'a kopyala
 Copy-Item -Path "dist/*" -Destination "../render-server/public/" -Recurse -Force
 
-# 3. Render-server repo'suna push et
-cd ../render-server
-git add -A
-git commit -m "deploy: [açıklama]"
-git push origin master
+# 3. Ana repo'da commit ve push işlemi
+cd ../../
+git add packages/render-server
+git commit -m "deploy: update render server"
+git push origin_1.0 main
 ```
 
-- Render.com `master` branch'e push gelince otomatik deploy eder
+- Render.com'da Root Directory olarak `packages/render-server` seçilmeli.
+- Build Command: `cd packages/render-server && npm install`
+- Start Command: `cd packages/render-server && node server.js`
+- Runtime: Node (Docker değil!)
+- Render.com `main` branch'e push gelince otomatik deploy eder
 - Deploy süresi: ~1-2 dakika
 - İlk cold start: ~30 saniye (free tier)
 
@@ -108,6 +114,16 @@ Veya:
 .\install-android-sdk.ps1
 ```
 
+## Sürüm Yayımlama (GitHub Releases)
+
+Yeni bir sürüm yayınlarken APK ve EXE dosyaları derlenir, ardından `gh` (GitHub CLI) kullanılarak otomatik olarak sürüm paylaşılır:
+
+```powershell
+# APK ve EXE dosyalarını oluşturup zipleyin
+# Sonra GitHub CLI ile yükleyin (örnek: v1.0.1)
+gh release create v1.0.1 "apk_yolu.apk" "windows_yolu.zip" --title "AniSync v1.0.1" --notes "Sürüm Notları" -R LunaticZen/anisync_1.0
+```
+
 ## TypeScript Kontrol
 
 ```powershell
@@ -123,14 +139,13 @@ node ../../node_modules/typescript/bin/tsc --noEmit --pretty
 
 ## Git Yapısı
 
-⚠️ **İki ayrı git repo var:**
+Projemiz artık tam bir **Monorepo** yapısındadır. Eski `anisync-server` reposu iptal edilmiştir.
 
-1. **Ana repo** (`anisync/`): Tüm kaynak kod
-   - Remote: yok (sadece lokal)
+1. **Ana repo** (`anisync_1.0`): Tüm kaynak kod ve render-server kodları tek repoda (`main` dalında).
+   - Remote: `https://github.com/LunaticZen/anisync_1.0.git`
+   - Render.com `packages/render-server` klasörünü baz alarak buradan deploy eder.
    
-2. **Render-server repo** (`packages/render-server/`): Deploy repo
-   - Remote: `https://github.com/LunaticZen/anisync-server.git`
-   - Render.com bu repo'dan deploy eder
+> **Kritik Not**: `packages/render-server` içinde asla `.git` adında bir klasör bulunmamalıdır. Aksi takdirde Git burayı submodule olarak algılar ve dosyaları ana repoya göndermez, bu da Render'ın çökmesine neden olur.
 
 ## Hızlı Komutlar
 
@@ -139,8 +154,8 @@ node ../../node_modules/typescript/bin/tsc --noEmit --pretty
 cd packages/desktop
 node ../../node_modules/vite/bin/vite.js build
 Copy-Item -Path "dist/*" -Destination "../render-server/public/" -Recurse -Force
-cd ../render-server
-git add -A && git commit -m "deploy" && git push origin master
+cd ../../
+git add packages/render-server && git commit -m "deploy" && git push origin_1.0 main
 
 # Type check
 cd packages/desktop

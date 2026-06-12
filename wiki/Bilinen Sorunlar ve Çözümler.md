@@ -91,6 +91,21 @@ node ../../node_modules/typescript/bin/tsc --noEmit
 
 ---
 
+### Render.com "Cannot find module server.js" Çökmesi
+**Sorun**: Render deploy olduktan sonra "Error: Cannot find module '/opt/render/project/src/packages/render-server/server.js'" hatası verip çöküyor.
+
+**Kök Neden**: `packages/render-server` klasörünün içinde gizli bir `.git` klasörü bulunması. Bu durum Git'in klasörü bir "submodule" (alt proje) olarak görmesine neden olur ve içindeki hiçbir dosyayı ana repoya (GitHub'a) yüklemez. Render da boş bir klasör indirdiği için dosyayı bulamaz.
+
+**Çözüm**: İçerideki `.git` klasörünü silip, git cache'ini temizledikten sonra dosyaları ana projeye zorla dahil ettik:
+```powershell
+Remove-Item -Recurse -Force packages/render-server/.git
+git rm --cached packages/render-server
+git add packages/render-server
+git commit -m "fix: include render-server files"
+```
+
+---
+
 ## 🟡 Bilinen Sınırlamalar
 
 ### Render.com Free Tier
