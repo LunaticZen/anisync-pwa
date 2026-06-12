@@ -128,8 +128,6 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
         touchAction: 'pan-y',
         display: 'flex', flexDirection: isMe ? 'row-reverse' : 'row',
         alignItems: 'flex-end', gap: 8, marginTop: marginT, padding: '0 4px',
-        transition: swipeX === 0 ? 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), margin 0.2s ease' : 'margin 0.2s ease',
-        transform: `translateX(${swipeX}px)`,
         animation: isMe ? 'none' : 'messageSlideIn 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) forwards',
         transformOrigin: isMe ? 'bottom right' : 'bottom left',
       }}
@@ -139,11 +137,11 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
         position: 'absolute',
         top: '50%',
         transform: `translateY(-50%) scale(${Math.min(1, Math.abs(swipeX) / 40)})`,
-        [isMe ? 'right' : 'left']: -36,
+        [isMe ? 'right' : 'left']: isMe ? 12 : 44, // Hidden behind the bubble, revealed when bubble translates
         opacity: Math.min(1, Math.abs(swipeX) / 30),
         width: 28, height: 28,
         borderRadius: '50%',
-        background: activeTheme.isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.1)',
+        background: activeTheme.isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.15)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         color: activeTheme.textColor,
         transition: swipeX === 0 ? 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)' : 'none',
@@ -167,7 +165,12 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
           )}
         </div>
       )}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start', maxWidth: '78%' }}>
+      <div style={{ 
+        display: 'flex', flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start', maxWidth: '78%',
+        transition: swipeX === 0 ? 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)' : 'none',
+        transform: `translateX(${swipeX}px)`,
+        position: 'relative', zIndex: 2
+      }}>
         {!isMe && !isConsecutivePrev && (
           <span style={{ fontSize: 11, fontWeight: 600, color: clr, marginLeft: 4, marginBottom: 4 }}>{displayName}</span>
         )}
