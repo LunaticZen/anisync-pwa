@@ -125,6 +125,7 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
       onMouseLeave={handleEnd}
       style={{
         position: 'relative',
+        touchAction: 'pan-y',
         display: 'flex', flexDirection: isMe ? 'row-reverse' : 'row',
         alignItems: 'flex-end', gap: 8, marginTop: marginT, padding: '0 4px',
         transition: swipeX === 0 ? 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), margin 0.2s ease' : 'margin 0.2s ease',
