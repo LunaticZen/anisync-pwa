@@ -75,23 +75,26 @@ function ChatTicker({ tickerItems, onRemoveTickerItem }: {
 function SwipableMessage({ msg, i, username, members, messages, activeTypers, isKeyboardOpen, activeTheme, onReply }: any) {
   const [swipeX, setSwipeX] = useState(0);
   const startX = useRef<number | null>(null);
+  const isMe = msg.userId === username;
 
   const handleStart = (clientX: number) => { startX.current = clientX; };
   const handleMove = (clientX: number) => {
     if (startX.current === null) return;
     const diff = clientX - startX.current;
-    if (diff > 0 && diff < 80) setSwipeX(diff);
+    if (isMe) {
+      if (diff < 0 && diff > -80) setSwipeX(diff);
+    } else {
+      if (diff > 0 && diff < 80) setSwipeX(diff);
+    }
   };
   const handleEnd = () => {
-    if (swipeX > 40) {
+    if (Math.abs(swipeX) > 40) {
       onReply(msg);
       if (navigator.vibrate) navigator.vibrate(50);
     }
     setSwipeX(0);
     startX.current = null;
   };
-
-  const isMe = msg.userId === username;
   const prevMsg = i > 0 ? messages[i - 1] : null;
   const nextMsg = i < messages.length - 1 ? messages[i + 1] : null;
   const isConsecutivePrev = prevMsg && prevMsg.type !== 'system' && prevMsg.userId === msg.userId;
@@ -121,14 +124,35 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
       onMouseUp={handleEnd}
       onMouseLeave={handleEnd}
       style={{
+        position: 'relative',
         display: 'flex', flexDirection: isMe ? 'row-reverse' : 'row',
         alignItems: 'flex-end', gap: 8, marginTop: marginT, padding: '0 4px',
-        transition: swipeX === 0 ? 'transform 0.2s ease, margin 0.2s ease' : 'margin 0.2s ease',
+        transition: swipeX === 0 ? 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), margin 0.2s ease' : 'margin 0.2s ease',
         transform: `translateX(${swipeX}px)`,
         animation: isMe ? 'none' : 'messageSlideIn 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) forwards',
         transformOrigin: isMe ? 'bottom right' : 'bottom left',
       }}
     >
+      {/* Reply Icon appearing on swipe */}
+      <div style={{
+        position: 'absolute',
+        top: '50%',
+        transform: `translateY(-50%) scale(${Math.min(1, Math.abs(swipeX) / 40)})`,
+        [isMe ? 'right' : 'left']: -36,
+        opacity: Math.min(1, Math.abs(swipeX) / 30),
+        width: 28, height: 28,
+        borderRadius: '50%',
+        background: activeTheme.isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.1)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        color: activeTheme.textColor,
+        transition: swipeX === 0 ? 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)' : 'none',
+      }}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="9 10 4 15 9 20"></polyline>
+          <path d="M20 4v7a4 4 0 0 1-4 4H4"></path>
+        </svg>
+      </div>
+
       {!isMe && (
         <div style={{ width: avaSize, height: avaSize, flexShrink: 0, opacity: isConsecutiveNext ? 0 : 1, transition: 'all 0.2s ease' }}>
           {msgAvatar ? (
@@ -157,12 +181,13 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
         }}>
           {msg.replyTo && (
             <div style={{
-              background: isMe ? 'rgba(0,0,0,0.15)' : (activeTheme.isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)'),
-              borderLeft: `3px solid ${isMe ? 'rgba(255,255,255,0.6)' : activeTheme.accent}`,
-              padding: '4px 8px', borderRadius: 4, marginBottom: 6, fontSize: 11, opacity: 0.9
+              background: isMe ? 'rgba(0,0,0,0.15)' : (activeTheme.isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.08)'),
+              borderLeft: `3px solid ${isMe ? 'rgba(255,255,255,0.7)' : activeTheme.accent}`,
+              padding: '6px 10px', borderRadius: '8px 8px 4px 4px', marginBottom: 4, fontSize: 11, opacity: 0.95,
+              display: 'flex', flexDirection: 'column', gap: 2
             }}>
-              <div style={{ fontWeight: 700, marginBottom: 2 }}>{msg.replyTo.username}</div>
-              <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>
+              <div style={{ fontWeight: 700 }}>{msg.replyTo.username}</div>
+              <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%', opacity: 0.85 }}>
                 {msg.replyTo.text}
               </div>
             </div>
@@ -384,18 +409,23 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
       {replyToMsg && (
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '8px 14px',
-          background: activeTheme.isLight ? '#f8fafc' : (activeTheme.isImage ? 'rgba(0,0,0,0.4)' : '#1e293b'),
-          borderTop: `1px solid ${activeTheme.isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.06)'}`,
-          borderLeft: `4px solid ${activeTheme.accent}`,
+          padding: '10px 14px',
+          background: activeTheme.isLight ? '#f1f5f9' : (activeTheme.isImage ? 'rgba(0,0,0,0.6)' : '#1e293b'),
+          borderTopLeftRadius: 16,
+          borderTopRightRadius: 16,
+          borderTop: `1px solid ${activeTheme.isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)'}`,
+          margin: '0 8px',
+          marginBottom: -8,
+          position: 'relative',
+          zIndex: 1,
           color: activeTheme.textColor, flexShrink: 0,
           backdropFilter: activeTheme.isImage ? 'blur(16px)' : 'none',
         }}>
-          <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: activeTheme.accent, marginBottom: 2 }}>
-              Yanıtlanıyor: {replyToMsg.displayName ?? replyToMsg.username}
+          <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1, borderLeft: `3px solid ${activeTheme.accent}`, paddingLeft: 8 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: activeTheme.textColor, marginBottom: 2 }}>
+              {replyToMsg.displayName ?? replyToMsg.username} adlı kişiye yanıt veriyorsun
             </span>
-            <span style={{ fontSize: 12, opacity: 0.8, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <span style={{ fontSize: 12, opacity: 0.7, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {replyToMsg.text}
             </span>
           </div>
