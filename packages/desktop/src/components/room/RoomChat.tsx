@@ -486,12 +486,11 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           padding: '10px 14px',
-          background: activeTheme.isImage ? 'rgba(0,0,0,0.5)' : 'transparent',
+          background: 'transparent',
           position: 'relative',
           zIndex: 1,
           color: activeTheme.textColor, flexShrink: 0,
-          backdropFilter: activeTheme.isImage ? 'blur(16px)' : 'none',
-          animation: 'slideUpJuicy 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards',
+          animation: 'slideUpSmooth 0.25s ease-out forwards',
         }}>
           <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1, borderLeft: `3px solid ${activeTheme.accent}`, paddingLeft: 8 }}>
             <span style={{ fontSize: 12, fontWeight: 700, color: activeTheme.textColor, marginBottom: 2 }}>
