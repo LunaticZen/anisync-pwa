@@ -14,7 +14,12 @@ export interface TickerItem {
   username: string;
   text: string;
   key: number;
+  lane: number;
 }
+
+export const DANMAKU_LANE_COUNT = 3;
+const DANMAKU_LANE_HEIGHT = 36;
+const DANMAKU_CONTAINER_HEIGHT = 120;
 
 // ─── Chat Ticker (Landscape overlay) ──────────────────────
 function ChatTicker({ tickerItems, onRemoveTickerItem }: {
@@ -26,33 +31,36 @@ function ChatTicker({ tickerItems, onRemoveTickerItem }: {
   return (
     <div style={{
       position: 'absolute', bottom: 0, left: 0, right: 0,
-      height: 44, zIndex: 10, overflow: 'hidden',
-      background: 'linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 100%)',
+      height: DANMAKU_CONTAINER_HEIGHT, zIndex: 10, overflow: 'hidden',
+      background: 'linear-gradient(to top, rgba(0,0,0,0.55) 0%, transparent 100%)',
+      pointerEvents: 'none',
     }}>
       <style>{`
-        @keyframes tickerSlideOnce {
+        @keyframes danmakuSlide {
           0% { transform: translateX(100vw); }
           100% { transform: translateX(calc(-100% - 20px)); }
         }
       `}</style>
-      {tickerItems.length > 0 && (
+      {tickerItems.map(item => (
         <span
-          key={tickerItems[0].key}
-          onAnimationEnd={() => onRemoveTickerItem(tickerItems[0].key)}
+          key={item.key}
+          onAnimationEnd={() => onRemoveTickerItem(item.key)}
           style={{
-            position: 'absolute', bottom: 10, left: 0,
+            position: 'absolute',
+            bottom: 8 + item.lane * DANMAKU_LANE_HEIGHT,
+            left: 0,
             whiteSpace: 'nowrap',
-            animation: `tickerSlideOnce ${Math.max(8, tickerItems[0].text.length * 0.12 + 6)}s linear forwards`,
+            animation: `danmakuSlide ${Math.max(8, item.text.length * 0.12 + 6)}s linear forwards`,
             fontSize: 14, fontWeight: 500,
             color: 'rgba(255,255,255,0.95)',
             textShadow: '0 1px 4px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,0.5)',
             paddingLeft: 12,
           }}
         >
-          <span style={{ color: '#5b9bff', fontWeight: 700 }}>{tickerItems[0].username}: </span>
-          {tickerItems[0].text}
+          <span style={{ color: '#5b9bff', fontWeight: 700 }}>{item.username}: </span>
+          {item.text}
         </span>
-      )}
+      ))}
       {tickerItems.length === 0 && chatMessages.filter(m => m.type !== 'system').length === 0 && (
         <span style={{
           position: 'absolute', bottom: 12, right: 16,

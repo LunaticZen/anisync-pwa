@@ -9,7 +9,7 @@ import { useAuthStore, useRoomStore, useSyncStore, useChatStore, useUIStore } fr
 import { getSocket } from '../../services/socket';
 import { isElectron, isMobile, isXiaomi, getTheme, type RoomMode } from './constants';
 import { RoomHeader } from './RoomHeader';
-import { RoomChat, type TickerItem } from './RoomChat';
+import { RoomChat, type TickerItem, DANMAKU_LANE_COUNT } from './RoomChat';
 import { RoomVideoArea } from './RoomVideoArea';
 import { RoomModals, MemberList } from './RoomModals';
 
@@ -391,6 +391,7 @@ export default function RoomPage() {
           username: (m as any).displayName ?? m.username ?? '?',
           text: m.text,
           key: tickerKeyCounter.current,
+          lane: tickerKeyCounter.current % DANMAKU_LANE_COUNT,
         };
       });
       setTickerItems(prev => [...prev, ...items].slice(-10));
