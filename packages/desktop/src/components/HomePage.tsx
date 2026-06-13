@@ -9,7 +9,7 @@ import { connectSocket, getSocket, getServerUrl, setServerUrl, warmUpServer } fr
 
 const isElectron = !!(window as any).anisync;
 const isMobile = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) && !isElectron;
-const APP_VERSION = "1.0.6";
+const APP_VERSION = "1.0.7";
 
 // ═══════════════════════════════════════════════════════════════
 // AURA BACKGROUND (Gemini Style)

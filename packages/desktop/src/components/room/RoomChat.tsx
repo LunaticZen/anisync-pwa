@@ -243,14 +243,44 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
 
           <div 
             ref={bubbleRef}
+            className="chat-bubble-container"
             style={{ 
               display: 'flex', 
               flexDirection: 'column', 
               alignItems: isMe ? 'flex-end' : 'flex-start',
               position: 'relative', 
-              zIndex: 2 
+              zIndex: 2,
+              cursor: isMobile ? 'default' : 'pointer'
             }}
           >
+            {/* Desktop Reply Button on Hover */}
+            {!isMobile && (
+              <div 
+                className="desktop-reply-btn"
+                style={{
+                  position: 'absolute',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  [isMe ? 'left' : 'right']: -32,
+                  opacity: 0,
+                  cursor: 'pointer',
+                  width: 24, height: 24,
+                  borderRadius: '50%',
+                  background: activeTheme.isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.1)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: activeTheme.isLight ? '#555' : '#ccc',
+                  transition: 'opacity 0.2s',
+                  zIndex: 3
+                }}
+                onClick={() => onReply(msg)}
+                title="Yanıtla"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z"/>
+                </svg>
+              </div>
+            )}
+
             {msg.replyTo && (
               <div style={{
                 display: 'flex',

@@ -1791,3 +1791,14 @@ body {
   }
 }
 
+/* ═══ Desktop Chat Reply Button Hover ═══ */
+@media (pointer: fine) {
+  .chat-bubble-container:hover .desktop-reply-btn {
+    opacity: 1 !important;
+  }
+  .desktop-reply-btn:hover {
+    transform: translateY(-50%) scale(1.1) !important;
+    background: rgba(100, 116, 139, 0.2) !important;
+  }
+}
+
