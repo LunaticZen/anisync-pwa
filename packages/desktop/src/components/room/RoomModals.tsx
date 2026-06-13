@@ -534,18 +534,34 @@ export function ThemePickerPopup({ roomId, onClose }: { roomId: string; onClose:
                       padding: 0,
                     }}
                   >
-                    {/* Thumbnail image */}
-                    <img
-                      src={theme.image}
-                      alt={theme.name}
-                      loading="lazy"
-                      style={{
-                        width: '100%', height: '100%',
-                        objectFit: 'cover',
-                        transition: 'transform 0.4s ease',
-                        transform: isHov ? 'scale(1.08)' : 'scale(1)',
-                      }}
-                    />
+                    {/* Thumbnail image or video */}
+                    {theme.isVideo ? (
+                      <video
+                        src={theme.video}
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        style={{
+                          width: '100%', height: '100%',
+                          objectFit: 'cover',
+                          transition: 'transform 0.4s ease',
+                          transform: isHov ? 'scale(1.08)' : 'scale(1)',
+                        }}
+                      />
+                    ) : (
+                      <img
+                        src={theme.image}
+                        alt={theme.name}
+                        loading="lazy"
+                        style={{
+                          width: '100%', height: '100%',
+                          objectFit: 'cover',
+                          transition: 'transform 0.4s ease',
+                          transform: isHov ? 'scale(1.08)' : 'scale(1)',
+                        }}
+                      />
+                    )}
 
                     {/* Glass overlay with name */}
                     <div style={{

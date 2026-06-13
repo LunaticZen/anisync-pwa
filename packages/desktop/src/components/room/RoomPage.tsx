@@ -634,6 +634,20 @@ export default function RoomPage() {
     ? { backgroundImage: `url(${activeTheme.image})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }
     : {};
 
+  const renderVideoBackground = () => {
+    if (!activeTheme.isVideo) return null;
+    return (
+      <video
+        autoPlay
+        loop
+        muted
+        playsInline
+        src={activeTheme.video}
+        style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0, pointerEvents: 'none' }}
+      />
+    );
+  };
+
   if (mode === 'mobile-landscape') {
     return (
       <div style={{
@@ -644,6 +658,7 @@ export default function RoomPage() {
         overflow: 'hidden',
         pointerEvents: 'none',
       }}>
+        {renderVideoBackground()}
         {/* Header hidden in landscape/fullscreen for clean video view */}
         <RoomChat
           mode={mode}
@@ -717,6 +732,7 @@ export default function RoomPage() {
         position: 'relative',
         backdropFilter: activeTheme.isImage ? 'blur(6px) saturate(1.1)' : undefined,
       }}>
+        {renderVideoBackground()}
         <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', flex: 1 }}>
           <RoomHeader {...headerProps} />
           <RoomVideoArea

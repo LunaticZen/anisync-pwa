@@ -45,7 +45,9 @@ export interface ImageTheme {
   id: string;
   name: string;
   category: string;
-  image: string;
+  image?: string;
+  video?: string;
+  isVideo?: boolean;
   isLight: boolean;
   textColor: string;
   glassColor: string;
@@ -62,6 +64,25 @@ export interface ThemeCategory {
 }
 
 export const IMAGE_THEME_CATEGORIES: ThemeCategory[] = [
+  { id: 'live',    name: 'Canlı',     icon: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <style>
+        {`
+          @keyframes pulseLive {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.6; stroke: #38bdf8; }
+            100% { transform: scale(1); opacity: 1; }
+          }
+          .live-icon-circle {
+            animation: pulseLive 2s infinite ease-in-out;
+            transform-origin: center;
+          }
+        `}
+      </style>
+      <circle className="live-icon-circle" cx="12" cy="12" r="10" />
+      <polygon points="10 8 16 12 10 16 10 8" fill="currentColor" />
+    </svg>
+  )},
   { id: 'moon',    name: 'Ay',        icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg> },
   { id: 'pattern', name: 'Desenler',  icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path><path d="M2 12h20"></path></svg> },
   { id: 'nature',  name: 'Doğa',      icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 22 12 12"/></svg> },
@@ -71,6 +92,9 @@ export const IMAGE_THEME_CATEGORIES: ThemeCategory[] = [
 
 // Per-photo unique colors — each theme's accent, menuBg, glassColor matched to its individual photo
 export const IMAGE_THEMES: ImageTheme[] = [
+  // ── Live Video Themes ──
+  { id: 'live:imperial', name: 'Imperial Rest', category: 'live', isVideo: true, video: './themes/live/imperial-rest.mp4', isLight: false, textColor: '#FFFFFF', accentColor: '#38bdf8', glassColor: 'rgba(10,15,30,0.60)', menuBg: 'rgba(15,20,40,0.80)' },
+
   // ── Moon ──
   // starry_moon: deep night sky with bright stars → indigo-blue accent, dark navy glass
   { id: 'img:moon/starry_moon',  name: 'Yıldızlı Gece',   category: 'moon', image: './themes/moon/starry_moon.jpg',  isLight: false, textColor: '#FFFFFF', accentColor: '#818cf8', glassColor: 'rgba(10,8,32,0.62)',    menuBg: 'rgba(14,12,46,0.80)' },
@@ -148,7 +172,9 @@ export interface ResolvedTheme {
   accent: string;
   isLight: boolean;
   isImage: boolean;
+  isVideo?: boolean;
   image?: string;
+  video?: string;
   glassColor: string;
   textColor: string;
   menuBg: string;
@@ -165,8 +191,10 @@ export function getTheme(id: string): ResolvedTheme {
       text: imgTheme.textColor,
       accent: imgTheme.accentColor,
       isLight: imgTheme.isLight,
-      isImage: true,
-      image: isElectron ? imgTheme.image.replace('./themes/', './themes_4k/') : imgTheme.image,
+      isImage: !imgTheme.isVideo,
+      isVideo: imgTheme.isVideo,
+      image: imgTheme.image && isElectron ? imgTheme.image.replace('./themes/', './themes_4k/') : imgTheme.image,
+      video: imgTheme.video,
       glassColor: imgTheme.glassColor,
       textColor: imgTheme.textColor,
       menuBg: imgTheme.menuBg,
