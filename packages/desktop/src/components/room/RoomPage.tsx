@@ -643,7 +643,7 @@ export default function RoomPage() {
 
   // ── Background style helper for image themes ──
   const bgStyle: React.CSSProperties = (activeTheme.isImage && !activeTheme.isVideo)
-    ? { backgroundImage: `url(${activeTheme.image})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }
+    ? { backgroundImage: `url(${activeTheme.image})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', transition: 'opacity 0.4s ease', opacity: bgLoaded ? 1 : 0 }
     : {};
 
   const renderVideoBackground = () => {
@@ -656,9 +656,9 @@ export default function RoomPage() {
           muted
           playsInline
           src={activeTheme.video}
-          poster={activeTheme.image}
+          poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
           onCanPlay={() => setBgLoaded(true)}
-          style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0, pointerEvents: 'none', backgroundColor: '#000' }}
+          style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0, pointerEvents: 'none', backgroundColor: '#000', transition: 'opacity 0.4s ease', opacity: bgLoaded ? 1 : 0 }}
         />
         {/* Dark overlay for readability */}
         <div style={{
@@ -767,9 +767,9 @@ export default function RoomPage() {
           <video
             autoPlay loop muted playsInline
             src={activeTheme.video}
-            poster={activeTheme.image}
+            poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
             onCanPlay={() => setBgLoaded(true)}
-            style={{ width: '100%', height: '100%', objectFit: 'cover', backgroundColor: '#000' }}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', backgroundColor: '#000', transition: 'opacity 0.4s ease', opacity: bgLoaded ? 1 : 0 }}
           />
           {/* Dark overlay for readability */}
           <div style={{
@@ -780,9 +780,9 @@ export default function RoomPage() {
       )}
       {activeTheme.isImage && !activeTheme.isVideo && (
         <div style={{
-          position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
-          background: `url(${activeTheme.image}) center/cover no-repeat`,
-          zIndex: -1, pointerEvents: 'none',
+          position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: -1,
+          backgroundImage: `url(${activeTheme.image})`, backgroundSize: 'cover', backgroundPosition: 'center',
+          transition: 'opacity 0.4s ease', opacity: bgLoaded ? 1 : 0
         }} />
       )}
 
