@@ -299,7 +299,117 @@ export function RoomProfileModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-// ─── Theme Picker Popup — Liquid Glass & Bento Grid ────────
+function ThemeThumbnail({ theme, currentTheme, handleSelect }: any) {
+  const isSelected = currentTheme === theme.id;
+  const [isHov, setIsHov] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  return (
+    <button
+      onClick={() => handleSelect(theme.id)}
+      onMouseEnter={() => setIsHov(true)}
+      onMouseLeave={() => setIsHov(false)}
+      style={{
+        position: 'relative',
+        aspectRatio: '4/3',
+        borderRadius: 14,
+        overflow: 'hidden',
+        border: isSelected
+          ? `2px solid ${theme.accentColor}`
+          : '2px solid rgba(255,255,255,0.08)',
+        cursor: 'pointer',
+        background: '#0a0a1a',
+        transition: 'all 0.3s cubic-bezier(0.4,0,0.2,1)',
+        boxShadow: isSelected
+          ? `0 0 20px ${theme.accentColor}40, 0 8px 24px rgba(0,0,0,0.4)`
+          : isHov ? '0 8px 24px rgba(0,0,0,0.5)' : '0 2px 8px rgba(0,0,0,0.3)',
+        transform: isHov ? 'translateY(-3px) scale(1.03)' : 'translateY(0) scale(1)',
+        padding: 0,
+      }}
+    >
+      {!loaded && (
+        <div style={{
+          position: 'absolute', inset: 0,
+          background: 'rgba(5, 8, 22, 0.65)',
+          zIndex: 1,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          backdropFilter: 'blur(4px)',
+        }}>
+          <span className="spinner" style={{ width: 24, height: 24 }} />
+        </div>
+      )}
+
+      {/* Thumbnail image or video */}
+      {theme.isVideo ? (
+        <video
+          src={theme.video}
+          autoPlay
+          loop
+          muted
+          playsInline
+          poster={theme.image}
+          onCanPlay={() => setLoaded(true)}
+          style={{
+            width: '100%', height: '100%',
+            objectFit: 'cover',
+            backgroundColor: '#000',
+            transition: 'transform 0.4s ease',
+            transform: isHov ? 'scale(1.08)' : 'scale(1)',
+          }}
+        />
+      ) : (
+        <img
+          src={theme.image}
+          alt={theme.name}
+          loading="lazy"
+          onLoad={() => setLoaded(true)}
+          onError={() => setLoaded(true)}
+          style={{
+            width: '100%', height: '100%',
+            objectFit: 'cover',
+            transition: 'transform 0.4s ease',
+            transform: isHov ? 'scale(1.08)' : 'scale(1)',
+          }}
+        />
+      )}
+
+      {/* Glass overlay with name */}
+      <div style={{
+        position: 'absolute', bottom: 0, left: 0, right: 0,
+        padding: '6px 8px',
+        background: theme.isLight
+          ? 'rgba(255,255,255,0.7)'
+          : 'rgba(0,0,0,0.55)',
+        backdropFilter: 'blur(8px)',
+        borderTop: `1px solid ${theme.isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'}`,
+      }}>
+        <span style={{
+          fontSize: 10, fontWeight: 600,
+          color: theme.textColor,
+          letterSpacing: 0.3,
+        }}>{theme.name}</span>
+      </div>
+
+      {/* Light/Dark indicator */}
+      <div style={{
+        position: 'absolute', top: 6, left: 6,
+        width: 18, height: 18, borderRadius: '50%',
+        background: theme.isLight ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.6)',
+        backdropFilter: 'blur(4px)',
+        border: `1px solid ${theme.isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.15)'}`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: 9,
+      }}>
+        {theme.isLight 
+          ? <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+          : <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+        }
+      </div>
+    </button>
+  );
+}
+
+// ─── Theme Picker Popup ──────────────────────────────────────────
 export function ThemePickerPopup({ roomId, onClose }: { roomId: string; onClose: () => void }) {
   const currentTheme = useRoomStore(s => s.theme);
   const [activeCategory, setActiveCategory] = useState<string>('colors');
@@ -507,101 +617,14 @@ export function ThemePickerPopup({ roomId, onClose }: { roomId: string; onClose:
               gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
               gap: 12,
             }}>
-              {currentImageThemes.map(theme => {
-                const isSelected = currentTheme === theme.id;
-                const isHov = hoveredId === theme.id;
-                return (
-                  <button
-                    key={theme.id}
-                    onClick={() => handleSelect(theme.id)}
-                    onMouseEnter={() => setHoveredId(theme.id)}
-                    onMouseLeave={() => setHoveredId(null)}
-                    style={{
-                      position: 'relative',
-                      aspectRatio: '4/3',
-                      borderRadius: 14,
-                      overflow: 'hidden',
-                      border: isSelected
-                        ? `2px solid ${theme.accentColor}`
-                        : '2px solid rgba(255,255,255,0.08)',
-                      cursor: 'pointer',
-                      background: '#0a0a1a',
-                      transition: 'all 0.3s cubic-bezier(0.4,0,0.2,1)',
-                      boxShadow: isSelected
-                        ? `0 0 20px ${theme.accentColor}40, 0 8px 24px rgba(0,0,0,0.4)`
-                        : isHov ? '0 8px 24px rgba(0,0,0,0.5)' : '0 2px 8px rgba(0,0,0,0.3)',
-                      transform: isHov ? 'translateY(-3px) scale(1.03)' : 'translateY(0) scale(1)',
-                      padding: 0,
-                    }}
-                  >
-                    {/* Thumbnail image or video */}
-                    {theme.isVideo ? (
-                      <video
-                        src={theme.video}
-                        autoPlay
-                        loop
-                        muted
-                        playsInline
-                        poster={theme.image}
-                        style={{
-                          width: '100%', height: '100%',
-                          objectFit: 'cover',
-                          backgroundColor: '#000',
-                          transition: 'transform 0.4s ease',
-                          transform: isHov ? 'scale(1.08)' : 'scale(1)',
-                        }}
-                      />
-                    ) : (
-                      <img
-                        src={theme.image}
-                        alt={theme.name}
-                        loading="lazy"
-                        style={{
-                          width: '100%', height: '100%',
-                          objectFit: 'cover',
-                          transition: 'transform 0.4s ease',
-                          transform: isHov ? 'scale(1.08)' : 'scale(1)',
-                        }}
-                      />
-                    )}
-
-                    {/* Glass overlay with name */}
-                    <div style={{
-                      position: 'absolute', bottom: 0, left: 0, right: 0,
-                      padding: '6px 8px',
-                      background: theme.isLight
-                        ? 'rgba(255,255,255,0.7)'
-                        : 'rgba(0,0,0,0.55)',
-                      backdropFilter: 'blur(8px)',
-                      borderTop: `1px solid ${theme.isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'}`,
-                    }}>
-                      <span style={{
-                        fontSize: 10, fontWeight: 600,
-                        color: theme.textColor,
-                        letterSpacing: 0.3,
-                      }}>{theme.name}</span>
-                    </div>
-
-                    {/* Light/Dark indicator */}
-                    <div style={{
-                      position: 'absolute', top: 6, left: 6,
-                      width: 18, height: 18, borderRadius: '50%',
-                      background: theme.isLight ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.6)',
-                      backdropFilter: 'blur(4px)',
-                      border: `1px solid ${theme.isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.15)'}`,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 9,
-                    }}>
-                      {theme.isLight 
-                        ? <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
-                        : <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
-                      }
-                    </div>
-
-
-                  </button>
-                );
-              })}
+              {currentImageThemes.map(theme => (
+                <ThemeThumbnail
+                  key={theme.id}
+                  theme={theme}
+                  currentTheme={currentTheme}
+                  handleSelect={handleSelect}
+                />
+              ))}
             </div>
           )}
         </div>
