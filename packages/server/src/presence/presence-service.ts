@@ -57,7 +57,7 @@ export async function getOnlineFriends(_userId: string, friendIds: string[]): Pr
   friendIds.forEach(id => pipeline.get(REDIS_KEYS.userPresence(id)));
   const results = await pipeline.exec();
   return (results ?? [])
-    .map(([, raw]) => raw ? JSON.parse(raw as string) as UserPresence : null)
+    .map((res: any) => res[1] ? JSON.parse(res[1] as string) as UserPresence : null)
     .filter((p): p is UserPresence => p !== null);
 }
 

@@ -5,7 +5,7 @@
 
 import { Server as HttpServer } from 'http';
 import { Server, Socket } from 'socket.io';
-import { verifyAccessToken } from '../auth/auth-service';
+
 import * as syncService from '../sync/sync-service';
 import * as chatService from '../chat/chat-service';
 import * as roomService from '../rooms/room-service';

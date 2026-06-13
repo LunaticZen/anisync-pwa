@@ -107,7 +107,7 @@ export async function addReaction(messageId: string, userId: string, emoji: stri
   const message = await db.message.findUnique({ where: { id: messageId } });
   if (!message) return null;
 
-  const reactions = (message.reactions as any[]) ?? [];
+  const reactions = (message.reactions as unknown as any[]) ?? [];
   const existing = reactions.find((r: any) => r.emoji === emoji);
 
   if (existing) {
@@ -127,7 +127,7 @@ export async function addReaction(messageId: string, userId: string, emoji: stri
     reactions.push({ emoji, users: [userId], count: 1 });
   }
 
-  await db.message.update({ where: { id: messageId }, data: { reactions } });
+  await db.message.update({ where: { id: messageId }, data: { reactions: reactions as any } });
   return reactions;
 }
 
