@@ -347,14 +347,15 @@ function ThemeThumbnail({ theme, currentTheme, handleSelect }: any) {
           loop
           muted
           playsInline
-          poster={theme.image}
+          poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
           onCanPlay={() => setLoaded(true)}
           style={{
             width: '100%', height: '100%',
             objectFit: 'cover',
             backgroundColor: '#000',
-            transition: 'transform 0.4s ease',
+            transition: 'transform 0.4s ease, opacity 0.3s ease',
             transform: isHov ? 'scale(1.08)' : 'scale(1)',
+            opacity: loaded ? 1 : 0
           }}
         />
       ) : (
@@ -367,8 +368,9 @@ function ThemeThumbnail({ theme, currentTheme, handleSelect }: any) {
           style={{
             width: '100%', height: '100%',
             objectFit: 'cover',
-            transition: 'transform 0.4s ease',
+            transition: 'transform 0.4s ease, opacity 0.3s ease',
             transform: isHov ? 'scale(1.08)' : 'scale(1)',
+            opacity: loaded ? 1 : 0
           }}
         />
       )}
