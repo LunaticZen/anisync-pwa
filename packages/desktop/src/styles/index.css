@@ -1781,9 +1781,12 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* ═══ Mobile Landscape: Header Gizleme (CSS backup) ═══ */
+/* ═══ Mobile Landscape: Global UI Hiding ═══ */
 @media (max-width: 1024px) and (orientation: landscape) {
   [data-anisync-header="landscape"] {
+    display: none !important;
+  }
+  .titlebar {
     display: none !important;
   }
 }
