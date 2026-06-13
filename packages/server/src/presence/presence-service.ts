@@ -58,7 +58,7 @@ export async function getOnlineFriends(_userId: string, friendIds: string[]): Pr
   const results = await pipeline.exec();
   return (results ?? [])
     .map((res: any) => res[1] ? JSON.parse(res[1] as string) as UserPresence : null)
-    .filter((p): p is UserPresence => p !== null);
+    .filter((p: any): p is UserPresence => p !== null);
 }
 
 // ─── Socket Tracking ──────────────────────────────────────────
