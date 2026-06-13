@@ -339,40 +339,29 @@ function ThemeThumbnail({ theme, currentTheme, handleSelect }: any) {
         </div>
       )}
 
-      {/* Thumbnail image or video — PERF: poster as <img>, video only on hover */}
-      {theme.isVideo ? (
-        <>
-          <img
-            src={theme.image || theme.thumbnailVideo || theme.video}
-            alt={theme.name}
-            loading="lazy"
-            onLoad={() => setLoaded(true)}
-            onError={() => setLoaded(true)}
-            style={{
-              width: '100%', height: '100%',
-              objectFit: 'cover',
-              transition: 'transform 0.4s ease, opacity 0.3s ease',
-              transform: isHov ? 'scale(1.08)' : 'scale(1)',
-              opacity: loaded ? 1 : 0,
-              display: isHov ? 'none' : 'block',
-            }}
-          />
-          {isHov && (
-            <video
-              src={theme.thumbnailVideo || theme.video}
-              autoPlay
-              loop
-              muted
-              playsInline
-              style={{
-                width: '100%', height: '100%',
-                objectFit: 'cover',
-                backgroundColor: '#000',
-                transform: 'scale(1.08)',
-              }}
-            />
-          )}
-        </>
+        <video
+          ref={(el) => {
+            if (el) {
+              if (isHov) el.play().catch(() => {});
+              else el.pause();
+            }
+          }}
+          src={`${theme.thumbnailVideo || theme.video}#t=0.1`}
+          preload="metadata"
+          loop
+          muted
+          playsInline
+          onLoadedData={() => setLoaded(true)}
+          onError={() => setLoaded(true)}
+          style={{
+            width: '100%', height: '100%',
+            objectFit: 'cover',
+            transition: 'transform 0.4s ease, opacity 0.3s ease',
+            transform: isHov ? 'scale(1.08)' : 'scale(1)',
+            opacity: loaded ? 1 : 0,
+            backgroundColor: '#0a0a1a',
+          }}
+        />
       ) : (
         <img
           src={theme.image}
