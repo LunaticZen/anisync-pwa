@@ -708,7 +708,7 @@ setInterval(() => {
 
 httpServer.listen(PORT, '0.0.0.0', () => {
   console.log('═══════════════════════════════════════');
-  console.log(`  AniSync Server v1.1.0`);
+  console.log(`  AniSync Server v1.1.1`);
   console.log(`  Port: ${PORT}`);
   console.log(`  URL: ${RENDER_URL}`);
   console.log(`  Grace Period: ${DISCONNECT_GRACE_MS / 1000}s`);
