@@ -602,8 +602,10 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
 
       {/* Input Area (Instagram Style) */}
       <div style={{
+        boxSizing: 'border-box',
+        width: '100%',
         display: 'flex', alignItems: 'center',
-        padding: isKeyboardOpen ? '4px 8px' : '8px 12px',
+        padding: isKeyboardOpen ? '4px 10px' : '8px 16px',
         paddingBottom: isKeyboardOpen ? '4px' : 'max(8px, env(safe-area-inset-bottom, 8px))',
         borderTop: replyToMsg ? 'none' : `1px solid ${activeTheme.isLight ? 'rgba(0,0,0,0.08)' : (activeTheme.isImage ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.06)')}`,
         background: activeTheme.menuBg, flexShrink: 0,
@@ -612,6 +614,8 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
       }}>
         <div style={{
           flex: 1,
+          minWidth: 0,
+          boxSizing: 'border-box',
           display: 'flex',
           alignItems: 'center',
           background: activeTheme.isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.1)',
@@ -644,12 +648,13 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
             autoComplete="off"
             autoCorrect="off"
             style={{
-              flex: 1, height: 34, padding: '0 2px',
+              flex: 1, height: 34, padding: '0 6px',
               background: 'transparent',
               border: 'none',
               color: activeTheme.isLight ? '#1e293b' : '#e2e8f0',
               fontSize: 15,
               fontFamily: 'inherit', outline: 'none', minWidth: 0,
+              boxSizing: 'border-box',
               WebkitAppearance: 'none' as any,
               touchAction: 'manipulation',
             }}
@@ -676,7 +681,7 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
               </svg>
             </button>
           ) : (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingRight: 8, color: activeTheme.isLight ? '#475569' : '#cbd5e1' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingRight: 6, color: activeTheme.isLight ? '#475569' : '#cbd5e1', flexShrink: 0 }}>
               {/* Mic */}
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/>
