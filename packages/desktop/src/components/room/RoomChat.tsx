@@ -648,7 +648,7 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
             autoComplete="off"
             autoCorrect="off"
             style={{
-              flex: 1, height: 34, padding: '0 6px',
+              flex: 1, width: 0, height: 34, padding: '0 6px',
               background: 'transparent',
               border: 'none',
               color: activeTheme.isLight ? '#1e293b' : '#e2e8f0',
@@ -681,21 +681,21 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
               </svg>
             </button>
           ) : (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingRight: 6, color: activeTheme.isLight ? '#475569' : '#cbd5e1', flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingRight: 6, color: activeTheme.isLight ? '#475569' : '#cbd5e1', flexShrink: 0 }}>
               {/* Mic */}
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/>
                 <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
                 <line x1="12" y1="19" x2="12" y2="22"/>
               </svg>
               {/* Gallery */}
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="3" y="3" width="18" height="18" rx="4" ry="4"/>
                 <circle cx="8.5" cy="8.5" r="1.5"/>
                 <path d="M21 15l-5-5L5 21"/>
               </svg>
               {/* Sticker */}
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 15.5V8a5 5 0 0 0-5-5H8a5 5 0 0 0-5 5v8a5 5 0 0 0 5 5h7.5l5.5-5.5z"/>
                 <path d="M21 15.5H15.5V21"/>
                 <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
@@ -703,7 +703,7 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
                 <line x1="15" y1="10" x2="15.01" y2="10"/>
               </svg>
               {/* Plus */}
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="10"/>
                 <line x1="12" y1="8" x2="12" y2="16"/>
                 <line x1="8" y1="12" x2="16" y2="12"/>
