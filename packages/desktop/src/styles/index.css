@@ -1808,7 +1808,7 @@ body {
   100% { background-color: transparent; }
 }
 .highlight-glow {
-  animation: highlightRowGlow 1.5s ease-out;
+  animation: highlightRowGlow 0.7s ease-out;
   border-radius: 12px;
 }
 

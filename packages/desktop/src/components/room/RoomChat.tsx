@@ -301,6 +301,9 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
                     el.classList.remove('highlight-glow');
                     void el.offsetWidth; // trigger reflow
                     el.classList.add('highlight-glow');
+                    setTimeout(() => {
+                      el.classList.remove('highlight-glow');
+                    }, 700);
                   }
                 }}
               >
