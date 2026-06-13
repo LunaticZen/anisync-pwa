@@ -1767,6 +1767,17 @@ body {
   100% { transform: translate(0, 0) scale(1); opacity: 0.4; }
 }
 
+/* PERF: Reduce GPU-heavy blur on mobile to prevent overheating */
+@media (max-width: 768px) {
+  .gemini-aura-container::after {
+    backdrop-filter: blur(40px);
+  }
+  .aura-blob {
+    filter: blur(30px);
+    will-change: transform;
+  }
+}
+
 .main-menu {
   position: relative; /* Make sure children can sit on top */
 }

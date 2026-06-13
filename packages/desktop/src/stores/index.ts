@@ -97,13 +97,17 @@ export const useRoomStore = create<RoomState>((set, get) => ({
   isJoining: false,
   error: null,
   pendingJoinRequests: [],
-  setRoom: (room) => set({
-    currentRoom: room,
-    members: room.members ?? [],
-    settings: room.settings ?? null,
-    theme: (room as any).theme || 'night',
-    error: null,
-  }),
+  setRoom: (room) => {
+    // PERF: Start KeepAliveService when joining a room (Android only)
+    try { (window as any).AniSyncBridge?.startKeepAlive(); } catch (_) {}
+    set({
+      currentRoom: room,
+      members: room.members ?? [],
+      settings: room.settings ?? null,
+      theme: (room as any).theme || 'night',
+      error: null,
+    });
+  },
   updateMembers: (members) => set({ members }),
   addMember: (member) => set({ members: [...get().members, member] }),
   removeMember: (userId) => set({
@@ -113,9 +117,13 @@ export const useRoomStore = create<RoomState>((set, get) => ({
     settings: { ...get().settings!, ...updates },
   }),
   setTheme: (theme) => set({ theme }),
-  leaveRoom: () => set({
-    currentRoom: null, members: [], settings: null, theme: 'night', error: null, pendingJoinRequests: [],
-  }),
+  leaveRoom: () => {
+    // PERF: Stop KeepAliveService when leaving a room (Android only)
+    try { (window as any).AniSyncBridge?.stopKeepAlive(); } catch (_) {}
+    set({
+      currentRoom: null, members: [], settings: null, theme: 'night', error: null, pendingJoinRequests: [],
+    });
+  },
   setJoining: (isJoining) => set({ isJoining }),
   setError: (error) => set({ error }),
   addPendingRequest: (req) => set({

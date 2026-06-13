@@ -339,16 +339,18 @@ function ThemeThumbnail({ theme, currentTheme, handleSelect }: any) {
         </div>
       )}
 
-      {/* Thumbnail image or video */}
+      {/* Thumbnail image or video — PERF: no autoPlay, hover to preview */}
       {theme.isVideo ? (
         <video
           src={theme.thumbnailVideo || theme.video}
-          autoPlay
           loop
           muted
           playsInline
-          poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+          poster={theme.image || "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"}
+          preload="none"
           onCanPlay={() => setLoaded(true)}
+          onMouseEnter={e => { (e.target as HTMLVideoElement).play().catch(() => {}); }}
+          onMouseLeave={e => { const v = e.target as HTMLVideoElement; v.pause(); v.currentTime = 0; }}
           style={{
             width: '100%', height: '100%',
             objectFit: 'cover',

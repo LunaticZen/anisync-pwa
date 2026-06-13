@@ -129,10 +129,12 @@ function MainMenu() {
     if (isConnected) loadRooms();
   }, [isConnected]);
 
-  // Refresh rooms every 10s
+  // PERF: Refresh rooms every 30s (was 10s), skip when app is in background
   useEffect(() => {
     if (!isConnected) return;
-    const iv = setInterval(loadRooms, 10000);
+    const iv = setInterval(() => {
+      if (!document.hidden) loadRooms();
+    }, 30000);
     return () => clearInterval(iv);
   }, [isConnected]);
 

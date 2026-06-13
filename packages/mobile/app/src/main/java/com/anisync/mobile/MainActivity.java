@@ -129,24 +129,15 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        // PERF: FLAG_KEEP_SCREEN_ON removed from here — now only set during video playback
+        // to prevent battery drain when user is just chatting or on home screen.
 
         // Detect Xiaomi / MIUI devices
         isXiaomiDevice = detectXiaomi();
         appLog("Device: " + Build.MANUFACTURER + " " + Build.MODEL + " | Xiaomi: " + isXiaomiDevice);
 
-        // ── Start Foreground Service — prevents MIUI from killing network ──
-        try {
-            Intent keepAlive = new Intent(this, KeepAliveService.class);
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                startForegroundService(keepAlive);
-            } else {
-                startService(keepAlive);
-            }
-            appLog("KeepAliveService started");
-        } catch (Exception e) {
-            appLogError("KeepAliveService start failed: " + e.getMessage());
-        }
+        // PERF: KeepAliveService removed from onCreate — now started/stopped via JS Bridge
+        // when user joins/leaves a room. Prevents unnecessary foreground service when idle.
 
         rootLayout = new LinearLayout(this);
         rootLayout.setBackgroundColor(0xFF050816);
@@ -239,12 +230,42 @@ public class MainActivity extends AppCompatActivity {
                 runOnUiThread(() -> executeVideoCommand(command, time));
             }
 
+            // PERF: KeepAliveService lifecycle — start when joining room, stop when leaving
+            @JavascriptInterface
+            public void startKeepAlive() {
+                runOnUiThread(() -> {
+                    try {
+                        Intent i = new Intent(MainActivity.this, KeepAliveService.class);
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            startForegroundService(i);
+                        } else {
+                            startService(i);
+                        }
+                        appLog("KeepAliveService started (room joined)");
+                    } catch (Exception e) {
+                        appLogError("KeepAliveService start failed: " + e.getMessage());
+                    }
+                });
+            }
+
+            @JavascriptInterface
+            public void stopKeepAlive() {
+                runOnUiThread(() -> {
+                    try {
+                        stopService(new Intent(MainActivity.this, KeepAliveService.class));
+                        appLog("KeepAliveService stopped (room left)");
+                    } catch (Exception e) {
+                        appLogError("KeepAliveService stop failed: " + e.getMessage());
+                    }
+                });
+            }
+
             @JavascriptInterface
             public String getLogs() {
                 StringBuilder sb = new StringBuilder();
                 sb.append("=== AniSync Logs ===").append("\n");
                 sb.append("Device: ").append(Build.MANUFACTURER).append(" ").append(Build.MODEL).append("\n");
-                sb.append("Android: ").append(Build.VERSION.RELEASE).append(" (SDK ").append(Build.VERSION.SDK_INT).append(")\n");
+                sb.append("Android: ").append(Build.VERSION.RELEASE).append(" (SDK ").append(Build.VERSION.SDK_INT).append("\n");
                 sb.append("Xiaomi: ").append(isXiaomiDevice).append("\n");
                 sb.append("===================").append("\n\n");
                 synchronized (logBuffer) {
@@ -404,29 +425,26 @@ public class MainActivity extends AppCompatActivity {
                 // Track page loads for periodic memory cleanup
                 animePageLoadCount++;
 
-                // Inject ad-blocker CSS — reuse element by ID to prevent accumulation
-                String adBlockCss = "(function(){" +
-                        "var existing=document.getElementById('anisync-adblock');" +
-                        "if(existing)return;" +
+                // PERF: All JS injections consolidated into single evaluateJavascript call
+                // to reduce IPC overhead. Guard flag prevents duplicate injection.
+                // MutationObserver REMOVED — CSS !important handles all video elements.
+                String allInjects = "(function(){" +
+                        "if(window.__anisyncInjected)return;" +
+                        "window.__anisyncInjected=true;" +
+                        // Ad-blocker CSS
                         "var s=document.createElement('style');" +
                         "s.id='anisync-adblock';" +
                         "s.textContent='" +
-                        "[class*=\"ad-\"],[class*=\"ads-\"],[id*=\"ad-\"],[id*=\"ads-\"]," +
-                        "[class*=\"banner\"],[class*=\"popup\"],[class*=\"reklam\"],[id*=\"reklam\"]," +
-                        ".adsbygoogle,ins.adsbygoogle,[class*=\"AdContainer\"],[class*=\"ad_wrapper\"]," +
-                        "div[data-ad],div[data-ads],iframe[src*=\"doubleclick\"],iframe[src*=\"googlesyndication\"]," +
-                        "[class*=\"overlay\"]:not(video):not([class*=\"player\"])," +
-                        "[class*=\"modal\"]:not([class*=\"player\"])," +
-                        "a[target=\"_blank\"][rel*=\"noopener\"]" +
+                        "[class*=\\\"ad-\\\"],[class*=\\\"ads-\\\"],[id*=\\\"ad-\\\"],[id*=\\\"ads-\\\"]," +
+                        "[class*=\\\"banner\\\"],[class*=\\\"popup\\\"],[class*=\\\"reklam\\\"],[id*=\\\"reklam\\\"]," +
+                        ".adsbygoogle,ins.adsbygoogle,[class*=\\\"AdContainer\\\"],[class*=\\\"ad_wrapper\\\"]," +
+                        "div[data-ad],div[data-ads],iframe[src*=\\\"doubleclick\\\"],iframe[src*=\\\"googlesyndication\\\"]," +
+                        "[class*=\\\"overlay\\\"]:not(video):not([class*=\\\"player\\\"])," +
+                        "[class*=\\\"modal\\\"]:not([class*=\\\"player\\\"])," +
+                        "a[target=\\\"_blank\\\"][rel*=\\\"noopener\\\"]" +
                         "{display:none!important;height:0!important;overflow:hidden!important;}';" +
                         "document.head.appendChild(s);" +
-                        "})();";
-                view.evaluateJavascript(adBlockCss, null);
-
-                // Remove popups — use global flag to prevent duplicate listeners
-                String removePopups = "(function(){" +
-                        "if(window.__anisyncPopupBlocked)return;" +
-                        "window.__anisyncPopupBlocked=true;" +
+                        // Popup blocker
                         "window.open=function(){return null;};" +
                         "document.addEventListener('click',function(e){" +
                         "  var t=e.target;" +
@@ -435,31 +453,18 @@ public class MainActivity extends AppCompatActivity {
                         "    e.preventDefault();e.stopPropagation();" +
                         "  }" +
                         "},true);" +
+                        // Video letterbox CSS (no MutationObserver — CSS !important is sufficient)
+                        "var s2=document.createElement('style');" +
+                        "s2.id='anisync-letterbox';" +
+                        "s2.textContent='video{object-fit:contain!important;max-width:100%!important;max-height:100%!important;}';" +
+                        "document.head.appendChild(s2);" +
                         "})();";
-                view.evaluateJavascript(removePopups, null);
+                view.evaluateJavascript(allInjects, null);
 
                 // Debounced redraw — cancel previous pending redraws first
                 mainHandler.removeCallbacks(pendingRedraw);
                 mainHandler.removeCallbacks(pendingAnimeRedraw);
                 mainHandler.postDelayed(pendingAnimeRedraw, 500);
-
-                // ── Video letterboxing: disconnect previous MutationObserver before creating new one ──
-                String letterboxJs = "(function(){" +
-                        "if(window.__anisyncOb){window.__anisyncOb.disconnect();window.__anisyncOb=null;}" +
-                        "var existing=document.getElementById('anisync-letterbox');" +
-                        "if(existing)existing.remove();" +
-                        "var s=document.createElement('style');" +
-                        "s.id='anisync-letterbox';" +
-                        "s.textContent='video{object-fit:contain!important;max-width:100%!important;max-height:100%!important;}';" +
-                        "document.head.appendChild(s);" +
-                        "var ob=new MutationObserver(function(){" +
-                        "  var vs=document.querySelectorAll('video');" +
-                        "  vs.forEach(function(v){v.style.objectFit='contain';});" +
-                        "});" +
-                        "window.__anisyncOb=ob;" +
-                        "ob.observe(document.body,{childList:true,subtree:true});" +
-                        "})();";
-                view.evaluateJavascript(letterboxJs, null);
             }
 
             // ── VPN/SSL Fix: Proton VPN & Cloudflare WARP re-sign SSL certs ──
@@ -623,25 +628,23 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Force WebView to redraw — workaround for rendering glitches.
-     * Uses requestLayout + invalidate which is lighter weight than visibility toggling.
+     * PERF: Force WebView to redraw — native invalidate only.
+     * JS opacity hack removed — it caused unnecessary CSS recalc + recomposite
+     * and triggered 2 repaints per call (opacity change + setTimeout restore).
      */
     private void forceWebViewRedraw(WebView view) {
         if (view == null || view.getVisibility() != View.VISIBLE) return;
         view.requestLayout();
         view.invalidate();
-        // Also poke the WebView via JS to force a repaint
-        view.evaluateJavascript(
-            "(function(){" +
-            "  document.body.style.opacity='0.999';" +
-            "  setTimeout(function(){document.body.style.opacity='1';},50);" +
-            "})()", null);
     }
 
     private void loadAnime(String url) {
         appLog("Loading anime: " + url);
         animeVisible = true;
         animeWebView.setVisibility(View.VISIBLE);
+
+        // PERF: Keep screen on only during video playback
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         // ── Clear previous page resources before loading new URL ──
         animeWebView.clearHistory();
@@ -667,6 +670,10 @@ public class MainActivity extends AppCompatActivity {
         animeVisible = false;
         animeWebView.setVisibility(View.GONE);
         animeWebView.loadUrl("about:blank");
+
+        // PERF: Allow screen to sleep when not watching video
+        getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
         applyLayout();
     }
 
@@ -774,14 +781,12 @@ public class MainActivity extends AppCompatActivity {
 
         // Redraws after orientation change — Xiaomi needs staged redraws
         // because MIUI compositor wakes up slowly after rotation
+        // PERF: Reduced staged redraws — Xiaomi 3→1, Samsung unchanged
         if (animeVisible) {
             mainHandler.removeCallbacks(pendingRedraw);
             mainHandler.removeCallbacks(pendingAnimeRedraw);
             if (isXiaomiDevice) {
-                // Staged redraws for MIUI compositor
-                mainHandler.postDelayed(pendingRedraw, 200);
-                mainHandler.postDelayed(pendingAnimeRedraw, 600);
-                mainHandler.postDelayed(pendingRedraw, 1200);
+                mainHandler.postDelayed(pendingRedraw, 400);
             } else {
                 mainHandler.postDelayed(pendingRedraw, 500);
             }
@@ -825,7 +830,11 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        if (mainWebView != null) mainWebView.onResume();
+        // PERF: Resume timers before onResume so JS execution restarts
+        if (mainWebView != null) {
+            mainWebView.resumeTimers();
+            mainWebView.onResume();
+        }
         if (animeWebView != null) animeWebView.onResume();
 
         // ── Xiaomi Fix: Force redraw when app returns from background ──
@@ -835,9 +844,6 @@ public class MainActivity extends AppCompatActivity {
         }
 
         // ── Check if room is still active after returning from background ──
-        // If the socket disconnected while in background and the room was lost,
-        // the web layer will have navigated back to home. We need to sync the
-        // native anime WebView state with the web layer.
         if (animeVisible && mainWebView != null) {
             mainHandler.postDelayed(() -> {
                 mainWebView.evaluateJavascript(
@@ -849,15 +855,23 @@ public class MainActivity extends AppCompatActivity {
                         }
                     }
                 );
-            }, 1500); // Delay to let socket reconnect first
+            }, 1500);
         }
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        if (mainWebView != null) mainWebView.onPause();
-        if (animeWebView != null) animeWebView.onPause();
+        if (mainWebView != null) {
+            mainWebView.onPause();
+            // PERF: Pause JS timers to stop setInterval/setTimeout in background
+            // This stops heartbeat, drift check, and CSS animations from running
+            mainWebView.pauseTimers();
+        }
+        if (animeWebView != null) {
+            animeWebView.onPause();
+            // Note: NOT pausing animeWebView timers — video playback may continue
+        }
     }
 
     @Override
@@ -879,6 +893,11 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
+        // PERF: Stop KeepAliveService on destroy
+        try {
+            stopService(new Intent(this, KeepAliveService.class));
+        } catch (Exception ignored) {}
+
         // Force leave room via JS before destroying WebViews
         if (mainWebView != null) {
             appLog("onDestroy - forcing room leave");
