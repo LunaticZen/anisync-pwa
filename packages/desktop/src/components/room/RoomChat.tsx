@@ -183,6 +183,8 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
 
   return (
     <div
+      id={`msg-${msg.id}`}
+      className="chat-message-row"
       onTouchStart={e => handleStart(e.touches[0].clientX, e.touches[0].clientY)}
       onTouchMove={e => handleMove(e.touches[0].clientX, e.touches[0].clientY)}
       onTouchEnd={handleEnd}
@@ -282,14 +284,26 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
             )}
 
             {msg.replyTo && (
-              <div style={{
-                display: 'flex',
-                flexDirection: isMe ? 'row-reverse' : 'row',
-                alignItems: 'stretch',
-                marginBottom: 4,
-                opacity: 0.95,
-                maxWidth: '100%',
-              }}>
+              <div 
+                style={{
+                  display: 'flex',
+                  flexDirection: isMe ? 'row-reverse' : 'row',
+                  alignItems: 'stretch',
+                  marginBottom: 4,
+                  opacity: 0.95,
+                  maxWidth: '100%',
+                  cursor: 'pointer'
+                }}
+                onClick={() => {
+                  const el = document.getElementById(`msg-${msg.replyTo.id}`);
+                  if (el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    el.classList.remove('highlight-glow');
+                    void el.offsetWidth; // trigger reflow
+                    el.classList.add('highlight-glow');
+                  }
+                }}
+              >
                 {/* Vertical Line */}
                 <div style={{
                   width: 3,

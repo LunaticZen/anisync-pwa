@@ -1,6 +1,6 @@
 {
   "name": "anisync",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "private": true,
   "description": "Production-grade synchronized watch party platform for anime streaming sites",
   "workspaces": [

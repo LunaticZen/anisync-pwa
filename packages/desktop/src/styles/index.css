@@ -1802,3 +1802,13 @@ body {
   }
 }
 
+/* ═══ Click-to-Reply Highlight Animation ═══ */
+@keyframes highlightRowGlow {
+  0% { background-color: rgba(148, 163, 184, 0.4); }
+  100% { background-color: transparent; }
+}
+.highlight-glow {
+  animation: highlightRowGlow 1.5s ease-out;
+  border-radius: 12px;
+}
+
