@@ -678,7 +678,7 @@ export default function RoomPage() {
           zIndex: 0,
         }} />}
         <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
-          <RoomHeader {...headerProps} />
+          {mode !== 'mobile-landscape' && <RoomHeader {...headerProps} />}
           <RoomChat
             mode={mode}
             roomId={currentRoom.id}
