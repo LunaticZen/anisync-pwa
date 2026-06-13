@@ -384,6 +384,8 @@ function ThemeThumbnail({ theme, currentTheme, handleSelect }: any) {
           : 'rgba(0,0,0,0.55)',
         backdropFilter: 'blur(8px)',
         borderTop: `1px solid ${theme.isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'}`,
+        borderBottomLeftRadius: 12,
+        borderBottomRightRadius: 12,
       }}>
         <span style={{
           fontSize: 10, fontWeight: 600,
