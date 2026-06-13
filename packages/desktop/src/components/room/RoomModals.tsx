@@ -342,7 +342,7 @@ function ThemeThumbnail({ theme, currentTheme, handleSelect }: any) {
       {/* Thumbnail image or video */}
       {theme.isVideo ? (
         <video
-          src={theme.video}
+          src={theme.thumbnailVideo || theme.video}
           autoPlay
           loop
           muted
