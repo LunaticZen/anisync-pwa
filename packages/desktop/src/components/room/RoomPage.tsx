@@ -25,6 +25,7 @@ export default function RoomPage() {
   const [showMembers, setShowMembers] = useState(false);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [showThemes, setShowThemes] = useState(false);
+  const [bgLoaded, setBgLoaded] = useState(true);
   const resizingRef = useRef(false);
   const animeAreaRef = useRef<HTMLDivElement>(null);
 
@@ -45,7 +46,6 @@ export default function RoomPage() {
   // SYNC LOGIC — DO NOT MODIFY
   // ══════════════════════════════════════════════════════════
 
-  // ── PC: Open anime in BrowserView ──
   useEffect(() => {
     if (isElectron && currentUrl) {
       (window as any).anisync.anime.navigate(currentUrl);
@@ -57,6 +57,18 @@ export default function RoomPage() {
       setAnimeLoaded(false);
     }
   }, [currentUrl]);
+
+  useEffect(() => {
+    setBgLoaded(false);
+    if (activeTheme.isImage && !activeTheme.isVideo && activeTheme.image) {
+      const img = new Image();
+      img.src = activeTheme.image;
+      img.onload = () => setBgLoaded(true);
+      img.onerror = () => setBgLoaded(true);
+    } else if (!activeTheme.isVideo) {
+      setBgLoaded(true);
+    }
+  }, [activeTheme.id]);
 
   useEffect(() => {
     if (!isElectron) return;
@@ -645,6 +657,7 @@ export default function RoomPage() {
           playsInline
           src={activeTheme.video}
           poster={activeTheme.image}
+          onCanPlay={() => setBgLoaded(true)}
           style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0, pointerEvents: 'none', backgroundColor: '#000' }}
         />
         {/* Dark overlay for readability */}
@@ -654,6 +667,22 @@ export default function RoomPage() {
           zIndex: 0, pointerEvents: 'none',
         }} />
       </>
+    );
+  };
+
+  const renderBgLoader = () => {
+    if (bgLoaded) return null;
+    return (
+      <div style={{
+        position: 'absolute', inset: 0,
+        background: 'rgba(5, 8, 22, 0.65)',
+        zIndex: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        pointerEvents: 'none',
+        backdropFilter: 'blur(10px)',
+      }}>
+        <span className="spinner" style={{ width: 40, height: 40 }} />
+      </div>
     );
   };
 
@@ -668,6 +697,7 @@ export default function RoomPage() {
         pointerEvents: 'none',
       }}>
         {renderVideoBackground()}
+        {renderBgLoader()}
         {/* Header hidden in landscape/fullscreen for clean video view */}
         <RoomChat
           mode={mode}
@@ -697,6 +727,7 @@ export default function RoomPage() {
       }}>
         {/* Video background for live themes */}
         {renderVideoBackground()}
+        {renderBgLoader()}
         {/* Glass overlay for image/video themes */}
         {(activeTheme.isImage || activeTheme.isVideo) && <div style={{
           position: 'absolute', inset: 0,
@@ -737,6 +768,7 @@ export default function RoomPage() {
             autoPlay loop muted playsInline
             src={activeTheme.video}
             poster={activeTheme.image}
+            onCanPlay={() => setBgLoaded(true)}
             style={{ width: '100%', height: '100%', objectFit: 'cover', backgroundColor: '#000' }}
           />
           {/* Dark overlay for readability */}
@@ -794,8 +826,8 @@ export default function RoomPage() {
           position: 'relative', flexShrink: 0, touchAction: 'none',
         }}
       />
-
-      {/* Sidebar */}
+      {renderBgLoader()}
+      {/* ── Main App Container ── */}
       <div className="app__sidebar" style={{
         ...(isPortrait && !isElectron
           ? { height: sidebarWidth, width: '100%', maxHeight: '70vh', minHeight: 100 }
