@@ -339,27 +339,40 @@ function ThemeThumbnail({ theme, currentTheme, handleSelect }: any) {
         </div>
       )}
 
-      {/* Thumbnail image or video — PERF: no autoPlay, hover to preview */}
+      {/* Thumbnail image or video — PERF: poster as <img>, video only on hover */}
       {theme.isVideo ? (
-        <video
-          src={theme.thumbnailVideo || theme.video}
-          loop
-          muted
-          playsInline
-          poster={theme.image || "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"}
-          preload="none"
-          onCanPlay={() => setLoaded(true)}
-          onMouseEnter={e => { (e.target as HTMLVideoElement).play().catch(() => {}); }}
-          onMouseLeave={e => { const v = e.target as HTMLVideoElement; v.pause(); v.currentTime = 0; }}
-          style={{
-            width: '100%', height: '100%',
-            objectFit: 'cover',
-            backgroundColor: '#000',
-            transition: 'transform 0.4s ease, opacity 0.3s ease',
-            transform: isHov ? 'scale(1.08)' : 'scale(1)',
-            opacity: loaded ? 1 : 0
-          }}
-        />
+        <>
+          <img
+            src={theme.image || theme.thumbnailVideo || theme.video}
+            alt={theme.name}
+            loading="lazy"
+            onLoad={() => setLoaded(true)}
+            onError={() => setLoaded(true)}
+            style={{
+              width: '100%', height: '100%',
+              objectFit: 'cover',
+              transition: 'transform 0.4s ease, opacity 0.3s ease',
+              transform: isHov ? 'scale(1.08)' : 'scale(1)',
+              opacity: loaded ? 1 : 0,
+              display: isHov ? 'none' : 'block',
+            }}
+          />
+          {isHov && (
+            <video
+              src={theme.thumbnailVideo || theme.video}
+              autoPlay
+              loop
+              muted
+              playsInline
+              style={{
+                width: '100%', height: '100%',
+                objectFit: 'cover',
+                backgroundColor: '#000',
+                transform: 'scale(1.08)',
+              }}
+            />
+          )}
+        </>
       ) : (
         <img
           src={theme.image}
