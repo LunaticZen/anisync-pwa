@@ -644,7 +644,8 @@ export default function RoomPage() {
           muted
           playsInline
           src={activeTheme.video}
-          style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0, pointerEvents: 'none' }}
+          poster={activeTheme.image}
+          style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0, pointerEvents: 'none', backgroundColor: '#000' }}
         />
         {/* Dark overlay for readability */}
         <div style={{
@@ -735,7 +736,8 @@ export default function RoomPage() {
           <video
             autoPlay loop muted playsInline
             src={activeTheme.video}
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            poster={activeTheme.image}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', backgroundColor: '#000' }}
           />
           {/* Dark overlay for readability */}
           <div style={{

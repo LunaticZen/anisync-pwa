@@ -542,9 +542,11 @@ export function ThemePickerPopup({ roomId, onClose }: { roomId: string; onClose:
                         loop
                         muted
                         playsInline
+                        poster={theme.image}
                         style={{
                           width: '100%', height: '100%',
                           objectFit: 'cover',
+                          backgroundColor: '#000',
                           transition: 'transform 0.4s ease',
                           transform: isHov ? 'scale(1.08)' : 'scale(1)',
                         }}
