@@ -630,21 +630,29 @@ export default function RoomPage() {
   // ══════════════════════════════════════════════════════════
 
   // ── Background style helper for image themes ──
-  const bgStyle: React.CSSProperties = activeTheme.isImage
+  const bgStyle: React.CSSProperties = (activeTheme.isImage && !activeTheme.isVideo)
     ? { backgroundImage: `url(${activeTheme.image})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }
     : {};
 
   const renderVideoBackground = () => {
     if (!activeTheme.isVideo) return null;
     return (
-      <video
-        autoPlay
-        loop
-        muted
-        playsInline
-        src={activeTheme.video}
-        style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0, pointerEvents: 'none' }}
-      />
+      <>
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          src={activeTheme.video}
+          style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0, pointerEvents: 'none' }}
+        />
+        {/* Dark overlay for readability */}
+        <div style={{
+          position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+          background: 'linear-gradient(180deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.35) 40%, rgba(0,0,0,0.55) 100%)',
+          zIndex: 0, pointerEvents: 'none',
+        }} />
+      </>
     );
   };
 
@@ -678,7 +686,7 @@ export default function RoomPage() {
         display: 'flex', flexDirection: 'column',
         height: '100%',
         width: '100%',
-        background: activeTheme.isImage ? '#050816' : activeTheme.bg,
+        background: (activeTheme.isImage || activeTheme.isVideo) ? '#050816' : activeTheme.bg,
         color: activeTheme.textColor,
         fontFamily: 'var(--font-family)',
         overflow: 'hidden',
@@ -686,14 +694,16 @@ export default function RoomPage() {
         transition: 'background 0.4s ease, color 0.4s ease',
         ...bgStyle,
       }}>
-        {/* Glass overlay for image themes */}
-        {activeTheme.isImage && <div style={{
+        {/* Video background for live themes */}
+        {renderVideoBackground()}
+        {/* Glass overlay for image/video themes */}
+        {(activeTheme.isImage || activeTheme.isVideo) && <div style={{
           position: 'absolute', inset: 0,
           background: activeTheme.glassColor,
           zIndex: 0,
         }} />}
         <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
-          {mode !== 'mobile-landscape' && <RoomHeader {...headerProps} />}
+          <RoomHeader {...headerProps} />
           <RoomChat
             mode={mode}
             roomId={currentRoom.id}
@@ -707,16 +717,34 @@ export default function RoomPage() {
   }
 
   // ── Desktop (includes mobile pre-anime) ──
-  const desktopBg = activeTheme.isImage
+  const desktopBg = (activeTheme.isImage || activeTheme.isVideo)
     ? activeTheme.glassColor
     : `${activeTheme.bg}dd`;
-  const sidebarBg = activeTheme.isImage
+  const sidebarBg = (activeTheme.isImage || activeTheme.isVideo)
     ? activeTheme.glassColor
     : `${activeTheme.bg}dd`;
 
   return (
     <>
-      {activeTheme.isImage && (
+      {/* Fullscreen background: static image OR video */}
+      {activeTheme.isVideo && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+          zIndex: -1, pointerEvents: 'none', overflow: 'hidden',
+        }}>
+          <video
+            autoPlay loop muted playsInline
+            src={activeTheme.video}
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+          />
+          {/* Dark overlay for readability */}
+          <div style={{
+            position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+            background: 'linear-gradient(180deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.3) 40%, rgba(0,0,0,0.5) 100%)',
+          }} />
+        </div>
+      )}
+      {activeTheme.isImage && !activeTheme.isVideo && (
         <div style={{
           position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
           background: `url(${activeTheme.image}) center/cover no-repeat`,
@@ -730,7 +758,7 @@ export default function RoomPage() {
         color: activeTheme.textColor,
         transition: 'background 0.4s ease, color 0.4s ease',
         position: 'relative',
-        backdropFilter: activeTheme.isImage ? 'blur(6px) saturate(1.1)' : undefined,
+        backdropFilter: (activeTheme.isImage || activeTheme.isVideo) ? 'blur(6px) saturate(1.1)' : undefined,
       }}>
         {renderVideoBackground()}
         <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', flex: 1 }}>
@@ -772,7 +800,7 @@ export default function RoomPage() {
           : { width: sidebarWidth, minWidth: 120, maxWidth: '75vw' }),
         flexShrink: 0, display: 'flex', flexDirection: 'column',
         background: sidebarBg,
-        backdropFilter: activeTheme.isImage ? 'blur(6px) saturate(1.1)' : undefined,
+        backdropFilter: (activeTheme.isImage || activeTheme.isVideo) ? 'blur(6px) saturate(1.1)' : undefined,
         color: activeTheme.textColor,
         transition: 'background 0.4s ease, color 0.4s ease',
       }}>

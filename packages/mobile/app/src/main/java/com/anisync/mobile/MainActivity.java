@@ -161,7 +161,7 @@ public class MainActivity extends AppCompatActivity {
 
         applyLayout();
         setContentView(rootLayout);
-        mainWebView.loadUrl(SERVER_URL);
+        mainWebView.loadUrl(SERVER_URL + "?v=" + System.currentTimeMillis());
     }
 
     /**
