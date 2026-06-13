@@ -14,6 +14,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
@@ -566,6 +567,16 @@ public class MainActivity extends AppCompatActivity {
                         LinearLayout.LayoutParams.MATCH_PARENT,
                         LinearLayout.LayoutParams.MATCH_PARENT));
 
+                // ── Touch Forwarding: mainWebView sadece danmaku render eder,
+                // ── tüm dokunmatik olayları alttaki video player'a iletir
+                mainWebView.setOnTouchListener((v, event) -> {
+                    if (fullscreenCustomView != null) {
+                        fullscreenCustomView.dispatchTouchEvent(event);
+                        return true; // Consumed by forwarding, WebView kendi touch'ını işlemez
+                    }
+                    return false; // Normal WebView davranışı
+                });
+
                 // React'e fullscreen sinyali gönder
                 mainHandler.postDelayed(() -> mainWebView.evaluateJavascript(
                     "window.__anisyncSetFullscreen && window.__anisyncSetFullscreen(true)", null), 100);
@@ -575,7 +586,7 @@ public class MainActivity extends AppCompatActivity {
                         View.SYSTEM_UI_FLAG_FULLSCREEN |
                         View.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
                         View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
-                appLog("Fullscreen video started (danmaku overlay active)");
+                appLog("Fullscreen video started (danmaku overlay + touch forwarding active)");
             }
 
             @Override
@@ -594,6 +605,10 @@ public class MainActivity extends AppCompatActivity {
 
                 // Normal layout'a geri dön
                 animeWebView.setVisibility(animeVisible ? View.VISIBLE : View.GONE);
+
+                // Touch forwarding'i kaldır — normal WebView davranışına dön
+                mainWebView.setOnTouchListener(null);
+
                 applyLayout();
 
                 // React'e fullscreen bitti sinyali

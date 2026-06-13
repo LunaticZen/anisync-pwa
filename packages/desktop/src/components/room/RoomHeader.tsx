@@ -299,7 +299,7 @@ export function RoomHeader({
 
   if (isLandscape) {
     return (
-      <div style={{
+      <div data-anisync-header="landscape" style={{
         position: 'absolute', top: SAFE_TOP, left: 0, right: 0,
         zIndex: 10, display: 'flex', alignItems: 'center',
         padding: HEADER_PAD, gap: isXiaomi ? 10 : 8,
