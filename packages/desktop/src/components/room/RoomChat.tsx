@@ -600,76 +600,112 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
         </div>
       )}
 
-      {/* Input Area — ultra-compact when keyboard open */}
+      {/* Input Area (Instagram Style) */}
       <div style={{
-        display: 'flex', alignItems: 'center', gap: isKeyboardOpen ? 6 : 8,
-        padding: isKeyboardOpen ? '3px 6px' : '8px 10px',
-        paddingBottom: isKeyboardOpen ? '3px' : 'max(8px, env(safe-area-inset-bottom, 8px))',
+        display: 'flex', alignItems: 'center',
+        padding: isKeyboardOpen ? '4px 8px' : '8px 12px',
+        paddingBottom: isKeyboardOpen ? '4px' : 'max(8px, env(safe-area-inset-bottom, 8px))',
         borderTop: replyToMsg ? 'none' : `1px solid ${activeTheme.isLight ? 'rgba(0,0,0,0.08)' : (activeTheme.isImage ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.06)')}`,
         background: activeTheme.menuBg, flexShrink: 0,
         backdropFilter: activeTheme.isImage ? 'blur(16px) saturate(1.2)' : 'none',
         transition: 'padding 0.28s cubic-bezier(0.4, 0, 0.2, 1), background 0.4s ease',
       }}>
-        <input
-          ref={inputRef}
-          value={text}
-          onChange={e => handleTyping(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSend())}
-          onFocus={(e) => {
-            // Prevent MIUI WebView from auto-scrolling the page on input focus
-            e.target.scrollIntoView = () => {};
-            // Delay scroll-to-bottom to after keyboard settles
-            setTimeout(() => endRef.current?.scrollIntoView({ behavior: 'smooth' }), 350);
-          }}
-          placeholder="Mesaj yaz..."
-          maxLength={500}
-          inputMode="text"
-          autoComplete="off"
-          autoCorrect="off"
-          style={{
-            flex: 1, height: 38, padding: isKeyboardOpen ? '0 10px' : '0 14px',
-            background: activeTheme.isLight
-              ? (activeTheme.isImage ? 'rgba(0,0,0,0.06)' : 'rgba(0,0,0,0.04)')
-              : (activeTheme.isImage ? 'rgba(0,0,0,0.25)' : 'rgba(255,255,255,0.06)'),
-            border: `1px solid ${activeTheme.isLight ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.1)'}`,
-            borderRadius: isKeyboardOpen ? 16 : 20,
-            color: activeTheme.isLight ? '#1e293b' : '#e2e8f0',
-            fontSize: isKeyboardOpen ? 14 : 16,
-            fontFamily: 'inherit', outline: 'none', minWidth: 0,
-            WebkitAppearance: 'none' as any,
-            touchAction: 'manipulation',
-            transition: 'height 0.2s ease, padding 0.2s ease, font-size 0.2s ease, border-radius 0.2s ease',
-          }}
-        />
-        <button
-          onMouseDown={(e) => e.preventDefault()}
-          onTouchEnd={(e) => { e.preventDefault(); handleSend(); }}
-          onClick={handleSend}
-          disabled={!text.trim()}
-          style={{
-            background: text.trim()
-              ? activeTheme.accent
-              : `${activeTheme.accent}22`,
-            border: text.trim() ? 'none' : `1px solid ${activeTheme.accent}33`,
-            borderRadius: isKeyboardOpen ? 16 : 20,
-            color: text.trim()
-              ? 'white'
-              : activeTheme.accent,
-            padding: isKeyboardOpen ? '5px 12px' : '8px 16px',
-            fontSize: isKeyboardOpen ? 12 : 13, fontWeight: 700,
-            cursor: text.trim() ? 'pointer' : 'default',
-            display: 'flex', alignItems: 'center', gap: isKeyboardOpen ? 4 : 6,
-            flexShrink: 0, transition: 'all 0.25s ease',
-            whiteSpace: 'nowrap',
-            boxShadow: text.trim() ? `0 2px 12px ${activeTheme.accent}50` : 'none',
-            opacity: text.trim() ? 1 : 0.7,
-          }}
-        >
-          Gönder
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" />
-          </svg>
-        </button>
+        <div style={{
+          flex: 1,
+          display: 'flex',
+          alignItems: 'center',
+          background: activeTheme.isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.1)',
+          borderRadius: 9999,
+          padding: '4px',
+          gap: 8,
+          transition: 'all 0.2s ease',
+        }}>
+          {/* Left Empty Circle */}
+          <div style={{
+            width: 34, height: 34,
+            borderRadius: '50%',
+            background: activeTheme.accent,
+            flexShrink: 0,
+          }} />
+
+          {/* Input Field */}
+          <input
+            ref={inputRef}
+            value={text}
+            onChange={e => handleTyping(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSend())}
+            onFocus={(e) => {
+              e.target.scrollIntoView = () => {};
+              setTimeout(() => endRef.current?.scrollIntoView({ behavior: 'smooth' }), 350);
+            }}
+            placeholder="Mesaj..."
+            maxLength={500}
+            inputMode="text"
+            autoComplete="off"
+            autoCorrect="off"
+            style={{
+              flex: 1, height: 34, padding: '0 2px',
+              background: 'transparent',
+              border: 'none',
+              color: activeTheme.isLight ? '#1e293b' : '#e2e8f0',
+              fontSize: 15,
+              fontFamily: 'inherit', outline: 'none', minWidth: 0,
+              WebkitAppearance: 'none' as any,
+              touchAction: 'manipulation',
+            }}
+          />
+
+          {/* Right Icons or Send Button */}
+          {text.trim() ? (
+            <button
+              onMouseDown={(e) => e.preventDefault()}
+              onTouchEnd={(e) => { e.preventDefault(); handleSend(); }}
+              onClick={handleSend}
+              style={{
+                background: activeTheme.accent,
+                borderRadius: 9999,
+                width: 52, height: 34,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                border: 'none', cursor: 'pointer', flexShrink: 0,
+                transition: 'all 0.25s ease',
+              }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="white" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                <line x1="22" y1="2" x2="11" y2="13" />
+              </svg>
+            </button>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingRight: 8, color: activeTheme.isLight ? '#475569' : '#cbd5e1' }}>
+              {/* Mic */}
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                <line x1="12" y1="19" x2="12" y2="22"/>
+              </svg>
+              {/* Gallery */}
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="4" ry="4"/>
+                <circle cx="8.5" cy="8.5" r="1.5"/>
+                <path d="M21 15l-5-5L5 21"/>
+              </svg>
+              {/* Sticker */}
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15.5V8a5 5 0 0 0-5-5H8a5 5 0 0 0-5 5v8a5 5 0 0 0 5 5h7.5l5.5-5.5z"/>
+                <path d="M21 15.5H15.5V21"/>
+                <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
+                <line x1="9" y1="10" x2="9.01" y2="10"/>
+                <line x1="15" y1="10" x2="15.01" y2="10"/>
+              </svg>
+              {/* Plus */}
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="16"/>
+                <line x1="8" y1="12" x2="16" y2="12"/>
+              </svg>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
