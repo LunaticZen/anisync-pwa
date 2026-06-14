@@ -530,6 +530,7 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
     });
     setText('');
     setReplyToMsg(null);
+    setShowEmojiPicker(false);
     getSocket()?.emit('chat:typing', { roomId, isTyping: false });
     // Keep keyboard open — refocus input after send
     if (isMobile) {
@@ -726,7 +727,7 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
           <div style={{ position: 'relative', display: 'flex' }}>
             <button 
               onClick={() => setShowEmojiPicker(prev => !prev)}
-              onMouseDown={e => e.preventDefault()}
+              onMouseDown={e => { e.preventDefault(); e.stopPropagation(); }}
               style={{ 
                 background: 'none', border: 'none', padding: 0, 
                 display: 'flex', alignItems: 'center', justifyContent: 'center', 
