@@ -43,6 +43,7 @@ export function EmojiPicker({ onSelect, onClose, isLight, isImage }: EmojiPicker
         left: 0,
         width: 320,
         height: 400,
+        maxHeight: 'min(400px, calc(100cqh - 60px))',
         background: bg,
         backdropFilter: isImage ? 'blur(16px)' : 'none',
         borderRadius: 16,

@@ -496,7 +496,7 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
   };
 
   return (
-    <div className="chat" style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+    <div className="chat" style={{ containerType: 'size', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
       {/* Chat Header — slides up and vanishes when keyboard opens */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
