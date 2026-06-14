@@ -676,7 +676,7 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           padding: '10px 14px',
           background: activeTheme.menuBg,
-          backdropFilter: activeTheme.isImage ? 'blur(16px) saturate(1.2)' : 'none',
+          backdropFilter: 'none',
           borderTop: `1px solid ${activeTheme.isLight ? 'rgba(0,0,0,0.08)' : (activeTheme.isImage ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.06)')}`,
           position: 'relative',
           zIndex: 1,
@@ -709,7 +709,7 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
         paddingBottom: isKeyboardOpen ? '4px' : 'max(8px, env(safe-area-inset-bottom, 8px))',
         borderTop: replyToMsg ? 'none' : `1px solid ${activeTheme.isLight ? 'rgba(0,0,0,0.08)' : (activeTheme.isImage ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.06)')}`,
         background: activeTheme.menuBg, flexShrink: 0,
-        backdropFilter: activeTheme.isImage ? 'blur(16px) saturate(1.2)' : 'none',
+        backdropFilter: 'none',
         transition: 'padding 0.28s cubic-bezier(0.4, 0, 0.2, 1), background 0.4s ease',
         position: 'relative', zIndex: 50
       }}>

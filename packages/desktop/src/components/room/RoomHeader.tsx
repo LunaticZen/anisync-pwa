@@ -324,7 +324,7 @@ export function RoomHeader({
         padding: isKeyboardOpen ? '2px 8px' : HEADER_PAD,
         paddingTop: isKeyboardOpen ? 2 : (SAFE_TOP + (isXiaomi ? 10 : 8)),
         background: activeTheme.isImage ? activeTheme.glassColor : `${activeTheme.bg}ee`,
-        backdropFilter: activeTheme.isImage ? 'blur(16px) saturate(1.2)' : 'none',
+        backdropFilter: 'none',
         borderBottom: `1px solid ${activeTheme.isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.06)'}`,
         flexShrink: 0,
         transition: `all ${ANIM_SPEED} cubic-bezier(0.4, 0, 0.2, 1)`,

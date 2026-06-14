@@ -680,7 +680,7 @@ export default function RoomPage() {
         zIndex: 0,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         pointerEvents: 'none',
-        backdropFilter: 'blur(10px)',
+        backdropFilter: 'none',
       }}>
         <span className="spinner" style={{ width: 40, height: 40 }} />
       </div>
@@ -793,7 +793,7 @@ export default function RoomPage() {
         color: activeTheme.textColor,
         transition: 'background 0.4s ease, color 0.4s ease',
         position: 'relative',
-        backdropFilter: (activeTheme.isImage || activeTheme.isVideo) ? 'blur(6px) saturate(1.1)' : undefined,
+        backdropFilter: 'none',
       }}>
         {renderVideoBackground()}
         <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', flex: 1 }}>
@@ -835,7 +835,7 @@ export default function RoomPage() {
           : { width: sidebarWidth, minWidth: 120, maxWidth: '75vw' }),
         flexShrink: 0, display: 'flex', flexDirection: 'column',
         background: sidebarBg,
-        backdropFilter: (activeTheme.isImage || activeTheme.isVideo) ? 'blur(6px) saturate(1.1)' : undefined,
+        backdropFilter: 'none',
         color: activeTheme.textColor,
         transition: 'background 0.4s ease, color 0.4s ease',
       }}>

@@ -32,7 +32,7 @@ export function MemberPopup({ members, onClose, pendingRequests, hostId }: { mem
       <div style={{
         position: 'absolute', top: 48, right: 8, zIndex: 999,
         background: activeTheme.isLight ? activeTheme.menuBg : (activeTheme.isImage ? activeTheme.menuBg : '#1a1a3e'),
-        backdropFilter: activeTheme.isImage ? 'blur(20px) saturate(1.3)' : 'none',
+        backdropFilter: 'none',
         border: `1px solid ${activeTheme.isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.08)'}`,
         borderRadius: 12, padding: '8px 0', minWidth: 220, maxWidth: 300,
         boxShadow: activeTheme.isLight ? '0 12px 40px rgba(0,0,0,0.15)' : '0 12px 40px rgba(0,0,0,0.5)',
@@ -333,7 +333,7 @@ function ThemeThumbnail({ theme, currentTheme, handleSelect }: any) {
           background: 'rgba(5, 8, 22, 0.65)',
           zIndex: 1,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          backdropFilter: 'blur(4px)',
+          backdropFilter: 'none',
         }}>
           <span className="spinner" style={{ width: 24, height: 24 }} />
         </div>
@@ -380,7 +380,7 @@ function ThemeThumbnail({ theme, currentTheme, handleSelect }: any) {
         background: theme.isLight
           ? 'rgba(255,255,255,0.7)'
           : 'rgba(0,0,0,0.55)',
-        backdropFilter: 'blur(8px)',
+        backdropFilter: 'none',
         borderTop: `1px solid ${theme.isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'}`,
         borderBottomLeftRadius: 12,
         borderBottomRightRadius: 12,
@@ -397,7 +397,7 @@ function ThemeThumbnail({ theme, currentTheme, handleSelect }: any) {
         position: 'absolute', top: 6, left: 6,
         width: 18, height: 18, borderRadius: '50%',
         background: theme.isLight ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.6)',
-        backdropFilter: 'blur(4px)',
+        backdropFilter: 'none',
         border: `1px solid ${theme.isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.15)'}`,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         fontSize: 9,
@@ -440,13 +440,13 @@ export function ThemePickerPopup({ roomId, onClose }: { roomId: string; onClose:
       position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
       background: 'rgba(0,0,0,0.6)', zIndex: 1000,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      backdropFilter: 'blur(8px)',
+      backdropFilter: 'none',
     }}>
       <div onClick={e => e.stopPropagation()} style={{
         background: resolvedTheme.isImage
           ? (resolvedTheme.isLight ? resolvedTheme.menuBg : resolvedTheme.menuBg)
           : (resolvedTheme.isLight ? 'rgba(245,243,255,0.92)' : 'rgba(30,27,75,0.85)'),
-        backdropFilter: 'blur(24px) saturate(1.4)',
+        backdropFilter: 'none',
         borderRadius: 20,
         border: `1px solid ${resolvedTheme.isLight ? 'rgba(0,0,0,0.08)' : 'rgba(130,140,255,0.15)'}`,
         width: 'min(680px, 94vw)',
