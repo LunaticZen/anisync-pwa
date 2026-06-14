@@ -340,14 +340,8 @@ function ThemeThumbnail({ theme, currentTheme, handleSelect }: any) {
       )}
 
         <video
-          ref={(el) => {
-            if (el) {
-              if (isHov) el.play().catch(() => {});
-              else el.pause();
-            }
-          }}
-          src={`${theme.thumbnailVideo || theme.video}#t=0.1`}
-          preload="metadata"
+          src={theme.thumbnailVideo || theme.video}
+          autoPlay
           loop
           muted
           playsInline
