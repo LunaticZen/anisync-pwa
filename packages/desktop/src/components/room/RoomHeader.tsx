@@ -284,7 +284,7 @@ export function RoomHeader({
 
   // ── Render: "Anime Aç" Button (desktop only, when no URL) ──
   const renderAnimeButton = () => {
-    if (!isDesktop || currentUrl || !isElectron) return null;
+    if (!isDesktop || currentUrl) return null;
     return (
       <button className="btn btn--secondary btn--sm" onClick={onShowUrlInput}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3" /></svg>
@@ -351,16 +351,21 @@ export function RoomHeader({
         padding: '12px 16px',
         minHeight: 'auto',
         display: 'flex',
-        alignItems: 'center',
+        flexDirection: 'column',
+        alignItems: 'stretch',
         gap: 12
       }}>
-        {renderBack()}
-        {renderAvatar()}
-        {renderRoomInfo()}
-        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {renderBack()}
+          {renderAvatar()}
+          {renderRoomInfo()}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           {renderAnimeButton()}
-          {renderTheme()}
-          {renderLogButton()}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {renderTheme()}
+            {renderLogButton()}
+          </div>
         </div>
       </div>
     );
