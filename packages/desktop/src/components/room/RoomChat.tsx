@@ -438,18 +438,39 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
 
   const insertEmoji = (emojiPath: string) => {
     if (!editableRef.current) return;
-    if (document.activeElement !== editableRef.current) {
-      editableRef.current.focus();
-      // Move cursor to end if focusing for the first time
-      const range = document.createRange();
+    
+    const img = document.createElement('img');
+    img.setAttribute('data-emoji', emojiPath);
+    img.src = `/emojis/${emojiPath}`;
+    img.alt = "emoji";
+    img.style.height = '24px';
+    img.style.width = '24px';
+    img.style.verticalAlign = 'middle';
+    img.style.margin = '0 2px';
+    img.style.userSelect = 'text';
+    img.style.display = 'inline-block';
+    img.setAttribute('contenteditable', 'false');
+    const zwsp = document.createTextNode('\u200B');
+
+    if (document.activeElement === editableRef.current) {
       const sel = window.getSelection();
-      range.selectNodeContents(editableRef.current);
-      range.collapse(false);
-      sel?.removeAllRanges();
-      sel?.addRange(range);
+      if (sel && sel.rangeCount > 0) {
+        const range = sel.getRangeAt(0);
+        range.deleteContents();
+        range.insertNode(zwsp);
+        range.insertNode(img);
+        range.setStartAfter(zwsp);
+        range.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(range);
+      } else {
+        editableRef.current.appendChild(img);
+        editableRef.current.appendChild(zwsp);
+      }
+    } else {
+      editableRef.current.appendChild(img);
+      editableRef.current.appendChild(zwsp);
     }
-    const imgHtml = `<img data-emoji="${emojiPath}" src="/emojis/${emojiPath}" alt="emoji" style="height: 24px; vertical-align: middle; margin: 0 2px; user-select: all;" contenteditable="false" />\u200B`;
-    document.execCommand('insertHTML', false, imgHtml);
     handleInput();
   };
   const endRef = useRef<HTMLDivElement>(null);
@@ -705,6 +726,7 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
           <div style={{ position: 'relative', display: 'flex' }}>
             <button 
               onClick={() => setShowEmojiPicker(prev => !prev)}
+              onMouseDown={e => e.preventDefault()}
               style={{ 
                 background: 'none', border: 'none', padding: 0, 
                 display: 'flex', alignItems: 'center', justifyContent: 'center', 

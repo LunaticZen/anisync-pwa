@@ -37,6 +37,7 @@ export function EmojiPicker({ onSelect, onClose, isLight, isImage }: EmojiPicker
   return (
     <div
       ref={containerRef}
+      onMouseDown={(e) => e.preventDefault()}
       style={{
         position: 'absolute',
         bottom: 'calc(100% + 10px)',
