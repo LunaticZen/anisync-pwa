@@ -166,6 +166,18 @@ Mobilde anime aktifken (`mobileAnimeActive = true`), tamamen farklı bir layout 
 └─────────────────────────┘
 ```
 
+## Arayüz Güncellemeleri Neden Mobilde Anında Gözükmez? (Lifecycle & Cache)
+
+Uygulama başarıyla güncellenip Render (veya herhangi bir sunucu) üzerinden canlıya (deploy) alınsa bile, kullanıcının mobil cihazında bu güncellemelerin **hemen gözükmemesinin temel iki nedeni vardır:**
+
+1. **Android Application Lifecycle (Arka Plan - Ön Plan İlişkisi):** 
+Android'de bir uygulama (bizim durumumuzda MainActivity) kapatılmayıp arka plana (son kullanılanlar menüsüne) atıldığında, WebView son haliyle dondurulur (freeze state).
+Kullanıcı uygulamaya tekrar döndüğünde `onCreate()` fonksiyonu **baştan tetiklenmez** ve `mainWebView.loadUrl(...)` komutu çalıştırılmaz. Uygulama sadece dondurulduğu yerden uyanır. Bu yüzden arka planda açık olan bir uygulamaya sunucudaki yeni güncellemeler otomatik düşmez. Yenilikleri görmek için kullanıcının uygulamayı son kullanılanlar sekmesinden "yukarı kaydırarak" tamamen (kill) kapatması ve sıfırdan açması zorunludur.
+
+2. **Render Sunucu Gecikmesi & WebView Ön belleği (Cache):** 
+Github'a kod yüklendiği anda Render'ın projeyi çekip derlemesi (Node/Vite) ortalama 2-3 dakika sürer. Bu süreçte eski dosyalar yayınlanmaya devam eder.
+Ayrıca Android tarafında HTML içeriği için `setCacheMode(WebSettings.LOAD_NO_CACHE)` kullanarak bypass yapsak bile, bazen JavaScript veya CSS dosyalarının eski halleri birkaç dakika daha sistem tarafında tutulabilir. Tam ve temiz bir yükleme için uygulamanın arka plandan kapatılıp 2-3 dakika sonra baştan başlatılması her zaman en net çözümdür.
+
 ## İlgili Sayfalar
 
 - [[Senkronizasyon]] — APK sync mantığı

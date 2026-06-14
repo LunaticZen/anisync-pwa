@@ -106,6 +106,25 @@ git commit -m "fix: include render-server files"
 
 ---
 
+### Render'da (Mobilde) Arayüz Güncellemelerinin Gözükmemesi
+**Sorun**: Masaüstünde `npm run build:desktop` yapıp Github'a pushlanmasına rağmen, telefondaki (Render'a bağlı) uygulamada yeni UI değişikliklerinin yansımaması.
+
+**Kök Neden**: UI kodları `packages/desktop` içinde derlenir ve `dist` klasörüne çıkar. Fakat Render sunucusu sadece `packages/render-server/public` klasörünü yayınlar. Eğer derlenen `dist` klasörü manuel olarak `public` klasörüne kopyalanmadan Github'a yollanırsa, Render eski dosyaları yayınlamaya devam eder.
+
+**Çözüm**: Github'a kod yollamadan önce **MUTLAKA** `deploy.ps1` veya `full-build.ps1` script'inin kullanılması gerekir. Bu script, `dist` klasörünü otomatik olarak `render-server/public` içine taşır. Elle push yapılacaksa şu adımlar izlenmelidir:
+```powershell
+# 1. Desktop arayüzünü derle
+cd packages/desktop && npx vite build
+
+# 2. Render server'ın public klasörüne kopyala
+Remove-Item ../render-server/public -Recurse -Force
+Copy-Item dist ../render-server/public -Recurse -Force
+
+# 3. Sonra Github'a pushla
+```
+
+---
+
 ## 🟡 Bilinen Sınırlamalar
 
 ### Render.com Free Tier

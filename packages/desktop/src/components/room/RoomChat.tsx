@@ -7,6 +7,40 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useAuthStore, useChatStore, useRoomStore } from '../../stores';
 import { getSocket } from '../../services/socket';
 import { isMobile, avatarColor, getTheme, type RoomMode } from './constants';
+import { EmojiPicker } from './EmojiPicker';
+
+function renderMessageText(text: string, isOnlyEmoji: boolean) {
+  const emojiRegex = /\[emoji:([^\]]+)\]/g;
+  const parts = [];
+  let lastIndex = 0;
+  let match;
+  
+  while ((match = emojiRegex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(text.slice(lastIndex, match.index));
+    }
+    const emojiPath = match[1];
+    parts.push(
+      <img 
+        key={match.index} 
+        src={`/emojis/${emojiPath}`} 
+        alt="emoji" 
+        style={{ 
+          height: isOnlyEmoji ? 48 : 24, 
+          verticalAlign: 'middle', 
+          display: 'inline-block',
+          margin: '0 2px'
+        }} 
+      />
+    );
+    lastIndex = match.index + match[0].length;
+  }
+  if (lastIndex < text.length) {
+    parts.push(text.slice(lastIndex));
+  }
+  
+  return parts.length > 0 ? parts : text;
+}
 
 // ─── Ticker Item Type ─────────────────────────────────────
 export interface TickerItem {
@@ -176,7 +210,8 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
     ? `${topRadius}px ${isConsecutivePrev ? smallRadius : topRadius}px ${isConsecutiveNext ? smallRadius : bottomRadius}px ${bottomRadius}px`
     : `${isConsecutivePrev ? smallRadius : topRadius}px ${topRadius}px ${bottomRadius}px ${isConsecutiveNext ? smallRadius : bottomRadius}px`;
 
-  const bubbleBg = isMe ? activeTheme.accent : (activeTheme.isLight ? '#f1f5f9' : (activeTheme.isImage ? 'rgba(0,0,0,0.5)' : '#334155'));
+  const isOnlyEmoji = /^(\s*\[emoji:[^\]]+\]\s*)+$/.test(msg.text);
+  const bubbleBg = isOnlyEmoji ? 'transparent' : (isMe ? activeTheme.accent : (activeTheme.isLight ? '#f1f5f9' : (activeTheme.isImage ? 'rgba(0,0,0,0.5)' : '#334155')));
   const textColor = isMe ? 'white' : (activeTheme.isLight ? '#0f172a' : '#f8fafc');
   const marginT = isConsecutivePrev ? 2 : (isKeyboardOpen ? 6 : 12);
   const avaSize = isKeyboardOpen ? 20 : 28;
@@ -348,14 +383,14 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
             {/* Actual Message Bubble */}
             <div style={{
               background: bubbleBg, color: textColor,
-              padding: isKeyboardOpen ? '6px 10px' : '8px 12px',
+              padding: isOnlyEmoji ? 0 : (isKeyboardOpen ? '6px 10px' : '8px 12px'),
               borderRadius: borderRadius, fontSize: isKeyboardOpen ? 12 : 13,
               lineHeight: 1.4, wordBreak: 'break-word',
-              boxShadow: activeTheme.isImage && !isMe ? '0 2px 8px rgba(0,0,0,0.2)' : 'none',
-              border: isMe ? 'none' : `1px solid ${activeTheme.isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)'}`,
+              boxShadow: isOnlyEmoji ? 'none' : (activeTheme.isImage && !isMe ? '0 2px 8px rgba(0,0,0,0.2)' : 'none'),
+              border: isOnlyEmoji ? 'none' : (isMe ? 'none' : `1px solid ${activeTheme.isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)'}`),
               transition: 'padding 0.2s ease, font-size 0.2s ease',
             }}>
-              {msg.text}
+              {renderMessageText(msg.text, isOnlyEmoji)}
             </div>
           </div>
         </div>
@@ -375,6 +410,7 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
   const { username } = useAuthStore();
   const [text, setText] = useState('');
   const [replyToMsg, setReplyToMsg] = useState<any>(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -625,19 +661,35 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
           transition: 'all 0.2s ease',
         }}>
           {/* Left Emoji Icon */}
-          <button style={{ 
-            background: 'none', border: 'none', padding: 0, 
-            display: 'flex', alignItems: 'center', justifyContent: 'center', 
-            color: activeTheme.isLight ? '#1e293b' : '#cbd5e1', 
-            cursor: 'pointer', flexShrink: 0, marginLeft: 4, marginRight: 2 
-          }}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10"/>
-              <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
-              <line x1="9" y1="9" x2="9.01" y2="9"/>
-              <line x1="15" y1="9" x2="15.01" y2="9"/>
-            </svg>
-          </button>
+          <div style={{ position: 'relative', display: 'flex' }}>
+            <button 
+              onClick={() => setShowEmojiPicker(prev => !prev)}
+              style={{ 
+                background: 'none', border: 'none', padding: 0, 
+                display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                color: activeTheme.isLight ? '#1e293b' : '#cbd5e1', 
+                cursor: 'pointer', flexShrink: 0, marginLeft: 4, marginRight: 2 
+              }}
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
+                <line x1="9" y1="9" x2="9.01" y2="9"/>
+                <line x1="15" y1="9" x2="15.01" y2="9"/>
+              </svg>
+            </button>
+            {showEmojiPicker && (
+              <EmojiPicker 
+                onSelect={(emojiTag) => {
+                  setText(prev => prev ? `${prev} ${emojiTag} ` : `${emojiTag} `);
+                  inputRef.current?.focus();
+                }}
+                onClose={() => setShowEmojiPicker(false)}
+                isLight={activeTheme.isLight}
+                isImage={activeTheme.isImage}
+              />
+            )}
+          </div>
 
           {/* Input Field */}
           <input

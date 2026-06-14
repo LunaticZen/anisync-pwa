@@ -1,0 +1,510 @@
+[
+  {
+    "name": "Mavi",
+    "emojis": [
+      {
+        "path": "Mavi/12422-screaming.png",
+        "name": "12422-screaming"
+      },
+      {
+        "path": "Mavi/13418-blue-emoji-devious.png",
+        "name": "13418-blue-emoji-devious"
+      },
+      {
+        "path": "Mavi/16969-perfect.png",
+        "name": "16969-perfect"
+      },
+      {
+        "path": "Mavi/20769-sobbing.png",
+        "name": "20769-sobbing"
+      },
+      {
+        "path": "Mavi/20847-bluemoji-1.png",
+        "name": "20847-bluemoji-1"
+      },
+      {
+        "path": "Mavi/23550-drooling-hearteyes.png",
+        "name": "23550-drooling-hearteyes"
+      },
+      {
+        "path": "Mavi/29540-survived.png",
+        "name": "29540-survived"
+      },
+      {
+        "path": "Mavi/33644-shurggingemoji.png",
+        "name": "33644-shurggingemoji"
+      },
+      {
+        "path": "Mavi/34256-thumbsup.png",
+        "name": "34256-thumbsup"
+      },
+      {
+        "path": "Mavi/3607-goofy.png",
+        "name": "3607-goofy"
+      },
+      {
+        "path": "Mavi/3607-praying.png",
+        "name": "3607-praying"
+      },
+      {
+        "path": "Mavi/40920-sending-love.png",
+        "name": "40920-sending-love"
+      },
+      {
+        "path": "Mavi/47931-blue-guy-cat-face.png",
+        "name": "47931-blue-guy-cat-face"
+      },
+      {
+        "path": "Mavi/48593-noo-joobi.png",
+        "name": "48593-noo-joobi"
+      },
+      {
+        "path": "Mavi/49142-sigma2.png",
+        "name": "49142-sigma2"
+      },
+      {
+        "path": "Mavi/49690-joobi-blue-guy-lmao.png",
+        "name": "49690-joobi-blue-guy-lmao"
+      },
+      {
+        "path": "Mavi/49690-joobi-blue-guy-ok.png",
+        "name": "49690-joobi-blue-guy-ok"
+      },
+      {
+        "path": "Mavi/52003-w-rizz-joobi-blueguy.png",
+        "name": "52003-w-rizz-joobi-blueguy"
+      },
+      {
+        "path": "Mavi/54451-joobi-troll-face-blue.png",
+        "name": "54451-joobi-troll-face-blue"
+      },
+      {
+        "path": "Mavi/58119-joobi-mewing-blue.png",
+        "name": "58119-joobi-mewing-blue"
+      },
+      {
+        "path": "Mavi/63846-innocentandprettyblueemoji.png",
+        "name": "63846-innocentandprettyblueemoji"
+      },
+      {
+        "path": "Mavi/70633-pled.png",
+        "name": "70633-pled"
+      },
+      {
+        "path": "Mavi/71829-kissy-face.png",
+        "name": "71829-kissy-face"
+      },
+      {
+        "path": "Mavi/75298-bigeye.png",
+        "name": "75298-bigeye"
+      },
+      {
+        "path": "Mavi/76247-desperateblueemoji.png",
+        "name": "76247-desperateblueemoji"
+      },
+      {
+        "path": "Mavi/77570-blue-hearteyes.png",
+        "name": "77570-blue-hearteyes"
+      },
+      {
+        "path": "Mavi/77889-blue-guy-silly-happy.png",
+        "name": "77889-blue-guy-silly-happy"
+      },
+      {
+        "path": "Mavi/8103-hiss.png",
+        "name": "8103-hiss"
+      },
+      {
+        "path": "Mavi/83380-blu-sigma.png",
+        "name": "83380-blu-sigma"
+      },
+      {
+        "path": "Mavi/86241-blue-guy-disappear.png",
+        "name": "86241-blue-guy-disappear"
+      },
+      {
+        "path": "Mavi/93816-joobi-blue-shocked.png",
+        "name": "93816-joobi-blue-shocked"
+      },
+      {
+        "path": "Mavi/99173-joe-cringe.png",
+        "name": "99173-joe-cringe"
+      }
+    ]
+  },
+  {
+    "name": "Meep",
+    "emojis": [
+      {
+        "path": "Meep/11372-meepepic.png",
+        "name": "11372-meepepic"
+      },
+      {
+        "path": "Meep/11372-meepeyeroll.png",
+        "name": "11372-meepeyeroll"
+      },
+      {
+        "path": "Meep/14398-meephappy.png",
+        "name": "14398-meephappy"
+      },
+      {
+        "path": "Meep/1780-meepzombie.png",
+        "name": "1780-meepzombie"
+      },
+      {
+        "path": "Meep/28132-meepcool.png",
+        "name": "28132-meepcool"
+      },
+      {
+        "path": "Meep/34231-meepsorry.png",
+        "name": "34231-meepsorry"
+      },
+      {
+        "path": "Meep/36623-meepannoy.png",
+        "name": "36623-meepannoy"
+      },
+      {
+        "path": "Meep/41580-meepunamused.png",
+        "name": "41580-meepunamused"
+      },
+      {
+        "path": "Meep/45448-meepworried.png",
+        "name": "45448-meepworried"
+      },
+      {
+        "path": "Meep/45633-meepangel.png",
+        "name": "45633-meepangel"
+      },
+      {
+        "path": "Meep/4794-meepwoops.png",
+        "name": "4794-meepwoops"
+      },
+      {
+        "path": "Meep/49665-meepbleh.png",
+        "name": "49665-meepbleh"
+      },
+      {
+        "path": "Meep/52095-meepgrin.png",
+        "name": "52095-meepgrin"
+      },
+      {
+        "path": "Meep/52283-meeplove.png",
+        "name": "52283-meeplove"
+      },
+      {
+        "path": "Meep/52283-meepnerd.png",
+        "name": "52283-meepnerd"
+      },
+      {
+        "path": "Meep/52283-meepvomit.png",
+        "name": "52283-meepvomit"
+      },
+      {
+        "path": "Meep/56842-meepstarstruck.png",
+        "name": "56842-meepstarstruck"
+      },
+      {
+        "path": "Meep/58827-meepjoy.png",
+        "name": "58827-meepjoy"
+      },
+      {
+        "path": "Meep/60112-meepsmile.png",
+        "name": "60112-meepsmile"
+      },
+      {
+        "path": "Meep/62141-meepsilly.png",
+        "name": "62141-meepsilly"
+      },
+      {
+        "path": "Meep/62313-meepsurpised.png",
+        "name": "62313-meepsurpised"
+      },
+      {
+        "path": "Meep/63708-meeplawl.png",
+        "name": "63708-meeplawl"
+      },
+      {
+        "path": "Meep/69065-meepdizzy.png",
+        "name": "69065-meepdizzy"
+      },
+      {
+        "path": "Meep/72248-meepblush.png",
+        "name": "72248-meepblush"
+      },
+      {
+        "path": "Meep/72723-meepkiss.png",
+        "name": "72723-meepkiss"
+      },
+      {
+        "path": "Meep/76290-meepwink.png",
+        "name": "76290-meepwink"
+      },
+      {
+        "path": "Meep/84307-meephide.png",
+        "name": "84307-meephide"
+      },
+      {
+        "path": "Meep/85647-meepsob.png",
+        "name": "85647-meepsob"
+      },
+      {
+        "path": "Meep/86958-meepsad.png",
+        "name": "86958-meepsad"
+      },
+      {
+        "path": "Meep/9109-meepdown.png",
+        "name": "9109-meepdown"
+      }
+    ]
+  },
+  {
+    "name": "Pepe",
+    "emojis": [
+      {
+        "path": "Pepe/1082-clownge.png",
+        "name": "1082-clownge"
+      },
+      {
+        "path": "Pepe/2230-poggies-peepo.png",
+        "name": "2230-poggies-peepo"
+      },
+      {
+        "path": "Pepe/2982-pepecry.png",
+        "name": "2982-pepecry"
+      },
+      {
+        "path": "Pepe/3049-pepenosign.png",
+        "name": "3049-pepenosign"
+      },
+      {
+        "path": "Pepe/3613-pepe-with-jesus.png",
+        "name": "3613-pepe-with-jesus"
+      },
+      {
+        "path": "Pepe/3959-hmm.png",
+        "name": "3959-hmm"
+      },
+      {
+        "path": "Pepe/4178-pepe-rage.png",
+        "name": "4178-pepe-rage"
+      },
+      {
+        "path": "Pepe/4437-prayge.png",
+        "name": "4437-prayge"
+      },
+      {
+        "path": "Pepe/4642-death.png",
+        "name": "4642-death"
+      },
+      {
+        "path": "Pepe/4825_PepeClown.png",
+        "name": "4825_PepeClown"
+      },
+      {
+        "path": "Pepe/4838-sadge.png",
+        "name": "4838-sadge"
+      },
+      {
+        "path": "Pepe/4912-sadge-pray.png",
+        "name": "4912-sadge-pray"
+      },
+      {
+        "path": "Pepe/60250-think.png",
+        "name": "60250-think"
+      },
+      {
+        "path": "Pepe/6358-pepeclown.png",
+        "name": "6358-pepeclown"
+      },
+      {
+        "path": "Pepe/6757_Sadge.png",
+        "name": "6757_Sadge"
+      },
+      {
+        "path": "Pepe/7332-copium.png",
+        "name": "7332-copium"
+      },
+      {
+        "path": "Pepe/81504-pepeok.png",
+        "name": "81504-pepeok"
+      },
+      {
+        "path": "Pepe/9807-pepecringe.png",
+        "name": "9807-pepecringe"
+      },
+      {
+        "path": "Pepe/monkaS.png",
+        "name": "monkaS"
+      },
+      {
+        "path": "Pepe/PepeHands.png",
+        "name": "PepeHands"
+      }
+    ]
+  },
+  {
+    "name": "Silly cats",
+    "emojis": [
+      {
+        "path": "Silly cats/10655-watermelon-cat.gif",
+        "name": "10655-watermelon-cat"
+      },
+      {
+        "path": "Silly cats/129403-flowersforyou.png",
+        "name": "129403-flowersforyou"
+      },
+      {
+        "path": "Silly cats/13388-cat-happy.png",
+        "name": "13388-cat-happy"
+      },
+      {
+        "path": "Silly cats/15080-cat-smilling.png",
+        "name": "15080-cat-smilling"
+      },
+      {
+        "path": "Silly cats/18038-wassup.png",
+        "name": "18038-wassup"
+      },
+      {
+        "path": "Silly cats/20424-love4you.png",
+        "name": "20424-love4you"
+      },
+      {
+        "path": "Silly cats/233828-stinky.png",
+        "name": "233828-stinky"
+      },
+      {
+        "path": "Silly cats/26384-cat-smile.png",
+        "name": "26384-cat-smile"
+      },
+      {
+        "path": "Silly cats/29418-noodles.png",
+        "name": "29418-noodles"
+      },
+      {
+        "path": "Silly cats/338635-shocked.png",
+        "name": "338635-shocked"
+      },
+      {
+        "path": "Silly cats/3516-scubbacat.gif",
+        "name": "3516-scubbacat"
+      },
+      {
+        "path": "Silly cats/36642-um.png",
+        "name": "36642-um"
+      },
+      {
+        "path": "Silly cats/39580-gato.png",
+        "name": "39580-gato"
+      },
+      {
+        "path": "Silly cats/42915-koki.png",
+        "name": "42915-koki"
+      },
+      {
+        "path": "Silly cats/440174-redcard.png",
+        "name": "440174-redcard"
+      },
+      {
+        "path": "Silly cats/455353-inlove.png",
+        "name": "455353-inlove"
+      },
+      {
+        "path": "Silly cats/486800-plotting.png",
+        "name": "486800-plotting"
+      },
+      {
+        "path": "Silly cats/501481-nobrain.png",
+        "name": "501481-nobrain"
+      },
+      {
+        "path": "Silly cats/502259-downvote.png",
+        "name": "502259-downvote"
+      },
+      {
+        "path": "Silly cats/546820-upvote.png",
+        "name": "546820-upvote"
+      },
+      {
+        "path": "Silly cats/549205-lickingscreen.png",
+        "name": "549205-lickingscreen"
+      },
+      {
+        "path": "Silly cats/559934-approve.png",
+        "name": "559934-approve"
+      },
+      {
+        "path": "Silly cats/563716-sadqueen.png",
+        "name": "563716-sadqueen"
+      },
+      {
+        "path": "Silly cats/58034-cat-scammer.png",
+        "name": "58034-cat-scammer"
+      },
+      {
+        "path": "Silly cats/59438-cat.png",
+        "name": "59438-cat"
+      },
+      {
+        "path": "Silly cats/59790-huh.png",
+        "name": "59790-huh"
+      },
+      {
+        "path": "Silly cats/600559-glasses.png",
+        "name": "600559-glasses"
+      },
+      {
+        "path": "Silly cats/617091-peace.png",
+        "name": "617091-peace"
+      },
+      {
+        "path": "Silly cats/67803-hungry.png",
+        "name": "67803-hungry"
+      },
+      {
+        "path": "Silly cats/6835-cat-derp.png",
+        "name": "6835-cat-derp"
+      },
+      {
+        "path": "Silly cats/68781-simp1.png",
+        "name": "68781-simp1"
+      },
+      {
+        "path": "Silly cats/736199-ring.png",
+        "name": "736199-ring"
+      },
+      {
+        "path": "Silly cats/767943-give.png",
+        "name": "767943-give"
+      },
+      {
+        "path": "Silly cats/78491-catsmirk.png",
+        "name": "78491-catsmirk"
+      },
+      {
+        "path": "Silly cats/794547-fight.png",
+        "name": "794547-fight"
+      },
+      {
+        "path": "Silly cats/87691-cat-soldjacat.png",
+        "name": "87691-cat-soldjacat"
+      },
+      {
+        "path": "Silly cats/90226-catsit.png",
+        "name": "90226-catsit"
+      },
+      {
+        "path": "Silly cats/91818-hhh.png",
+        "name": "91818-hhh"
+      },
+      {
+        "path": "Silly cats/93363-shockedcat.png",
+        "name": "93363-shockedcat"
+      },
+      {
+        "path": "Silly cats/980819-moneyhands.png",
+        "name": "980819-moneyhands"
+      }
+    ]
+  }
+]
