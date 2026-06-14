@@ -616,6 +616,13 @@ public class MainActivity extends AppCompatActivity {
 
                 applyLayout();
 
+                // Xiaomi: staged redraws after fullscreen exit to prevent black screen
+                if (isXiaomiDevice) {
+                    mainHandler.postDelayed(pendingRedraw, 200);
+                    mainHandler.postDelayed(pendingAnimeRedraw, 500);
+                    mainHandler.postDelayed(pendingRedraw, 1000);
+                }
+
                 // React'e fullscreen bitti sinyali
                 mainWebView.evaluateJavascript(
                     "window.__anisyncSetFullscreen && window.__anisyncSetFullscreen(false)", null);
@@ -628,14 +635,23 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * PERF: Force WebView to redraw — native invalidate only.
-     * JS opacity hack removed — it caused unnecessary CSS recalc + recomposite
-     * and triggered 2 repaints per call (opacity change + setTimeout restore).
+     * Force WebView to redraw — workaround for rendering glitches.
+     * Xiaomi MIUI requires JS opacity poke to trigger Chromium compositor repaint
+     * after layer-type or layout changes. Non-Xiaomi uses native invalidate only.
      */
     private void forceWebViewRedraw(WebView view) {
         if (view == null || view.getVisibility() != View.VISIBLE) return;
         view.requestLayout();
         view.invalidate();
+        // Xiaomi: native invalidate alone doesn't trigger visual update after
+        // layer type switches. The CSS opacity change forces Chromium to repaint.
+        if (isXiaomiDevice) {
+            view.evaluateJavascript(
+                "(function(){" +
+                "  document.body.style.opacity='0.999';" +
+                "  setTimeout(function(){document.body.style.opacity='1';},50);" +
+                "})()", null);
+        }
     }
 
     private void loadAnime(String url) {
@@ -781,12 +797,14 @@ public class MainActivity extends AppCompatActivity {
 
         // Redraws after orientation change — Xiaomi needs staged redraws
         // because MIUI compositor wakes up slowly after rotation
-        // PERF: Reduced staged redraws — Xiaomi 3→1, Samsung unchanged
         if (animeVisible) {
             mainHandler.removeCallbacks(pendingRedraw);
             mainHandler.removeCallbacks(pendingAnimeRedraw);
             if (isXiaomiDevice) {
-                mainHandler.postDelayed(pendingRedraw, 400);
+                // Xiaomi: 3 staged redraws required — single redraw causes black screen
+                mainHandler.postDelayed(pendingRedraw, 200);
+                mainHandler.postDelayed(pendingAnimeRedraw, 600);
+                mainHandler.postDelayed(pendingRedraw, 1200);
             } else {
                 mainHandler.postDelayed(pendingRedraw, 500);
             }
