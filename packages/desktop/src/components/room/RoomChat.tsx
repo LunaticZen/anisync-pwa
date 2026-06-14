@@ -23,7 +23,7 @@ function renderMessageText(text: string, isOnlyEmoji: boolean) {
     parts.push(
       <img 
         key={match.index} 
-        src={`/emojis/${emojiPath}`} 
+        src={`./emojis/${emojiPath}`} 
         alt="emoji" 
         style={{ 
           height: isOnlyEmoji ? 48 : 24, 
@@ -441,7 +441,7 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
     
     const img = document.createElement('img');
     img.setAttribute('data-emoji', emojiPath);
-    img.src = `/emojis/${emojiPath}`;
+    img.src = `./emojis/${emojiPath}`;
     img.alt = "emoji";
     img.style.height = '24px';
     img.style.width = '24px';
