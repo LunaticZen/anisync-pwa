@@ -801,25 +801,24 @@ export default function RoomPage() {
         position: 'relative',
         backdropFilter: 'none',
         flex: (!isElectron && !currentUrl) ? 'none' : 1,
+        height: (!isElectron && !currentUrl) ? 'auto' : undefined,
       }}>
         <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', flex: 1 }}>
           <RoomHeader {...headerProps} />
-          {(isElectron || currentUrl) && (
-            <RoomVideoArea
-              mode={mode}
-              currentUrl={currentUrl}
-              animeAreaRef={animeAreaRef}
-              animeLoaded={animeLoaded}
-              displayUrl={displayUrl}
-              onDisplayUrlChange={setDisplayUrl}
-              onNavUrlSubmit={handleNavUrlSubmit}
-              showUrlInput={showUrlInput}
-              animeUrl={animeUrl}
-              onAnimeUrlChange={setAnimeUrl}
-              onNavigate={handleNavigate}
-              onToggleUrlInput={() => setShowUrlInput(false)}
-            />
-          )}
+          <RoomVideoArea
+            mode={mode}
+            currentUrl={currentUrl}
+            animeAreaRef={animeAreaRef}
+            animeLoaded={animeLoaded}
+            displayUrl={displayUrl}
+            onDisplayUrlChange={setDisplayUrl}
+            onNavUrlSubmit={handleNavUrlSubmit}
+            showUrlInput={showUrlInput}
+            animeUrl={animeUrl}
+            onAnimeUrlChange={setAnimeUrl}
+            onNavigate={handleNavigate}
+            onToggleUrlInput={() => setShowUrlInput(false)}
+          />
         </div>
       </div>
 

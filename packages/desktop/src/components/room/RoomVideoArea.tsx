@@ -56,16 +56,20 @@ export function RoomVideoArea({
   displayUrl, onDisplayUrlChange, onNavUrlSubmit,
   showUrlInput, animeUrl, onAnimeUrlChange, onNavigate, onToggleUrlInput,
 }: RoomVideoAreaProps) {
-  const roomTheme = useRoomStore(s => s.theme);
-  const activeTheme = getTheme(roomTheme);
+  const isMobile = mode === 'mobile-portrait' || mode === 'mobile-landscape';
+  const isDesktop = mode === 'desktop';
+  const themeName = useRoomStore(s => s.theme);
+  const activeTheme = getTheme(themeName);
+  const bgPrimary = activeTheme.isImage ? 'transparent' : activeTheme.bg;
+  const members = useRoomStore(s => s.members);
+  const currentRoom = useRoomStore(s => s.currentRoom);
+  const hostId = currentRoom?.hostId;
+  const bgTertiary = activeTheme.isImage ? 'rgba(0,0,0,0.2)' : 'var(--bg-tertiary)';
 
   // Mobile modes: video is rendered natively, no React video area needed
-  if (mode === 'mobile-landscape' || mode === 'mobile-portrait') {
+  if (isMobile) {
     return null;
   }
-
-  const bgPrimary = activeTheme.isImage ? 'transparent' : 'var(--bg-primary)';
-  const bgTertiary = activeTheme.isImage ? 'rgba(0,0,0,0.2)' : 'var(--bg-tertiary)';
 
   // ── Desktop mode ──
   return (
@@ -133,6 +137,56 @@ export function RoomVideoArea({
         ) : isMobile ? null : (
           <WebAnimeCard url={currentUrl} />
         )
+      ) : !isElectron ? (
+        <div style={{
+          padding: '24px 16px',
+          display: 'flex', flexDirection: 'column', gap: 24,
+          background: activeTheme.isImage ? activeTheme.glassColor : bgPrimary,
+          borderBottom: `1px solid ${activeTheme.border}`,
+        }}>
+          {/* Members List */}
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span>Lobi ({members.length})</span>
+            </div>
+            <div style={{ 
+              display: 'flex', gap: 16, overflowX: 'auto', paddingBottom: 8,
+              scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' 
+            }}>
+              {members.map(m => (
+                <div key={m.userId} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, flexShrink: 0, width: 64 }}>
+                  <div style={{
+                    width: 56, height: 56, borderRadius: '50%',
+                    background: m.avatarUrl ? `url(${m.avatarUrl}) center/cover` : activeTheme.border,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 22, fontWeight: 600, color: 'white',
+                    position: 'relative'
+                  }}>
+                    {!m.avatarUrl && m.username.charAt(0).toUpperCase()}
+                    {m.userId === hostId && (
+                      <div style={{ position: 'absolute', bottom: -2, right: -2, background: 'var(--accent)', borderRadius: '50%', padding: 2 }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="white" stroke="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 12, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%', textAlign: 'center' }}>
+                    {m.displayName || m.username}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          
+          {/* Big Anime Aç Button */}
+          <button 
+            className="btn btn--primary" 
+            onClick={() => onToggleUrlInput()}
+            style={{ width: '100%', padding: '16px', display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'center', justifyContent: 'center', borderRadius: 16, fontSize: 16, fontWeight: 600 }}
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3" /></svg>
+            Anime Aç
+          </button>
+        </div>
       ) : (
         <div style={{
           flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -145,7 +199,7 @@ export function RoomVideoArea({
             </svg>
             <p style={{ fontSize: 16, fontWeight: 600 }}>Anime seçilmedi</p>
             <p style={{ fontSize: 13, marginTop: 4 }}>
-              {isMobile ? 'Host anime linkini paylaşınca otomatik açılacak' : '"Anime Aç" butonuna tıklayarak link yapıştırın'}
+              "Anime Aç" butonuna tıklayarak link yapıştırın
             </p>
           </div>
         </div>

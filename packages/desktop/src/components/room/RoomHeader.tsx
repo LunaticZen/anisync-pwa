@@ -367,7 +367,6 @@ export function RoomHeader({
         {renderAvatar()}
         {renderRoomInfo()}
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-          {renderAnimeButton()}
           {renderTheme()}
           {renderLogButton()}
         </div>
