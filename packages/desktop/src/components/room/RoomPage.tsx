@@ -787,6 +787,12 @@ export default function RoomPage() {
         }} />
       )}
 
+      {(!isElectron && !currentUrl) && (
+        <style>{`
+          .app__content { flex-direction: column !important; }
+        `}</style>
+      )}
+
       <div className="app__main" style={{
         display: 'flex', flexDirection: 'column',
         background: desktopBg,
@@ -794,45 +800,49 @@ export default function RoomPage() {
         transition: 'background 0.4s ease, color 0.4s ease',
         position: 'relative',
         backdropFilter: 'none',
+        flex: (!isElectron && !currentUrl) ? 'none' : 1,
       }}>
-        {renderVideoBackground()}
         <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', flex: 1 }}>
           <RoomHeader {...headerProps} />
-          <RoomVideoArea
-            mode={mode}
-            currentUrl={currentUrl}
-            animeAreaRef={animeAreaRef}
-            animeLoaded={animeLoaded}
-            displayUrl={displayUrl}
-            onDisplayUrlChange={setDisplayUrl}
-            onNavUrlSubmit={handleNavUrlSubmit}
-            showUrlInput={showUrlInput}
-            animeUrl={animeUrl}
-            onAnimeUrlChange={setAnimeUrl}
-            onNavigate={handleNavigate}
-            onToggleUrlInput={() => setShowUrlInput(false)}
-          />
+          {(isElectron || currentUrl) && (
+            <RoomVideoArea
+              mode={mode}
+              currentUrl={currentUrl}
+              animeAreaRef={animeAreaRef}
+              animeLoaded={animeLoaded}
+              displayUrl={displayUrl}
+              onDisplayUrlChange={setDisplayUrl}
+              onNavUrlSubmit={handleNavUrlSubmit}
+              showUrlInput={showUrlInput}
+              animeUrl={animeUrl}
+              onAnimeUrlChange={setAnimeUrl}
+              onNavigate={handleNavigate}
+              onToggleUrlInput={() => setShowUrlInput(false)}
+            />
+          )}
         </div>
       </div>
 
       {/* Resize handle */}
-      <div className="resize-handle"
-        onMouseDown={() => { resizingRef.current = true; document.body.style.cursor = isPortrait && !isElectron ? 'ns-resize' : 'ew-resize'; }}
-        onTouchStart={() => { resizingRef.current = true; }}
-        style={{
-          ...(isPortrait && !isElectron
-            ? { width: '100%', height: 10, cursor: 'ns-resize' }
-            : { width: 6, height: 'auto', cursor: 'ew-resize' }),
-          background: 'var(--border)', transition: 'background 0.15s',
-          position: 'relative', flexShrink: 0, touchAction: 'none',
-        }}
-      />
+      {(isElectron || currentUrl) && (
+        <div className="resize-handle"
+          onMouseDown={() => { resizingRef.current = true; document.body.style.cursor = isPortrait && !isElectron ? 'ns-resize' : 'ew-resize'; }}
+          onTouchStart={() => { resizingRef.current = true; }}
+          style={{
+            ...(isPortrait && !isElectron
+              ? { width: '100%', height: 10, cursor: 'ns-resize' }
+              : { width: 6, height: 'auto', cursor: 'ew-resize' }),
+            background: 'var(--border)', transition: 'background 0.15s',
+            position: 'relative', flexShrink: 0, touchAction: 'none',
+          }}
+        />
+      )}
       {renderBgLoader()}
       {/* ── Main App Container ── */}
       <div className="app__sidebar" style={{
         ...(isPortrait && !isElectron
-          ? { height: sidebarWidth, width: '100%', maxHeight: '70vh', minHeight: 100 }
-          : { width: sidebarWidth, minWidth: 120, maxWidth: '75vw' }),
+          ? { height: (!isElectron && !currentUrl) ? '100%' : sidebarWidth, width: '100%', maxHeight: (!isElectron && !currentUrl) ? 'none' : '70vh', flex: (!isElectron && !currentUrl) ? 1 : 'none' }
+          : { width: (!isElectron && !currentUrl) ? '100%' : sidebarWidth, minWidth: 120, maxWidth: (!isElectron && !currentUrl) ? '100%' : '75vw', flex: (!isElectron && !currentUrl) ? 1 : 'none' }),
         flexShrink: 0, display: 'flex', flexDirection: 'column',
         background: sidebarBg,
         backdropFilter: 'none',
