@@ -70,7 +70,7 @@ export function RoomHeader({
         minHeight: isKeyboardOpen ? 'auto' : TOUCH_SIZE,
         alignItems: 'center', justifyContent: 'center',
         opacity: isLandscape ? 0.9 : undefined,
-        transition: isPortraitMode ? `padding ${ANIM_SPEED} ease` : undefined,
+        /* padding removed from transition */
       }}>
         <svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
       </button>
@@ -91,7 +91,7 @@ export function RoomHeader({
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         fontSize: compact ? 8 : (isDesktop ? 12 : (isXiaomi ? 12 : 11)), fontWeight: 700, color: 'white',
         border: isDesktop ? '1.5px solid rgba(91,124,255,0.3)' : undefined,
-        transition: isPortraitMode ? `all ${ANIM_SPEED} ease` : undefined,
+        transition: isPortraitMode ? `background ${ANIM_SPEED} ease` : undefined,
       }} title={isDesktop ? 'Profil fotoğrafını değiştir' : undefined}>
         {!avatar && (myUsername || '?')[0].toUpperCase()}
       </div>
@@ -168,7 +168,7 @@ export function RoomHeader({
         minHeight: isKeyboardOpen ? 'auto' : TOUCH_SIZE,
         justifyContent: 'center',
         opacity: isLandscape ? 0.9 : undefined,
-        transition: isPortraitMode ? `padding ${ANIM_SPEED} ease` : undefined,
+        /* padding removed from transition */
       }}>
         <svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" />
@@ -239,7 +239,7 @@ export function RoomHeader({
         minWidth: compact ? 'auto' : TOUCH_SIZE,
         minHeight: compact ? 'auto' : TOUCH_SIZE,
         justifyContent: 'center',
-        transition: isPortraitMode ? `all ${ANIM_SPEED} ease` : undefined,
+        transition: isPortraitMode ? `opacity ${ANIM_SPEED} ease` : undefined,
       }}>
         <div style={{ width: dotSz, height: dotSz, borderRadius: '50%', background: activeTheme.accent, boxShadow: `0 0 4px ${activeTheme.accent}60` }} />
         <svg width={iconSz} height={iconSz} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -268,7 +268,7 @@ export function RoomHeader({
         cursor: 'pointer',
         padding: compact ? 2 : (isLandscape ? (isXiaomi ? 8 : 6) : (isXiaomi ? 6 : 4)),
         display: 'flex', borderRadius: 6,
-        transition: `all ${ANIM_SPEED} ease`,
+        transition: `opacity ${ANIM_SPEED} ease, background ${ANIM_SPEED} ease`,
         flexShrink: 0,
         minWidth: compact ? 'auto' : TOUCH_SIZE,
         minHeight: compact ? 'auto' : TOUCH_SIZE,
@@ -327,7 +327,7 @@ export function RoomHeader({
         backdropFilter: 'none',
         borderBottom: `1px solid ${activeTheme.isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.06)'}`,
         flexShrink: 0,
-        transition: `all ${ANIM_SPEED} cubic-bezier(0.4, 0, 0.2, 1)`,
+        transition: `background ${ANIM_SPEED} cubic-bezier(0.4, 0, 0.2, 1)`, /* layout removed */
         minHeight: isKeyboardOpen ? 28 : TOUCH_SIZE,
         maxHeight: isKeyboardOpen ? 32 : (isXiaomi ? 64 : 60),
         overflow: 'hidden',

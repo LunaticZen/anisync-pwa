@@ -388,7 +388,7 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
               lineHeight: 1.4, wordBreak: 'break-word',
               boxShadow: isOnlyEmoji ? 'none' : (activeTheme.isImage && !isMe ? '0 2px 8px rgba(0,0,0,0.2)' : 'none'),
               border: isOnlyEmoji ? 'none' : (isMe ? 'none' : `1px solid ${activeTheme.isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)'}`),
-              transition: 'padding 0.2s ease, font-size 0.2s ease',
+              /* padding/font-size removed from transition to prevent layout thrashing */
             }}>
               {renderMessageText(msg.text, isOnlyEmoji)}
             </div>
@@ -570,7 +570,7 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
         maxHeight: isKeyboardOpen ? 0 : 40,
         opacity: isKeyboardOpen ? 0 : 1,
         overflow: 'hidden',
-        transition: 'max-height 0.28s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease, padding 0.28s cubic-bezier(0.4, 0, 0.2, 1)',
+        transition: 'opacity 0.2s ease', /* max-height and padding removed from transition */
         pointerEvents: isKeyboardOpen ? 'none' as const : 'auto' as const,
         color: activeTheme.textColor,
       }}>
@@ -588,7 +588,7 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
         display: 'flex', flexDirection: 'column',
         gap: isKeyboardOpen ? 1 : 4,
         WebkitOverflowScrolling: 'touch' as any,
-        transition: 'padding 0.2s ease, gap 0.2s ease',
+        /* padding and gap removed from transition */
       }}>
         {messages.length === 0 && (
           <div style={{ textAlign: 'center', padding: 32, color: activeTheme.isLight ? '#94a3b8' : '#475569', fontSize: 13 }}>Henüz mesaj yok</div>
@@ -710,7 +710,7 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
         borderTop: replyToMsg ? 'none' : `1px solid ${activeTheme.isLight ? 'rgba(0,0,0,0.08)' : (activeTheme.isImage ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.06)')}`,
         background: activeTheme.menuBg, flexShrink: 0,
         backdropFilter: 'none',
-        transition: 'padding 0.28s cubic-bezier(0.4, 0, 0.2, 1), background 0.4s ease',
+        transition: 'background 0.4s ease', /* padding removed from transition */
         position: 'relative', zIndex: 50
       }}>
         <div style={{
