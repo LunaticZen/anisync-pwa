@@ -103,10 +103,15 @@ export function RoomHeader({
     if (isDesktop) {
       return (
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 700, fontSize: 15 }}>{roomName}</div>
-          <div style={{ fontSize: 12, color: 'var(--text-muted)', display: 'flex', gap: 12 }}>
+          <div style={{ 
+            fontWeight: 700, fontSize: 15,
+            whiteSpace: isMobile ? 'nowrap' : 'normal',
+            overflow: isMobile ? 'hidden' : 'visible',
+            textOverflow: isMobile ? 'ellipsis' : 'clip',
+          }}>{roomName}</div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', display: 'flex', gap: 12, whiteSpace: 'nowrap' }}>
             <span onClick={onCopyCode} style={{ cursor: 'pointer' }}>
-              Kod: <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent-secondary)' }}>{roomCode}</span>
+              {!isMobile && 'Kod: '}<span style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent-secondary)' }}>{roomCode}</span>
             </span>
             <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" /></svg>
@@ -351,21 +356,17 @@ export function RoomHeader({
         padding: '12px 16px',
         minHeight: 'auto',
         display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'stretch',
-        gap: 12
+        alignItems: 'center',
+        gap: 8,
+        overflow: 'hidden'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          {renderBack()}
-          {renderAvatar()}
-          {renderRoomInfo()}
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        {renderBack()}
+        {renderAvatar()}
+        {renderRoomInfo()}
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
           {renderAnimeButton()}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            {renderTheme()}
-            {renderLogButton()}
-          </div>
+          {renderTheme()}
+          {renderLogButton()}
         </div>
       </div>
     );
