@@ -100,7 +100,7 @@ export default function AccessCodePage() {
 
       <div style={{
         background: 'rgba(10, 15, 40, 0.85)',
-        backdropFilter: 'blur(20px)',
+        backdropFilter: 'none',
         borderRadius: 20,
         border: '1px solid rgba(100, 130, 255, 0.15)',
         padding: '48px 40px',
