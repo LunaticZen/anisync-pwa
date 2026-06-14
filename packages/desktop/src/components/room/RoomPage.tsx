@@ -647,7 +647,8 @@ export default function RoomPage() {
     : {};
 
   const renderVideoBackground = () => {
-    if (!activeTheme.isVideo) return null;
+    // Hide video bg in mobile overlay mode — Xiaomi SOFTWARE layer can't render HW video
+    if (!activeTheme.isVideo || (isMobile && effectiveLandscape && currentUrl)) return null;
     return (
       <>
         <video
@@ -758,8 +759,8 @@ export default function RoomPage() {
 
   return (
     <>
-      {/* Fullscreen background: static image OR video */}
-      {activeTheme.isVideo && (
+      {/* Fullscreen background: video — hidden in mobile overlay mode (Xiaomi SOFTWARE layer can't render HW video) */}
+      {activeTheme.isVideo && !(isMobile && effectiveLandscape && currentUrl) && (
         <div style={{
           position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
           zIndex: -1, pointerEvents: 'none', overflow: 'hidden',
