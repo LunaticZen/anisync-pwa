@@ -522,10 +522,11 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
   }, []);
 
   const handleSend = () => {
-    if (!text.trim()) return;
+    const cleanText = text.replace(/[\u200B]/g, '').trim();
+    if (!cleanText) return;
     getSocket()?.emit('chat:message', { 
       roomId, 
-      text: text.trim(),
+      text: cleanText,
       replyTo: replyToMsg ? { id: replyToMsg.id, username: replyToMsg.displayName ?? replyToMsg.username, text: replyToMsg.text } : undefined
     });
     setText('');
