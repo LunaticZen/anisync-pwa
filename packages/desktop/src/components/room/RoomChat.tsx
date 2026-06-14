@@ -624,13 +624,20 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
           gap: 8,
           transition: 'all 0.2s ease',
         }}>
-          {/* Left Empty Circle */}
-          <div style={{
-            width: 34, height: 34,
-            borderRadius: '50%',
-            background: activeTheme.accent,
-            flexShrink: 0,
-          }} />
+          {/* Left Emoji Icon */}
+          <button style={{ 
+            background: 'none', border: 'none', padding: 0, 
+            display: 'flex', alignItems: 'center', justifyContent: 'center', 
+            color: activeTheme.isLight ? '#1e293b' : '#cbd5e1', 
+            cursor: 'pointer', flexShrink: 0, marginLeft: 4, marginRight: 2 
+          }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
+              <line x1="9" y1="9" x2="9.01" y2="9"/>
+              <line x1="15" y1="9" x2="15.01" y2="9"/>
+            </svg>
+          </button>
 
           {/* Input Field */}
           <input
@@ -681,33 +688,21 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
               </svg>
             </button>
           ) : (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingRight: 6, color: activeTheme.isLight ? '#475569' : '#cbd5e1', flexShrink: 0 }}>
-              {/* Mic */}
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/>
-                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                <line x1="12" y1="19" x2="12" y2="22"/>
-              </svg>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingRight: 8, color: activeTheme.isLight ? '#1e293b' : '#cbd5e1', flexShrink: 0 }}>
               {/* Gallery */}
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="3" width="18" height="18" rx="4" ry="4"/>
-                <circle cx="8.5" cy="8.5" r="1.5"/>
-                <path d="M21 15l-5-5L5 21"/>
-              </svg>
-              {/* Sticker */}
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15.5V8a5 5 0 0 0-5-5H8a5 5 0 0 0-5 5v8a5 5 0 0 0 5 5h7.5l5.5-5.5z"/>
-                <path d="M21 15.5H15.5V21"/>
-                <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
-                <line x1="9" y1="10" x2="9.01" y2="10"/>
-                <line x1="15" y1="10" x2="15.01" y2="10"/>
-              </svg>
-              {/* Plus */}
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10"/>
-                <line x1="12" y1="8" x2="12" y2="16"/>
-                <line x1="8" y1="12" x2="16" y2="12"/>
-              </svg>
+              <button style={{ background: 'none', border: 'none', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'inherit', cursor: 'pointer' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="4" ry="4"/>
+                  <circle cx="8.5" cy="8.5" r="1.5"/>
+                  <path d="M21 15l-5-5L5 21"/>
+                </svg>
+              </button>
+              {/* Heart */}
+              <button style={{ background: 'none', border: 'none', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'inherit', cursor: 'pointer' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                </svg>
+              </button>
             </div>
           )}
         </div>
