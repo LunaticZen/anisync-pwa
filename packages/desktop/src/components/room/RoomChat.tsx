@@ -411,6 +411,47 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
   const [text, setText] = useState('');
   const [replyToMsg, setReplyToMsg] = useState<any>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const editableRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (text === '' && editableRef.current) {
+      editableRef.current.innerHTML = '';
+    }
+  }, [text]);
+
+  const handleInput = () => {
+    if (!editableRef.current) return;
+    let parsed = '';
+    editableRef.current.childNodes.forEach(node => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        parsed += node.textContent;
+      } else if (node.nodeName === 'IMG') {
+        const e = (node as HTMLImageElement).getAttribute('data-emoji');
+        if (e) parsed += `[emoji:${e}]`;
+      } else if (node.nodeName === 'DIV' || node.nodeName === 'BR') {
+        parsed += ' ';
+      }
+    });
+    // This updates the zustand typing state and local text state
+    handleTyping(parsed);
+  };
+
+  const insertEmoji = (emojiPath: string) => {
+    if (!editableRef.current) return;
+    if (document.activeElement !== editableRef.current) {
+      editableRef.current.focus();
+      // Move cursor to end if focusing for the first time
+      const range = document.createRange();
+      const sel = window.getSelection();
+      range.selectNodeContents(editableRef.current);
+      range.collapse(false);
+      sel?.removeAllRanges();
+      sel?.addRange(range);
+    }
+    const imgHtml = `<img data-emoji="${emojiPath}" src="/emojis/${emojiPath}" alt="emoji" style="height: 24px; vertical-align: middle; margin: 0 2px; user-select: all;" contenteditable="false" />\u200B`;
+    document.execCommand('insertHTML', false, imgHtml);
+    handleInput();
+  };
   const endRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -680,9 +721,12 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
             </button>
             {showEmojiPicker && (
               <EmojiPicker 
-                onSelect={(emojiTag) => {
-                  setText(prev => prev ? `${prev} ${emojiTag} ` : `${emojiTag} `);
-                  inputRef.current?.focus();
+                onSelect={(emojiPath) => {
+                  // extract path from [emoji:path]
+                  const pathMatch = emojiPath.match(/\[emoji:(.+)\]/);
+                  if (pathMatch) {
+                    insertEmoji(pathMatch[1]);
+                  }
                 }}
                 onClose={() => setShowEmojiPicker(false)}
                 isLight={activeTheme.isLight}
@@ -691,33 +735,47 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
             )}
           </div>
 
-          {/* Input Field */}
-          <input
-            ref={inputRef}
-            value={text}
-            onChange={e => handleTyping(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSend())}
-            onFocus={(e) => {
-              e.target.scrollIntoView = () => {};
-              setTimeout(() => endRef.current?.scrollIntoView({ behavior: 'smooth' }), 350);
-            }}
-            placeholder="Mesaj..."
-            maxLength={500}
-            inputMode="text"
-            autoComplete="off"
-            autoCorrect="off"
-            style={{
-              flex: 1, width: 0, height: 34, padding: '0 6px',
-              background: 'transparent',
-              border: 'none',
-              color: activeTheme.isLight ? '#1e293b' : '#e2e8f0',
-              fontSize: 15,
-              fontFamily: 'inherit', outline: 'none', minWidth: 0,
-              boxSizing: 'border-box',
-              WebkitAppearance: 'none' as any,
-              touchAction: 'manipulation',
-            }}
-          />
+          {/* Rich Input Field */}
+          <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center' }}>
+            {!text && (
+              <div style={{
+                position: 'absolute', left: 6, top: '50%', transform: 'translateY(-50%)',
+                color: activeTheme.isLight ? '#64748b' : '#94a3b8',
+                pointerEvents: 'none', fontSize: 15, fontFamily: 'inherit'
+              }}>
+                Mesaj...
+              </div>
+            )}
+            <div
+              ref={editableRef}
+              contentEditable
+              onInput={handleInput}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSend();
+                }
+              }}
+              onFocus={(e) => {
+                e.target.scrollIntoView = () => {};
+                setTimeout(() => endRef.current?.scrollIntoView({ behavior: 'smooth' }), 350);
+              }}
+              onPaste={(e) => {
+                e.preventDefault();
+                const pasted = e.clipboardData.getData('text/plain');
+                document.execCommand('insertText', false, pasted);
+                handleInput();
+              }}
+              style={{
+                flex: 1, minHeight: 34, padding: '7px 6px',
+                background: 'transparent', border: 'none',
+                color: activeTheme.isLight ? '#1e293b' : '#e2e8f0',
+                fontSize: 15, fontFamily: 'inherit', outline: 'none',
+                boxSizing: 'border-box', overflowY: 'auto', maxHeight: 120,
+                wordBreak: 'break-word', whiteSpace: 'pre-wrap'
+              }}
+            />
+          </div>
 
           {/* Right Icons or Send Button */}
           {text.trim() ? (
