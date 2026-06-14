@@ -711,6 +711,7 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
         background: activeTheme.menuBg, flexShrink: 0,
         backdropFilter: activeTheme.isImage ? 'blur(16px) saturate(1.2)' : 'none',
         transition: 'padding 0.28s cubic-bezier(0.4, 0, 0.2, 1), background 0.4s ease',
+        position: 'relative', zIndex: 50
       }}>
         <div style={{
           flex: 1,
@@ -727,8 +728,18 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
           {/* Left Emoji Icon */}
           <div style={{ position: 'relative', display: 'flex' }}>
             <button 
-              onClick={() => setShowEmojiPicker(prev => !prev)}
+              onClick={(e) => {
+                e.preventDefault();
+                editableRef.current?.blur();
+                setShowEmojiPicker(prev => !prev);
+              }}
               onMouseDown={e => { e.preventDefault(); e.stopPropagation(); }}
+              onTouchEnd={(e) => { 
+                e.preventDefault(); 
+                e.stopPropagation(); 
+                editableRef.current?.blur();
+                setShowEmojiPicker(prev => !prev); 
+              }}
               style={{ 
                 background: 'none', border: 'none', padding: 0, 
                 display: 'flex', alignItems: 'center', justifyContent: 'center', 
