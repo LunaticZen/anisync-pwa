@@ -338,7 +338,7 @@ function ThemeThumbnail({ theme, currentTheme, handleSelect }: any) {
           <span className="spinner" style={{ width: 24, height: 24 }} />
         </div>
       )}
-
+      {theme.isVideo ? (
         <video
           src={theme.thumbnailVideo || theme.video}
           autoPlay
