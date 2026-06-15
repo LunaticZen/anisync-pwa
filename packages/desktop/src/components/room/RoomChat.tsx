@@ -56,7 +56,8 @@ function renderMessageText(text: string, isOnlyEmoji: boolean, onImageClick?: (u
             borderRadius: 'inherit',
             marginTop: text.trim().startsWith('[upload') ? '0' : '4px',
             display: 'block',
-            cursor: onImageClick ? 'pointer' : 'default'
+            cursor: onImageClick ? 'pointer' : 'default',
+            WebkitTapHighlightColor: 'transparent'
           }}
         />
       );
@@ -1091,15 +1092,28 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
             backgroundColor: 'rgba(0,0,0,0.85)',
             zIndex: 999999,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            padding: '20px'
+            padding: '20px',
+            animation: 'fadeIn 0.2s ease-out forwards',
+            WebkitTapHighlightColor: 'transparent'
           }}
         >
+          <style>{`
+            @keyframes fadeIn {
+              from { opacity: 0; }
+              to { opacity: 1; }
+            }
+            @keyframes scaleUp {
+              from { transform: scale(0.9); opacity: 0; }
+              to { transform: scale(1); opacity: 1; }
+            }
+          `}</style>
           <img 
             src={lightboxImage} 
             alt="fullscreen" 
             style={{ 
               maxWidth: '100%', maxHeight: '100%', 
-              objectFit: 'contain', borderRadius: '8px' 
+              objectFit: 'contain', borderRadius: '8px',
+              animation: 'scaleUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards'
             }} 
           />
         </div>
