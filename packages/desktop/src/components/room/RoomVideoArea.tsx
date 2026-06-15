@@ -4,7 +4,7 @@
 // ═══════════════════════════════════════════════════════════════
 
 import { useState, useEffect } from 'react';
-import { useRoomStore } from '../../stores';
+import { useRoomStore, useAuthStore } from '../../stores';
 import { isElectron, isMobile, getTheme, type RoomMode } from './constants';
 
 // ─── Web Anime Card (non-Electron browsers) ──────────────
@@ -63,6 +63,8 @@ export function RoomVideoArea({
   const bgPrimary = activeTheme.isImage ? 'transparent' : activeTheme.bg;
   const members = useRoomStore(s => s.members);
   const currentRoom = useRoomStore(s => s.currentRoom);
+  const myUsername = useAuthStore(s => s.username);
+  const myAvatar = useAuthStore(s => s.avatar);
   const hostId = currentRoom?.hostId;
   const bgTertiary = activeTheme.isImage ? 'rgba(0,0,0,0.2)' : 'var(--bg-tertiary)';
 
@@ -153,16 +155,18 @@ export function RoomVideoArea({
               display: 'flex', gap: 16, overflowX: 'auto', paddingBottom: 8,
               scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' 
             }}>
-              {members.map(m => (
+              {members.map(m => {
+                const displayAvatar = m.userId === myUsername ? myAvatar : ((m as any).avatar || m.avatarUrl);
+                return (
                 <div key={m.userId} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, flexShrink: 0, width: 64 }}>
                   <div style={{
                     width: 56, height: 56, borderRadius: '50%',
-                    background: m.avatarUrl ? `url(${m.avatarUrl}) center/cover` : 'linear-gradient(135deg, #5b7cff, #a855f7)',
+                    background: displayAvatar ? `url(${displayAvatar}) center/cover` : 'linear-gradient(135deg, #5b7cff, #a855f7)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: 22, fontWeight: 600, color: 'white',
                     position: 'relative'
                   }}>
-                    {!m.avatarUrl && m.username.charAt(0).toUpperCase()}
+                    {!displayAvatar && m.username.charAt(0).toUpperCase()}
                     {m.userId === hostId && (
                       <div style={{ position: 'absolute', bottom: -2, right: -2, background: 'var(--accent)', borderRadius: '50%', padding: 2 }}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="white" stroke="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
@@ -173,7 +177,7 @@ export function RoomVideoArea({
                     {m.displayName || m.username}
                   </div>
                 </div>
-              ))}
+              )})}
             </div>
           </div>
         </div>
