@@ -10,7 +10,7 @@ import { isMobile, avatarColor, getTheme, type RoomMode } from './constants';
 import { EmojiPicker } from './EmojiPicker';
 import { MessageOverlayMenu, useOverlayMenu, type OverlayMenuAction } from './MessageOverlayMenu';
 
-function renderMessageText(text: string, isOnlyEmoji: boolean) {
+function renderMessageText(text: string, isOnlyEmoji: boolean, onImageClick?: (url: string) => void) {
   const combinedRegex = /\[emoji:([^\]]+)\]|\[upload:(data:image\/[^;]+;base64,[^\]]+)\]/g;
   const parts = [];
   let lastIndex = 0;
@@ -42,12 +42,21 @@ function renderMessageText(text: string, isOnlyEmoji: boolean) {
           key={match.index}
           src={base64Data}
           alt="uploaded image"
+          onClick={(e) => {
+            if (onImageClick) {
+              e.stopPropagation();
+              onImageClick(base64Data);
+            }
+          }}
           style={{
-            maxWidth: '100%',
-            maxHeight: '300px',
-            borderRadius: '8px',
-            marginTop: '4px',
-            display: 'block'
+            width: '100%',
+            maxWidth: '240px',
+            aspectRatio: '1 / 1',
+            objectFit: 'cover',
+            borderRadius: 'inherit',
+            marginTop: text.trim().startsWith('[upload') ? '0' : '4px',
+            display: 'block',
+            cursor: onImageClick ? 'pointer' : 'default'
           }}
         />
       );
@@ -452,14 +461,14 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
             {/* Actual Message Bubble */}
             <div style={{
               background: bubbleBg, color: textColor,
-              padding: isOnlyEmoji ? 0 : (isKeyboardOpen ? '6px 10px' : '8px 12px'),
+              padding: isOnlyEmoji ? 0 : (/^\[upload:data:image\/[^;]+;base64,[^\]]+\]$/.test(msg.text.trim()) ? '2px' : (isKeyboardOpen ? '6px 10px' : '8px 12px')),
               borderRadius: borderRadius, fontSize: isKeyboardOpen ? 12 : 13,
-              lineHeight: 1.4, wordBreak: 'break-word',
+              lineHeight: 1.4, wordBreak: 'break-word', overflow: 'hidden',
               boxShadow: isOnlyEmoji ? 'none' : (activeTheme.isImage && !isMe ? '0 2px 8px rgba(0,0,0,0.2)' : 'none'),
               border: isOnlyEmoji ? 'none' : (isMe ? 'none' : `1px solid ${activeTheme.isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)'}`),
               /* padding/font-size removed from transition to prevent layout thrashing */
             }}>
-              {renderMessageText(msg.text, isOnlyEmoji)}
+              {renderMessageText(msg.text, isOnlyEmoji, setLightboxImage)}
             </div>
           </div>
         </div>
@@ -483,6 +492,7 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
   const editableRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [heartPop, setHeartPop] = useState(false);
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
   const handleHeartSend = (e: React.MouseEvent | React.TouchEvent) => {
     e.preventDefault();
@@ -1066,11 +1076,34 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
               boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
               border: overlayMsg.userId === username ? 'none' : `1px solid ${activeTheme.isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)'}`,
             }}>
-              {renderMessageText(overlayMsg.text, /^(\s*\[emoji:[^\]]+\]\s*)+$/.test(overlayMsg.text))}
+              {renderMessageText(overlayMsg.text, /^(\s*\[emoji:[^\]]+\]\s*)+$/.test(overlayMsg.text), undefined)}
             </div>
           ) : null
         }
       />
+
+      {/* Lightbox Modal */}
+      {lightboxImage && (
+        <div 
+          onClick={() => setLightboxImage(null)}
+          style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.85)',
+            zIndex: 999999,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '20px'
+          }}
+        >
+          <img 
+            src={lightboxImage} 
+            alt="fullscreen" 
+            style={{ 
+              maxWidth: '100%', maxHeight: '100%', 
+              objectFit: 'contain', borderRadius: '8px' 
+            }} 
+          />
+        </div>
+      )}
     </div>
   );
 });
