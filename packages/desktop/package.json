@@ -50,7 +50,7 @@
     },
     "win": {
       "target": [
-        "dir"
+        "portable"
       ],
       "icon": "build/icon.ico"
     },
