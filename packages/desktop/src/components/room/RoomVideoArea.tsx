@@ -157,7 +157,7 @@ export function RoomVideoArea({
                 <div key={m.userId} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, flexShrink: 0, width: 64 }}>
                   <div style={{
                     width: 56, height: 56, borderRadius: '50%',
-                    background: m.avatarUrl ? `url(${m.avatarUrl}) center/cover` : activeTheme.border,
+                    background: m.avatarUrl ? `url(${m.avatarUrl}) center/cover` : 'linear-gradient(135deg, #5b7cff, #a855f7)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: 22, fontWeight: 600, color: 'white',
                     position: 'relative'
