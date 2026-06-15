@@ -9,13 +9,13 @@ import { getSocket } from '../../services/socket';
 import { isMobile, avatarColor, getTheme, type RoomMode } from './constants';
 import { EmojiPicker } from './EmojiPicker';
 import { MessageOverlayMenu, useOverlayMenu, type OverlayMenuAction } from './MessageOverlayMenu';
-import { Image } from 'lucide-react';
+import { Image as ImageIcon } from 'lucide-react';
 
 function renderReplyPreviewText(text: string) {
   if (/^\[upload:data:image\/[^;]+;base64,[^\]]+\]$/.test(text.trim())) {
     return (
       <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-        <Image size={14} style={{ opacity: 0.6 }} /> Görsel
+        <ImageIcon size={14} style={{ opacity: 0.6 }} /> Görsel
       </span>
     );
   }
@@ -1041,6 +1041,8 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
               />
               {/* Gallery */}
               <button 
+                onMouseDown={(e) => e.preventDefault()}
+                onTouchStart={(e) => e.preventDefault()}
                 onClick={(e) => { e.preventDefault(); fileInputRef.current?.click(); }}
                 onTouchEnd={(e) => { e.preventDefault(); fileInputRef.current?.click(); }}
                 style={{ background: 'none', border: 'none', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'inherit', cursor: 'pointer' }}>
@@ -1053,6 +1055,7 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
               {/* Heart */}
               <button 
                 onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                onTouchStart={(e) => { e.preventDefault(); e.stopPropagation(); }}
                 onTouchEnd={handleHeartSend}
                 onClick={handleHeartSend}
                 className={heartPop ? 'heart-pop-anim' : ''}
