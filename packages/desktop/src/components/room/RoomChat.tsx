@@ -133,7 +133,7 @@ function ChatTicker({ tickerItems, onRemoveTickerItem }: {
 }
 
 // ─── Swipable Message Component ─────────────────────────────
-function SwipableMessage({ msg, i, username, members, messages, activeTypers, isKeyboardOpen, activeTheme, onReply, onOpenOverlay }: any) {
+function SwipableMessage({ msg, i, username, members, messages, activeTypers, isKeyboardOpen, activeTheme, onReply, onOpenOverlay, onImageClick }: any) {
   const isMe = msg.userId === username;
   
   const bubbleRef = useRef<HTMLDivElement>(null);
@@ -468,7 +468,7 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
               border: isOnlyEmoji ? 'none' : (isMe ? 'none' : `1px solid ${activeTheme.isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)'}`),
               /* padding/font-size removed from transition to prevent layout thrashing */
             }}>
-              {renderMessageText(msg.text, isOnlyEmoji, setLightboxImage)}
+              {renderMessageText(msg.text, isOnlyEmoji, onImageClick)}
             </div>
           </div>
         </div>
@@ -786,7 +786,7 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
             );
           }
 
-          return <SwipableMessage key={msg.id} msg={msg} i={i} username={username} members={members} messages={messages} activeTypers={activeTypers} isKeyboardOpen={isKeyboardOpen} activeTheme={activeTheme} onReply={setReplyToMsg} onOpenOverlay={handleOpenOverlay} />;
+          return <SwipableMessage key={msg.id} msg={msg} i={i} username={username} members={members} messages={messages} activeTypers={activeTypers} isKeyboardOpen={isKeyboardOpen} activeTheme={activeTheme} onReply={setReplyToMsg} onOpenOverlay={handleOpenOverlay} onImageClick={setLightboxImage} />;
         })}
 
         {/* Typing indicator */}
