@@ -939,8 +939,21 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
               </button>
               {/* Heart */}
               <button 
+                onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                onTouchEnd={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  getSocket()?.emit('chat:message', { 
+                    roomId, 
+                    text: '[emoji:heart-on-fire.png]',
+                    replyTo: replyToMsg ? { id: replyToMsg.id, username: replyToMsg.displayName ?? replyToMsg.username, text: replyToMsg.text } : undefined
+                  });
+                  setReplyToMsg(null);
+                  setShowEmojiPicker(false);
+                }}
                 onClick={(e) => {
                   e.preventDefault();
+                  e.stopPropagation();
                   getSocket()?.emit('chat:message', { 
                     roomId, 
                     text: '[emoji:heart-on-fire.png]',
