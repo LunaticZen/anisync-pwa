@@ -47,10 +47,12 @@ export async function checkChatRateLimit(userId: string): Promise<boolean> {
 // ─── Message Processing ──────────────────────────────────────
 
 export function sanitizeMessage(text: string): string {
-  if (text.startsWith('[upload:data:image/')) {
-    if (/^\[upload:data:image\/(jpeg|png|webp|gif);base64,[A-Za-z0-9+/=]+\]$/.test(text.trim())) {
-      if (text.length > 500000) return '';
-      return text.trim();
+  const trimmed = text.trim();
+  if (trimmed.startsWith('[upload:data:image/') && trimmed.endsWith(']')) {
+    // Allow whitespace/newlines which some Android WebViews might insert
+    if (/^\[upload:data:image\/(jpeg|png|webp|gif);base64,[A-Za-z0-9+/=\s]+\]$/.test(trimmed)) {
+      if (trimmed.length > 500000) return '';
+      return trimmed;
     }
   }
   // Strip HTML tags

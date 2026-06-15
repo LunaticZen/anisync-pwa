@@ -525,7 +525,7 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
         const ctx = canvas.getContext('2d');
         ctx?.drawImage(img, 0, 0, width, height);
         
-        const base64 = canvas.toDataURL('image/jpeg', 0.6);
+        const base64 = canvas.toDataURL('image/jpeg', 0.6).replace(/\s/g, '');
         
         getSocket()?.emit('chat:message', { 
           roomId, 
