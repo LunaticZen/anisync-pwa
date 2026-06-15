@@ -53,7 +53,7 @@ export function EmojiPicker({ onSelect, onClose, isLight, isImage }: EmojiPicker
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
-        animation: 'emojiPickerScaleIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards',
+        animation: 'modernMenuPop 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards',
         transformOrigin: 'bottom left',
         zIndex: 100
       }}

@@ -184,11 +184,12 @@ export function MessageOverlayMenu({
           overflow: 'hidden',
           transform: isEntering
             ? 'scale(1) translateY(0)'
-            : (showAbove ? 'scale(0.8) translateY(12px)' : 'scale(0.8) translateY(-12px)'),
+            : (showAbove ? 'scale(0.96) translateY(6px)' : 'scale(0.96) translateY(-6px)'),
           opacity: isEntering ? 1 : 0,
+          filter: isEntering ? 'blur(0px)' : 'blur(4px)',
           transition: isExiting
             ? 'all 0.2s ease-out'
-            : 'all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)',
+            : 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
           transformOrigin: showAbove ? 'bottom center' : 'top center',
         }}
       >

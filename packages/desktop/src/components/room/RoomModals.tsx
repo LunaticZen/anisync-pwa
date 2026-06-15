@@ -38,7 +38,7 @@ export function MemberPopup({ members, onClose, pendingRequests, hostId }: { mem
         boxShadow: activeTheme.isLight ? '0 12px 40px rgba(0,0,0,0.15)' : '0 12px 40px rgba(0,0,0,0.5)',
         maxHeight: '50vh', overflowY: 'auto',
         color: activeTheme.textColor,
-        animation: 'modalPopJuicy 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards',
+        animation: 'modernMenuPop 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards',
         transformOrigin: 'top right',
       }}>
         {/* Pending requests for host */}
@@ -207,7 +207,7 @@ export function LeaveConfirmModal({ roomName, onConfirm, onCancel }: { roomName:
     <div className="modal-overlay" onClick={onCancel}>
       <div className="modal" onClick={e => e.stopPropagation()} style={{ 
         maxWidth: 340, textAlign: 'center',
-        animation: 'modalPopJuicy 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards'
+        animation: 'modernMenuPop 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards'
       }}>
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16, color: '#ef4444' }}><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg></div>
         <h3 style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>Odadan Ayrıl</h3>
@@ -260,7 +260,7 @@ export function RoomProfileModal({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()} style={{ animation: 'modalPopJuicy 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards' }}>
+      <div className="modal" onClick={e => e.stopPropagation()} style={{ animation: 'modernMenuPop 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards' }}>
         <h2 className="modal__title">Profil Fotoğrafı</h2>
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
           <div onClick={() => fileRef.current?.click()} style={{
@@ -458,7 +458,7 @@ export function ThemePickerPopup({ roomId, onClose }: { roomId: string; onClose:
         flexDirection: isMobile ? 'column' : 'row',
         overflow: 'hidden',
         color: resolvedTheme.isLight ? '#1e293b' : '#e2e8f0',
-        animation: 'modalPopJuicy 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards',
+        animation: 'modernMenuPop 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards',
       }}>
         {/* ── Category Bar (horizontal on mobile, vertical sidebar on desktop) ── */}
         {isMobile ? (
