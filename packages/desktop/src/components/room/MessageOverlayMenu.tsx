@@ -34,10 +34,14 @@ export function MessageOverlayMenu({
   const [phase, setPhase] = useState<'enter' | 'visible' | 'exit' | 'hidden'>('hidden');
   const menuRef = useRef<HTMLDivElement>(null);
   const [menuHeight, setMenuHeight] = useState(0);
+  // Guard: ignore touch/click events right after opening to prevent
+  // the touchend from long-press from immediately closing the overlay
+  const openTimeRef = useRef(0);
 
   // Phase management
   useEffect(() => {
     if (isOpen) {
+      openTimeRef.current = Date.now();
       setPhase('enter');
       // Haptic feedback on mobile
       if (navigator.vibrate) navigator.vibrate(10);
@@ -68,6 +72,12 @@ export function MessageOverlayMenu({
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
   }, [phase, onClose]);
+
+  // Guarded close — ignores events within 500ms of opening
+  const guardedClose = useCallback(() => {
+    if (Date.now() - openTimeRef.current < 500) return;
+    onClose();
+  }, [onClose]);
 
   if (phase === 'hidden' || !bubbleRect) return null;
 
@@ -108,20 +118,29 @@ export function MessageOverlayMenu({
         zIndex: 99999,
         pointerEvents: isExiting ? 'none' : 'auto',
       }}
-      onClick={onClose}
-      onContextMenu={e => { e.preventDefault(); onClose(); }}
+      onContextMenu={e => { e.preventDefault(); guardedClose(); }}
     >
-      {/* Blurred backdrop */}
-      <div style={{
-        position: 'absolute',
-        inset: 0,
-        backdropFilter: `blur(${isEntering ? 20 : 0}px)`,
-        WebkitBackdropFilter: `blur(${isEntering ? 20 : 0}px)`,
-        background: isEntering
-          ? (activeTheme.isLight ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.5)')
-          : 'transparent',
-        transition: isExiting ? 'all 0.25s ease-out' : 'all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)',
-      }} />
+      {/* Blurred backdrop — close on tap */}
+      <div
+        onClick={guardedClose}
+        onTouchEnd={(e) => {
+          // Only close if the touch target is the backdrop itself
+          if (e.target === e.currentTarget && Date.now() - openTimeRef.current > 500) {
+            e.preventDefault();
+            onClose();
+          }
+        }}
+        style={{
+          position: 'absolute',
+          inset: 0,
+          backdropFilter: `blur(${isEntering ? 20 : 0}px)`,
+          WebkitBackdropFilter: `blur(${isEntering ? 20 : 0}px)`,
+          background: isEntering
+            ? (activeTheme.isLight ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.5)')
+            : 'transparent',
+          transition: isExiting ? 'all 0.25s ease-out' : 'all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)',
+        }}
+      />
 
       {/* Cloned bubble — floating above blur at exact original position */}
       <div
@@ -145,6 +164,7 @@ export function MessageOverlayMenu({
       <div
         ref={menuRef}
         onClick={e => e.stopPropagation()}
+        onTouchEnd={e => e.stopPropagation()}
         style={{
           position: 'absolute',
           top: menuTop,
@@ -199,20 +219,31 @@ function MenuButton({ action, isLast, activeTheme, onClose, delay, isVisible }: 
 }) {
   const [hovered, setHovered] = useState(false);
 
+  const handleAction = useCallback(() => {
+    action.onClick();
+    onClose();
+  }, [action, onClose]);
+
   return (
     <button
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      onClick={() => {
-        action.onClick();
-        onClose();
+      onClick={(e) => {
+        e.stopPropagation();
+        handleAction();
+      }}
+      onTouchEnd={(e) => {
+        // On mobile, use touchEnd directly for instant response
+        e.stopPropagation();
+        e.preventDefault();
+        handleAction();
       }}
       style={{
         display: 'flex',
         alignItems: 'center',
         gap: 12,
         width: '100%',
-        padding: '12px 16px',
+        padding: '14px 18px',
         border: 'none',
         borderBottom: isLast ? 'none' : `1px solid ${activeTheme.isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.06)'}`,
         background: hovered
@@ -221,7 +252,7 @@ function MenuButton({ action, isLast, activeTheme, onClose, delay, isVisible }: 
         color: action.danger
           ? '#ef4444'
           : (activeTheme.isLight ? '#1e293b' : '#e2e8f0'),
-        fontSize: 14,
+        fontSize: 15,
         fontWeight: 500,
         fontFamily: 'inherit',
         cursor: 'pointer',
@@ -233,6 +264,7 @@ function MenuButton({ action, isLast, activeTheme, onClose, delay, isVisible }: 
         transitionProperty: 'opacity, transform, background',
         transitionDuration: '0.3s, 0.3s, 0.15s',
         transitionTimingFunction: 'cubic-bezier(0.2, 0.8, 0.2, 1)',
+        WebkitTapHighlightColor: 'transparent',
       }}
     >
       <span style={{ display: 'flex', alignItems: 'center', flexShrink: 0, opacity: 0.8 }}>
