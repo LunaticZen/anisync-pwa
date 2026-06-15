@@ -399,9 +399,17 @@ io.on('connection', (socket) => {
 
   // ── Chat ──
   socket.on('chat:message', (data) => {
+    let sanitizedText = data.text || '';
+    const trimmed = sanitizedText.trim();
+    if (trimmed.startsWith('[upload:data:image/') && trimmed.endsWith(']')) {
+      sanitizedText = trimmed.slice(0, 500000);
+    } else {
+      sanitizedText = trimmed.slice(0, 500);
+    }
+
     const msg = {
       id: genId(), roomId: data.roomId, userId, username, displayName: username,
-      avatarUrl: null, text: (data.text || '').slice(0, 500), type: data.type || 'text',
+      avatarUrl: null, text: sanitizedText, type: data.type || 'text',
       reactions: [], createdAt: new Date().toISOString(), editedAt: null,
       timestamp: Date.now(),
       replyTo: data.replyTo || undefined,
