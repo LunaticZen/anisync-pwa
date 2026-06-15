@@ -9,6 +9,18 @@ import { getSocket } from '../../services/socket';
 import { isMobile, avatarColor, getTheme, type RoomMode } from './constants';
 import { EmojiPicker } from './EmojiPicker';
 import { MessageOverlayMenu, useOverlayMenu, type OverlayMenuAction } from './MessageOverlayMenu';
+import { Image } from 'lucide-react';
+
+function renderReplyPreviewText(text: string) {
+  if (/^\[upload:data:image\/[^;]+;base64,[^\]]+\]$/.test(text.trim())) {
+    return (
+      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+        <Image size={14} style={{ opacity: 0.6 }} /> Görsel
+      </span>
+    );
+  }
+  return text;
+}
 
 function renderMessageText(text: string, isOnlyEmoji: boolean, onImageClick?: (url: string) => void) {
   const combinedRegex = /\[emoji:([^\]]+)\]|\[upload:(data:image\/[^;]+;base64,[^\]]+)\]/g;
@@ -453,7 +465,7 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
                     whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                     border: `1px solid ${activeTheme.isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.04)'}`,
                   }}>
-                    {msg.replyTo.text}
+                    {renderReplyPreviewText(msg.replyTo.text)}
                   </div>
                 </div>
               </div>
@@ -873,7 +885,7 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
               {replyToMsg.displayName ?? replyToMsg.username} adlı kişiye yanıt veriyorsun
             </span>
             <span style={{ fontSize: 12, opacity: 0.7, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {replyToMsg.text}
+              {renderReplyPreviewText(replyToMsg.text)}
             </span>
           </div>
           <button
