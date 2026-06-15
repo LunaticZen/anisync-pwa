@@ -399,6 +399,10 @@ io.on('connection', (socket) => {
     socket.to(data.roomId).emit('chat:typing', { userId, username, isTyping: data.isTyping });
   });
 
+  socket.on('chat:delete', (data) => {
+    io.to(data.roomId).emit('chat:deleted', { messageId: data.messageId });
+  });
+
   // ── Discovery ──
   socket.on('rooms:discover', (_data, cb) => {
     const publicRooms = [...rooms.values()].filter(r => r.members.size > 0);

@@ -193,6 +193,10 @@ function startServer(port = 3000) {
             socket.on('chat:typing', (data) => {
                 socket.to(data.roomId).emit('chat:typing', { userId, username, isTyping: data.isTyping });
             });
+            socket.on('chat:delete', (data) => {
+                // Broadcast the deletion to everyone in the room, so their clients can remove it
+                io.to(data.roomId).emit('chat:deleted', { messageId: data.messageId });
+            });
             // ── Discovery ──
             socket.on('rooms:discover', (_data, cb) => {
                 const publicRooms = [...rooms.values()].filter(r => r.members.size > 0);

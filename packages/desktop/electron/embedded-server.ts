@@ -222,6 +222,11 @@ export function startServer(port = 3000): Promise<void> {
         socket.to(data.roomId).emit('chat:typing' as any, { userId, username, isTyping: data.isTyping });
       });
 
+      socket.on('chat:delete' as any, (data: any) => {
+        // Broadcast the deletion to everyone in the room, so their clients can remove it
+        io.to(data.roomId).emit('chat:deleted' as any, { messageId: data.messageId });
+      });
+
       // ── Discovery ──
       socket.on('rooms:discover' as any, (_data: any, cb: any) => {
         const publicRooms = [...rooms.values()].filter(r => r.members.size > 0);
