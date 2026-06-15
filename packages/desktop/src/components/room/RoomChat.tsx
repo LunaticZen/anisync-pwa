@@ -3,11 +3,12 @@
 // ChatPanel (portrait/desktop) + ChatTicker (landscape)
 // ═══════════════════════════════════════════════════════════════
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useAuthStore, useChatStore, useRoomStore } from '../../stores';
 import { getSocket } from '../../services/socket';
 import { isMobile, avatarColor, getTheme, type RoomMode } from './constants';
 import { EmojiPicker } from './EmojiPicker';
+import { MessageOverlayMenu, useOverlayMenu, type OverlayMenuAction } from './MessageOverlayMenu';
 
 function renderMessageText(text: string, isOnlyEmoji: boolean) {
   const emojiRegex = /\[emoji:([^\]]+)\]/g;
@@ -106,7 +107,7 @@ function ChatTicker({ tickerItems, onRemoveTickerItem }: {
 }
 
 // ─── Swipable Message Component ─────────────────────────────
-function SwipableMessage({ msg, i, username, members, messages, activeTypers, isKeyboardOpen, activeTheme, onReply }: any) {
+function SwipableMessage({ msg, i, username, members, messages, activeTypers, isKeyboardOpen, activeTheme, onReply, onOpenOverlay }: any) {
   const isMe = msg.userId === username;
   
   const bubbleRef = useRef<HTMLDivElement>(null);
@@ -216,18 +217,66 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
   const marginT = isConsecutivePrev ? 2 : (isKeyboardOpen ? 6 : 12);
   const avaSize = isKeyboardOpen ? 20 : 28;
 
+  // ── Long-press timer for mobile overlay menu ──
+  const longPressTimer = useRef<ReturnType<typeof setTimeout>>();
+  const longPressTriggered = useRef(false);
+  const bubbleCloneRef = useRef<HTMLDivElement>(null);
+
+  const handleLongPressStart = useCallback((_e: React.TouchEvent | React.MouseEvent) => {
+    longPressTriggered.current = false;
+    longPressTimer.current = setTimeout(() => {
+      longPressTriggered.current = true;
+      if (bubbleCloneRef.current) {
+        onOpenOverlay(msg, bubbleCloneRef.current);
+      }
+    }, 500);
+  }, [msg, onOpenOverlay]);
+
+  const handleLongPressEnd = useCallback(() => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = undefined;
+    }
+  }, []);
+
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (bubbleCloneRef.current) {
+      onOpenOverlay(msg, bubbleCloneRef.current);
+    }
+  }, [msg, onOpenOverlay]);
+
+  // Cancel long-press on scroll/move
+  const wrappedHandleStart = (clientX: number, clientY: number) => {
+    handleStart(clientX, clientY);
+  };
+
+  const wrappedHandleMove = (clientX: number, clientY: number) => {
+    // Cancel long-press if finger moves
+    if (longPressTimer.current) {
+      const dx = Math.abs(clientX - startX.current);
+      const dy = Math.abs(clientY - startY.current);
+      if (dx > 8 || dy > 8) {
+        handleLongPressEnd();
+      }
+    }
+    handleMove(clientX, clientY);
+  };
+
   return (
     <div
       id={`msg-${msg.id}`}
       className="chat-message-row"
-      onTouchStart={e => handleStart(e.touches[0].clientX, e.touches[0].clientY)}
-      onTouchMove={e => handleMove(e.touches[0].clientX, e.touches[0].clientY)}
-      onTouchEnd={handleEnd}
-      onTouchCancel={handleEnd}
-      onMouseDown={e => handleStart(e.clientX, e.clientY)}
-      onMouseMove={e => { if (e.buttons === 1) handleMove(e.clientX, e.clientY); }}
+      onTouchStart={e => { handleLongPressStart(e); wrappedHandleStart(e.touches[0].clientX, e.touches[0].clientY); }}
+      onTouchMove={e => wrappedHandleMove(e.touches[0].clientX, e.touches[0].clientY)}
+      onTouchEnd={() => { handleLongPressEnd(); handleEnd(); }}
+      onTouchCancel={() => { handleLongPressEnd(); handleEnd(); }}
+      onMouseDown={e => { if (e.button === 0) wrappedHandleStart(e.clientX, e.clientY); }}
+      onMouseMove={e => { if (e.buttons === 1) wrappedHandleMove(e.clientX, e.clientY); }}
       onMouseUp={handleEnd}
-      onMouseLeave={handleEnd}
+      onMouseLeave={() => { handleLongPressEnd(); handleEnd(); }}
+      onContextMenu={handleContextMenu}
       style={{
         position: 'relative',
         touchAction: 'pan-y',
@@ -279,7 +328,7 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
           </div>
 
           <div 
-            ref={bubbleRef}
+            ref={(el) => { (bubbleRef as any).current = el; (bubbleCloneRef as any).current = el; }}
             className="chat-bubble-container"
             style={{ 
               display: 'flex', 
@@ -287,8 +336,11 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
               alignItems: isMe ? 'flex-end' : 'flex-start',
               position: 'relative', 
               zIndex: 2,
-              cursor: isMobile ? 'default' : 'pointer'
-            }}
+              cursor: isMobile ? 'default' : 'pointer',
+              userSelect: 'none',
+              WebkitUserSelect: 'none',
+              WebkitTouchCallout: 'none',
+            } as any}
           >
             {/* Desktop Reply Button on Hover */}
             {!isMobile && (
@@ -412,6 +464,53 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
   const [replyToMsg, setReplyToMsg] = useState<any>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const editableRef = useRef<HTMLDivElement>(null);
+
+  // ── Overlay Menu State ──
+  const { overlayState, openMenu, closeMenu } = useOverlayMenu();
+  const [overlayMsg, setOverlayMsg] = useState<any>(null);
+
+  const handleOpenOverlay = useCallback((msg: any, bubbleEl: HTMLElement) => {
+    setOverlayMsg(msg);
+    openMenu(msg.id, bubbleEl);
+  }, [openMenu]);
+
+  const overlayActions: OverlayMenuAction[] = React.useMemo(() => {
+    if (!overlayMsg) return [];
+    const acts: OverlayMenuAction[] = [
+      {
+        label: 'Kopyala',
+        icon: (
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+            <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+          </svg>
+        ),
+        onClick: () => {
+          const plainText = overlayMsg.text.replace(/\[emoji:[^\]]+\]/g, '😊');
+          navigator.clipboard?.writeText(plainText).catch(() => {});
+        },
+      },
+    ];
+    // Delete only for own messages
+    if (overlayMsg.userId === username) {
+      acts.push({
+        label: 'Sil',
+        icon: (
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="3 6 5 6 21 6"/>
+            <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+            <line x1="10" y1="11" x2="10" y2="17"/>
+            <line x1="14" y1="11" x2="14" y2="17"/>
+          </svg>
+        ),
+        onClick: () => {
+          getSocket()?.emit('chat:delete', { roomId, messageId: overlayMsg.id });
+        },
+        danger: true,
+      });
+    }
+    return acts;
+  }, [overlayMsg, username, roomId]);
 
   useEffect(() => {
     if (text === '' && editableRef.current) {
@@ -553,11 +652,7 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
 
   const activeTypers = typingUsers.filter(t => t.userId !== username && t.isTyping);
 
-  // Find member avatar by userId
-  const getMemberAvatar = (userId: string) => {
-    const m = members.find(x => x.userId === userId);
-    return m?.avatar || null;
-  };
+
 
   return (
     <div className="chat" style={{ containerType: 'size', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
@@ -602,7 +697,7 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
             );
           }
 
-          return <SwipableMessage key={msg.id} msg={msg} i={i} username={username} members={members} messages={messages} activeTypers={activeTypers} isKeyboardOpen={isKeyboardOpen} activeTheme={activeTheme} onReply={setReplyToMsg} />;
+          return <SwipableMessage key={msg.id} msg={msg} i={i} username={username} members={members} messages={messages} activeTypers={activeTypers} isKeyboardOpen={isKeyboardOpen} activeTheme={activeTheme} onReply={setReplyToMsg} onOpenOverlay={handleOpenOverlay} />;
         })}
 
         {/* Typing indicator */}
@@ -852,6 +947,35 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
           )}
         </div>
       </div>
+
+      {/* Overlay Menu Portal — rendered to document.body */}
+      <MessageOverlayMenu
+        isOpen={overlayState.isOpen}
+        onClose={closeMenu}
+        actions={overlayActions}
+        bubbleRect={overlayState.bubbleRect}
+        isMe={overlayMsg?.userId === username}
+        activeTheme={activeTheme}
+        bubbleContent={
+          overlayMsg ? (
+            <div style={{
+              background: overlayMsg.userId === username
+                ? activeTheme.accent
+                : (activeTheme.isLight ? '#f1f5f9' : (activeTheme.isImage ? 'rgba(0,0,0,0.5)' : '#334155')),
+              color: overlayMsg.userId === username ? 'white' : (activeTheme.isLight ? '#0f172a' : '#f8fafc'),
+              padding: '8px 12px',
+              borderRadius: 18,
+              fontSize: 13,
+              lineHeight: 1.4,
+              wordBreak: 'break-word',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+              border: overlayMsg.userId === username ? 'none' : `1px solid ${activeTheme.isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)'}`,
+            }}>
+              {renderMessageText(overlayMsg.text, /^(\s*\[emoji:[^\]]+\]\s*)+$/.test(overlayMsg.text))}
+            </div>
+          ) : null
+        }
+      />
     </div>
   );
 });
