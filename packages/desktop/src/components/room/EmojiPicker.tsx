@@ -146,7 +146,7 @@ export function EmojiPicker({ onSelect, onClose, isLight, isImage }: EmojiPicker
                   }}
                 >
                   <img 
-                    src={`./emojis/${emoji.path}`} 
+                    src={`${window.location.protocol === 'file:' ? '.' : ''}/emojis/${emoji.path}`} 
                     alt={emoji.name}
                     style={{
                       width: '100%',

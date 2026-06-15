@@ -67,8 +67,17 @@ const app = express();
 app.use(cors({ origin: '*' }));
 app.use(express.json());
 
-// Serve web UI
-app.use(express.static(path.join(__dirname, 'public')));
+// Serve web UI (assets can be cached, but HTML should not be)
+app.use(express.static(path.join(__dirname, 'public'), {
+  setHeaders: (res, path) => {
+    if (path.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    }
+  }
+}));
+
 // Helper function to serve index.html with dynamically fixed asset paths
 // This prevents Vite's base: './' from breaking direct SPA routes.
 function serveSpaHtml(res) {
@@ -78,6 +87,11 @@ function serveSpaHtml(res) {
       console.error('Error loading index.html:', err);
       return res.status(500).send('Error loading app');
     }
+    // Prevent caching of HTML
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    
     // Auto-fix relative asset paths for deep routing
     const fixedData = data.replace(/(src|href)="\.\/assets\//g, '$1="/assets/');
     res.send(fixedData);
