@@ -11,35 +11,52 @@ import { EmojiPicker } from './EmojiPicker';
 import { MessageOverlayMenu, useOverlayMenu, type OverlayMenuAction } from './MessageOverlayMenu';
 
 function renderMessageText(text: string, isOnlyEmoji: boolean) {
-  const emojiRegex = /\[emoji:([^\]]+)\]/g;
+  const combinedRegex = /\[emoji:([^\]]+)\]|\[upload:(data:image\/[^;]+;base64,[^\]]+)\]/g;
   const parts = [];
   let lastIndex = 0;
   let match;
   
-  while ((match = emojiRegex.exec(text)) !== null) {
+  while ((match = combinedRegex.exec(text)) !== null) {
     if (match.index > lastIndex) {
       parts.push(text.slice(lastIndex, match.index));
     }
-    const emojiPath = match[1];
-    parts.push(
-      <img 
-        key={match.index} 
-        src={`${window.location.protocol === 'file:' ? '.' : ''}/emojis/${emojiPath}`} 
-        alt="emoji" 
-        style={{ 
-          height: isOnlyEmoji ? 48 : 24, 
-          verticalAlign: 'middle', 
-          display: 'inline-block',
-          margin: '0 2px'
-        }} 
-      />
-    );
+    if (match[1]) {
+      const emojiPath = match[1];
+      parts.push(
+        <img 
+          key={match.index} 
+          src={`${window.location.protocol === 'file:' ? '.' : ''}/emojis/${emojiPath}`} 
+          alt="emoji" 
+          style={{ 
+            height: isOnlyEmoji ? 48 : 24, 
+            verticalAlign: 'middle', 
+            display: 'inline-block',
+            margin: '0 2px'
+          }} 
+        />
+      );
+    } else if (match[2]) {
+      const base64Data = match[2];
+      parts.push(
+        <img
+          key={match.index}
+          src={base64Data}
+          alt="uploaded image"
+          style={{
+            maxWidth: '100%',
+            maxHeight: '300px',
+            borderRadius: '8px',
+            marginTop: '4px',
+            display: 'block'
+          }}
+        />
+      );
+    }
     lastIndex = match.index + match[0].length;
   }
   if (lastIndex < text.length) {
     parts.push(text.slice(lastIndex));
   }
-  
   return parts.length > 0 ? parts : text;
 }
 
@@ -464,6 +481,7 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
   const [replyToMsg, setReplyToMsg] = useState<any>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const editableRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Heart Animation State
   const [floatingHearts, setFloatingHearts] = useState<{id: number, left: number, delay: number}[]>([]);
@@ -494,6 +512,51 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
     setTimeout(() => {
       setFloatingHearts(prev => prev.filter(h => h.id !== id && h.id !== id + 1 && h.id !== id + 2));
     }, 1000);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        
+        const MAX_SIZE = 800;
+        if (width > height) {
+          if (width > MAX_SIZE) {
+            height *= MAX_SIZE / width;
+            width = MAX_SIZE;
+          }
+        } else {
+          if (height > MAX_SIZE) {
+            width *= MAX_SIZE / height;
+            height = MAX_SIZE;
+          }
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+        
+        const base64 = canvas.toDataURL('image/jpeg', 0.6);
+        
+        getSocket()?.emit('chat:message', { 
+          roomId, 
+          text: `[upload:${base64}]`,
+          replyTo: replyToMsg ? { id: replyToMsg.id, username: replyToMsg.displayName ?? replyToMsg.username, text: replyToMsg.text } : undefined
+        });
+        setReplyToMsg(null);
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   // ── Overlay Menu State ──
@@ -960,8 +1023,19 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
             </button>
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingRight: 8, color: activeTheme.isLight ? '#1e293b' : '#cbd5e1', flexShrink: 0 }}>
+              {/* Hidden File Input */}
+              <input 
+                type="file" 
+                accept="image/*" 
+                ref={fileInputRef} 
+                style={{ display: 'none' }} 
+                onChange={handleFileChange} 
+              />
               {/* Gallery */}
-              <button style={{ background: 'none', border: 'none', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'inherit', cursor: 'pointer' }}>
+              <button 
+                onClick={(e) => { e.preventDefault(); fileInputRef.current?.click(); }}
+                onTouchEnd={(e) => { e.preventDefault(); fileInputRef.current?.click(); }}
+                style={{ background: 'none', border: 'none', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'inherit', cursor: 'pointer' }}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="3" y="3" width="18" height="18" rx="4" ry="4"/>
                   <circle cx="8.5" cy="8.5" r="1.5"/>
