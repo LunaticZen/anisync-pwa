@@ -49,11 +49,8 @@ export async function checkChatRateLimit(userId: string): Promise<boolean> {
 export function sanitizeMessage(text: string): string {
   const trimmed = text.trim();
   if (trimmed.startsWith('[upload:data:image/') && trimmed.endsWith(']')) {
-    // Allow whitespace/newlines which some Android WebViews might insert
-    if (/^\[upload:data:image\/(jpeg|png|webp|gif);base64,[A-Za-z0-9+/=\s]+\]$/.test(trimmed)) {
-      if (trimmed.length > 500000) return '';
-      return trimmed;
-    }
+    if (trimmed.length > 500000) return '';
+    return trimmed;
   }
   // Strip HTML tags
   let clean = DOMPurify.sanitize(text, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
