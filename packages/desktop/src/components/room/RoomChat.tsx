@@ -482,10 +482,6 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const editableRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
-  // Heart Animation State
-  const [floatingHearts, setFloatingHearts] = useState<{id: number, left: number, delay: number}[]>([]);
-  const [heartPop, setHeartPop] = useState(false);
 
   const handleHeartSend = (e: React.MouseEvent | React.TouchEvent) => {
     e.preventDefault();
@@ -497,21 +493,6 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
     });
     setReplyToMsg(null);
     setShowEmojiPicker(false);
-    
-    // Trigger animations
-    setHeartPop(true);
-    setTimeout(() => setHeartPop(false), 300);
-
-    const id = Date.now();
-    setFloatingHearts(prev => [...prev, 
-      { id: id, left: 0, delay: 0 },
-      { id: id + 1, left: -15, delay: 0.1 },
-      { id: id + 2, left: 15, delay: 0.2 }
-    ]);
-    
-    setTimeout(() => {
-      setFloatingHearts(prev => prev.filter(h => h.id !== id && h.id !== id + 1 && h.id !== id + 2));
-    }, 1000);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1043,33 +1024,15 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
                 </svg>
               </button>
               {/* Heart */}
-              <div style={{ position: 'relative', display: 'flex' }}>
-                <button 
-                  onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                  onTouchEnd={handleHeartSend}
-                  onClick={handleHeartSend}
-                  className={heartPop ? 'heart-pop-anim' : ''}
-                  style={{ background: 'none', border: 'none', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'inherit', cursor: 'pointer' }}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill={heartPop ? '#ef4444' : 'none'} stroke={heartPop ? '#ef4444' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transition: 'all 0.2s' }}>
-                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-                  </svg>
-                </button>
-                {floatingHearts.map(heart => (
-                  <img
-                    key={heart.id}
-                    src={`${window.location.protocol === 'file:' ? '.' : ''}/emojis/heart-on-fire.png`}
-                    className="heart-float-anim"
-                    style={{
-                      left: heart.left,
-                      bottom: 0,
-                      width: 24,
-                      height: 24,
-                      animationDelay: `${heart.delay}s`
-                    }}
-                    alt=""
-                  />
-                ))}
-              </div>
+              <button 
+                onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                onTouchEnd={handleHeartSend}
+                onClick={handleHeartSend}
+                style={{ background: 'none', border: 'none', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'inherit', cursor: 'pointer' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transition: 'all 0.2s' }}>
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                </svg>
+              </button>
             </div>
           )}
         </div>
