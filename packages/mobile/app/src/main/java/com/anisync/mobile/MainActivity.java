@@ -50,7 +50,7 @@ import java.util.Set;
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "AniSync";
-    private static final String SERVER_URL = "https://anisync-server.onrender.com";
+    private static final String SERVER_URL = "https://anisync-mug9.onrender.com";
     private static final int FILE_CHOOSER_REQUEST = 1001;
 
     private WebView mainWebView;

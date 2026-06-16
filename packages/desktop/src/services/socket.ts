@@ -11,7 +11,7 @@ type TypedSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 
 let socket: TypedSocket | null = null;
 
-const DEFAULT_SERVER = 'https://anisync-server.onrender.com';
+const DEFAULT_SERVER = 'https://anisync-mug9.onrender.com';
 
 // Server URL: stored in localStorage, configurable from UI
 export function getServerUrl(): string {
