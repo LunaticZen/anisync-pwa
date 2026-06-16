@@ -12,7 +12,7 @@ import { MessageOverlayMenu, useOverlayMenu, type OverlayMenuAction } from './Me
 import { Image as ImageIcon } from 'lucide-react';
 
 function renderReplyPreviewText(text: string) {
-  if (/^\[upload:data:image\/[^;]+;base64,[^\]]+\]$/.test(text.trim())) {
+  if (/^\[upload:(data:image\/[^;]+;base64,[^\]]+|https?:\/\/[^\]]+)\]$/.test(text.trim())) {
     return (
       <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
         <ImageIcon size={14} style={{ opacity: 0.6 }} /> Görsel
@@ -23,7 +23,7 @@ function renderReplyPreviewText(text: string) {
 }
 
 function renderMessageText(text: string, isOnlyEmoji: boolean, onImageClick?: (url: string) => void) {
-  const combinedRegex = /\[emoji:([^\]]+)\]|\[upload:(data:image\/[^;]+;base64,[^\]]+)\]/g;
+  const combinedRegex = /\[emoji:([^\]]+)\]|\[upload:(data:image\/[^;]+;base64,[^\]]+|https?:\/\/[^\]]+)\]/g;
   const parts = [];
   let lastIndex = 0;
   let match;
@@ -522,14 +522,15 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
     setTimeout(() => setHeartPop(false), 300);
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     
+    // Compression canvas logic (optional but good for speed before upload)
     const reader = new FileReader();
     reader.onload = (event) => {
       const img = new Image();
-      img.onload = () => {
+      img.onload = async () => {
         const canvas = document.createElement('canvas');
         let width = img.width;
         let height = img.height;
@@ -552,14 +553,33 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
         const ctx = canvas.getContext('2d');
         ctx?.drawImage(img, 0, 0, width, height);
         
-        const base64 = canvas.toDataURL('image/jpeg', 0.6).replace(/\s/g, '');
+        const base64Data = canvas.toDataURL('image/jpeg', 0.6);
+        const base64Content = base64Data.split(',')[1];
         
-        getSocket()?.emit('chat:message', { 
-          roomId, 
-          text: `[upload:${base64}]`,
-          replyTo: replyToMsg ? { id: replyToMsg.id, username: replyToMsg.displayName ?? replyToMsg.username, text: replyToMsg.text } : undefined
-        });
-        setReplyToMsg(null);
+        try {
+          const formData = new FormData();
+          formData.append('image', base64Content);
+          
+          const res = await fetch('https://api.imgbb.com/1/upload?key=7bf7ab7443109937733eb7b2287d42ad', {
+            method: 'POST',
+            body: formData
+          });
+          const data = await res.json();
+          
+          if (data && data.success) {
+            const imageUrl = data.data.url;
+            getSocket()?.emit('chat:message', { 
+              roomId, 
+              text: `[upload:${imageUrl}]`,
+              replyTo: replyToMsg ? { id: replyToMsg.id, username: replyToMsg.displayName ?? replyToMsg.username, text: replyToMsg.text } : undefined
+            });
+            setReplyToMsg(null);
+          } else {
+            console.error('ImgBB upload failed', data);
+          }
+        } catch (err) {
+          console.error('Upload error', err);
+        }
       };
       img.src = event.target?.result as string;
     };
