@@ -16,12 +16,18 @@ const DEFAULT_SERVER = 'https://anisync-mug9.onrender.com';
 // Server URL: stored in localStorage, configurable from UI
 export function getServerUrl(): string {
   if (typeof window !== 'undefined') {
-    // Mobile WebView: use the server that served this page
-    if (window.location.pathname.startsWith('/app')) {
+    if (window.location.protocol !== 'file:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
       return window.location.origin;
     }
     // Check localStorage for saved Render URL
     const saved = localStorage.getItem('anisync_server_url');
+    
+    // Auto-migrate defunct server
+    if (saved === 'https://anisync-server.onrender.com') {
+      localStorage.removeItem('anisync_server_url');
+      return DEFAULT_SERVER;
+    }
+    
     if (saved) return saved;
   }
   return DEFAULT_SERVER;
