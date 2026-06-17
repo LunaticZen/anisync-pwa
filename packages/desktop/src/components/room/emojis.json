@@ -511,16 +511,8 @@
     "name": "chiikawa",
     "emojis": [
       {
-        "path": "chiikawa/0-1.gif",
-        "name": "0-1"
-      },
-      {
         "path": "chiikawa/1-1.gif",
         "name": "1-1"
-      },
-      {
-        "path": "chiikawa/11-1.gif",
-        "name": "11-1"
       },
       {
         "path": "chiikawa/12-1.gif",
@@ -555,10 +547,6 @@
         "name": "19-1"
       },
       {
-        "path": "chiikawa/2-1.gif",
-        "name": "2-1"
-      },
-      {
         "path": "chiikawa/20-1.gif",
         "name": "20-1"
       },
@@ -581,6 +569,10 @@
       {
         "path": "chiikawa/25-1.gif",
         "name": "25-1"
+      },
+      {
+        "path": "chiikawa/26-1.gif",
+        "name": "26-1"
       },
       {
         "path": "chiikawa/27-1.gif",
@@ -619,56 +611,20 @@
         "name": "34-1"
       },
       {
+        "path": "chiikawa/35-1.gif",
+        "name": "35-1"
+      },
+      {
+        "path": "chiikawa/36-1.gif",
+        "name": "36-1"
+      },
+      {
         "path": "chiikawa/37-1.gif",
         "name": "37-1"
       },
       {
         "path": "chiikawa/38-1.gif",
         "name": "38-1"
-      },
-      {
-        "path": "chiikawa/39-1.gif",
-        "name": "39-1"
-      },
-      {
-        "path": "chiikawa/4-1.gif",
-        "name": "4-1"
-      },
-      {
-        "path": "chiikawa/40-1.gif",
-        "name": "40-1"
-      },
-      {
-        "path": "chiikawa/41-1.gif",
-        "name": "41-1"
-      },
-      {
-        "path": "chiikawa/42-1.gif",
-        "name": "42-1"
-      },
-      {
-        "path": "chiikawa/43-1.gif",
-        "name": "43-1"
-      },
-      {
-        "path": "chiikawa/44-1.gif",
-        "name": "44-1"
-      },
-      {
-        "path": "chiikawa/45-1.gif",
-        "name": "45-1"
-      },
-      {
-        "path": "chiikawa/46-1.gif",
-        "name": "46-1"
-      },
-      {
-        "path": "chiikawa/47-1.gif",
-        "name": "47-1"
-      },
-      {
-        "path": "chiikawa/5-1.gif",
-        "name": "5-1"
       },
       {
         "path": "chiikawa/6-1.gif",
