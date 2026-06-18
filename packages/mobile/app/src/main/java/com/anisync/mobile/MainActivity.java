@@ -38,6 +38,9 @@ import androidx.webkit.WebSettingsCompat;
 import androidx.webkit.WebViewFeature;
 
 import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -47,10 +50,15 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
+import androidx.webkit.WebViewAssetLoader;
+
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "AniSync";
-    private static final String SERVER_URL = "https://anisync-mug9.onrender.com";
+    private static final String DEFAULT_SERVER_URL = "https://anisync-mug9.onrender.com";
+    // Virtual domain for serving local assets (avoids file:// CORS issues)
+    private static final String LOCAL_ASSET_DOMAIN = "appassets.androidplatform.net";
+    private static final String LOCAL_BASE_URL = "https://" + LOCAL_ASSET_DOMAIN + "/assets/web/";
     private static final int FILE_CHOOSER_REQUEST = 1001;
 
     private WebView mainWebView;
@@ -60,6 +68,7 @@ public class MainActivity extends AppCompatActivity {
     private boolean animeVisible = false;
     private ValueCallback<Uri[]> fileUploadCallback;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private WebViewAssetLoader assetLoader;
 
     // ── Fullscreen video tracking (activity-level so onConfigurationChanged can check) ──
     private View fullscreenCustomView;
@@ -139,6 +148,13 @@ public class MainActivity extends AppCompatActivity {
         // PERF: KeepAliveService removed from onCreate — now started/stopped via JS Bridge
         // when user joins/leaves a room. Prevents unnecessary foreground service when idle.
 
+        // ── WebViewAssetLoader: serves local assets under a virtual https:// domain ──
+        // This avoids file:// CORS restrictions and makes localStorage work properly.
+        assetLoader = new WebViewAssetLoader.Builder()
+                .setDomain(LOCAL_ASSET_DOMAIN)
+                .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this))
+                .build();
+
         rootLayout = new LinearLayout(this);
         rootLayout.setBackgroundColor(0xFF050816);
 
@@ -152,7 +168,8 @@ public class MainActivity extends AppCompatActivity {
 
         applyLayout();
         setContentView(rootLayout);
-        mainWebView.loadUrl(SERVER_URL + "?v=" + System.currentTimeMillis());
+        // Load frontend from local assets — UI works even when server is offline
+        mainWebView.loadUrl(LOCAL_BASE_URL + "index.html");
     }
 
     /**
@@ -290,9 +307,52 @@ public class MainActivity extends AppCompatActivity {
 
         mainWebView.setWebViewClient(new WebViewClient() {
             @Override
+            public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                String reqUrl = request.getUrl().toString();
+
+                // 1. Try serving from local assets first
+                WebResourceResponse response = assetLoader.shouldInterceptRequest(request.getUrl());
+                if (response != null) {
+                    return response;
+                }
+
+                // 2. If the request is for our virtual domain but not found locally
+                //    (emojis, themes, etc.), proxy to the real server
+                String prefix = "https://" + LOCAL_ASSET_DOMAIN + "/assets/web/";
+                if (reqUrl.startsWith(prefix)) {
+                    String relativePath = reqUrl.substring(prefix.length());
+                    // Only proxy known static asset directories
+                    if (relativePath.startsWith("emojis/") || relativePath.startsWith("themes/") ||
+                        relativePath.startsWith("themes_4k/") || relativePath.startsWith("icon")) {
+                        try {
+                            String serverUrl = DEFAULT_SERVER_URL + "/" + relativePath;
+                            HttpURLConnection conn = (HttpURLConnection) new URL(serverUrl).openConnection();
+                            conn.setRequestMethod("GET");
+                            conn.setConnectTimeout(8000);
+                            conn.setReadTimeout(15000);
+                            String mime = conn.getContentType();
+                            if (mime == null) mime = guessMimeType(relativePath);
+                            if (mime != null && mime.contains(";")) mime = mime.split(";")[0].trim();
+                            InputStream is = conn.getInputStream();
+                            return new WebResourceResponse(mime, null, is);
+                        } catch (Exception e) {
+                            appLogError("Asset proxy failed: " + relativePath + " - " + e.getMessage());
+                        }
+                    }
+                }
+
+                return super.shouldInterceptRequest(view, request);
+            }
+
+            @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 String url = request.getUrl().toString();
-                if (!url.contains("anisync") && !url.contains("onrender.com") && !url.startsWith("about:")) {
+                // Allow local asset URLs to load normally
+                if (url.contains(LOCAL_ASSET_DOMAIN)) {
+                    return false;
+                }
+                // External URLs → open in anime WebView
+                if (!url.startsWith("about:")) {
                     loadAnime(url);
                     return true;
                 }
@@ -830,6 +890,26 @@ public class MainActivity extends AppCompatActivity {
             domain = domain.substring(dot + 1);
         }
         return false;
+    }
+
+    /**
+     * Guess MIME type from file extension for asset proxy responses.
+     */
+    private String guessMimeType(String path) {
+        if (path == null) return "application/octet-stream";
+        String lower = path.toLowerCase();
+        if (lower.endsWith(".png")) return "image/png";
+        if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";
+        if (lower.endsWith(".gif")) return "image/gif";
+        if (lower.endsWith(".webp")) return "image/webp";
+        if (lower.endsWith(".svg")) return "image/svg+xml";
+        if (lower.endsWith(".mp4")) return "video/mp4";
+        if (lower.endsWith(".webm")) return "video/webm";
+        if (lower.endsWith(".ico")) return "image/x-icon";
+        if (lower.endsWith(".json")) return "application/json";
+        if (lower.endsWith(".js")) return "application/javascript";
+        if (lower.endsWith(".css")) return "text/css";
+        return "application/octet-stream";
     }
 
     @Override
