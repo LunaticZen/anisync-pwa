@@ -74,6 +74,9 @@ app.use(express.static(path.join(__dirname, 'public'), {
       res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
       res.setHeader('Pragma', 'no-cache');
       res.setHeader('Expires', '0');
+    } else if (path.match(/\.(js|css|png|jpg|jpeg|gif|webp|ico|mp4|webm|svg|woff|woff2|ttf|eot)$/i)) {
+      // 1 year aggressive caching for static assets
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
     }
   }
 }));
