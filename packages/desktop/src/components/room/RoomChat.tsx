@@ -9,76 +9,37 @@ import { getSocket } from '../../services/socket';
 import { isMobile, avatarColor, getTheme, type RoomMode } from './constants';
 import { EmojiPicker } from './EmojiPicker';
 import { MessageOverlayMenu, useOverlayMenu, type OverlayMenuAction } from './MessageOverlayMenu';
-import { Image as ImageIcon } from 'lucide-react';
 
-function renderReplyPreviewText(text: string) {
-  if (/^\[upload:(data:image\/[^;]+;base64,[^\]]+|https?:\/\/[^\]]+)\]$/.test(text.trim())) {
-    return (
-      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-        <ImageIcon size={14} style={{ opacity: 0.6 }} /> Görsel
-      </span>
-    );
-  }
-  return text;
-}
-
-function renderMessageText(text: string, isOnlyEmoji: boolean, onImageClick?: (url: string) => void) {
-  const combinedRegex = /\[emoji:([^\]]+)\]|\[upload:(data:image\/[^;]+;base64,[^\]]+|https?:\/\/[^\]]+)\]/g;
+function renderMessageText(text: string, isOnlyEmoji: boolean) {
+  const emojiRegex = /\[emoji:([^\]]+)\]/g;
   const parts = [];
   let lastIndex = 0;
   let match;
   
-  while ((match = combinedRegex.exec(text)) !== null) {
+  while ((match = emojiRegex.exec(text)) !== null) {
     if (match.index > lastIndex) {
       parts.push(text.slice(lastIndex, match.index));
     }
-    if (match[1]) {
-      const emojiPath = match[1];
-      parts.push(
-        <img 
-          key={match.index} 
-          src={`${window.location.protocol === 'file:' ? '.' : ''}/emojis/${emojiPath}`} 
-          alt="emoji" 
-          style={{ 
-            height: isOnlyEmoji ? 48 : 24, 
-            verticalAlign: 'middle', 
-            display: 'inline-block',
-            margin: '0 2px'
-          }} 
-        />
-      );
-    } else if (match[2]) {
-      const base64Data = match[2];
-      parts.push(
-        <img
-          key={match.index}
-          src={base64Data}
-          alt="uploaded image"
-          onClick={(e) => {
-            if (onImageClick) {
-              e.stopPropagation();
-              onImageClick(base64Data);
-            }
-          }}
-          style={{
-            width: '100%',
-            maxWidth: '240px',
-            aspectRatio: '1 / 1',
-            objectFit: 'cover',
-            borderRadius: 'inherit',
-            marginTop: text.trim().startsWith('[upload') ? '0' : '4px',
-            display: 'block',
-            cursor: onImageClick ? 'pointer' : 'default',
-            WebkitTapHighlightColor: 'transparent'
-          }}
-        />
-      );
-    }
+    const emojiPath = match[1];
+    parts.push(
+      <img 
+        key={match.index} 
+        src={`./emojis/${emojiPath}`} 
+        alt="emoji" 
+        style={{ 
+          height: isOnlyEmoji ? 48 : 24, 
+          verticalAlign: 'middle', 
+          display: 'inline-block',
+          margin: '0 2px'
+        }} 
+      />
+    );
     lastIndex = match.index + match[0].length;
   }
   if (lastIndex < text.length) {
     parts.push(text.slice(lastIndex));
   }
+  
   return parts.length > 0 ? parts : text;
 }
 
@@ -89,18 +50,27 @@ export interface TickerItem {
   text: string;
   key: number;
   lane: number;
+  createdAt: number;  // Date.now() when the item was created
+  duration: number;   // animation duration in seconds
 }
 
 export const DANMAKU_LANE_COUNT = 3;
 const DANMAKU_LANE_HEIGHT = 36;
 const DANMAKU_CONTAINER_HEIGHT = 120;
 
+/** Calculate danmaku duration based on text length */
+export function getDanmakuDuration(text: string): number {
+  return Math.max(8, text.length * 0.12 + 6);
+}
+
 // ─── Chat Ticker (Landscape overlay) ──────────────────────
-function ChatTicker({ tickerItems, onRemoveTickerItem }: {
+// Time-based: uses negative animation-delay to resume from
+// the correct position when re-mounted after unmount.
+function ChatTicker({ tickerItems }: {
   tickerItems: TickerItem[];
-  onRemoveTickerItem: (key: number) => void;
 }) {
   const chatMessages = useChatStore(s => s.messages);
+  const now = Date.now();
 
   return (
     <div style={{
@@ -115,26 +85,34 @@ function ChatTicker({ tickerItems, onRemoveTickerItem }: {
           100% { transform: translateX(calc(-100% - 20px)); }
         }
       `}</style>
-      {tickerItems.map(item => (
-        <span
-          key={item.key}
-          onAnimationEnd={() => onRemoveTickerItem(item.key)}
-          style={{
-            position: 'absolute',
-            bottom: 8 + item.lane * DANMAKU_LANE_HEIGHT,
-            left: 0,
-            whiteSpace: 'nowrap',
-            animation: `danmakuSlide ${Math.max(8, item.text.length * 0.12 + 6)}s linear forwards`,
-            fontSize: 14, fontWeight: 500,
-            color: 'rgba(255,255,255,0.95)',
-            textShadow: '0 1px 4px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,0.5)',
-            paddingLeft: 12,
-          }}
-        >
-          <span style={{ color: '#5b9bff', fontWeight: 700 }}>{item.username}: </span>
-          {item.text}
-        </span>
-      ))}
+      {tickerItems.map(item => {
+        // How many seconds have elapsed since this item was created
+        const elapsedSec = (now - item.createdAt) / 1000;
+        // If elapsed exceeds duration, don't render (will be cleaned up by timer)
+        if (elapsedSec >= item.duration) return null;
+
+        return (
+          <span
+            key={item.key}
+            style={{
+              position: 'absolute',
+              bottom: 8 + item.lane * DANMAKU_LANE_HEIGHT,
+              left: 0,
+              whiteSpace: 'nowrap',
+              animation: `danmakuSlide ${item.duration}s linear forwards`,
+              // Negative delay = jump to the correct position in the animation
+              animationDelay: `-${elapsedSec.toFixed(2)}s`,
+              fontSize: 14, fontWeight: 500,
+              color: 'rgba(255,255,255,0.95)',
+              textShadow: '0 1px 4px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,0.5)',
+              paddingLeft: 12,
+            }}
+          >
+            <span style={{ color: '#5b9bff', fontWeight: 700 }}>{item.username}: </span>
+            {item.text}
+          </span>
+        );
+      })}
       {tickerItems.length === 0 && chatMessages.filter(m => m.type !== 'system').length === 0 && (
         <span style={{
           position: 'absolute', bottom: 12, right: 16,
@@ -146,7 +124,7 @@ function ChatTicker({ tickerItems, onRemoveTickerItem }: {
 }
 
 // ─── Swipable Message Component ─────────────────────────────
-function SwipableMessage({ msg, i, username, members, messages, activeTypers, isKeyboardOpen, activeTheme, onReply, onOpenOverlay, onImageClick }: any) {
+function SwipableMessage({ msg, i, username, members, messages, activeTypers, isKeyboardOpen, activeTheme, onReply, onOpenOverlay }: any) {
   const isMe = msg.userId === username;
   
   const bubbleRef = useRef<HTMLDivElement>(null);
@@ -465,7 +443,7 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
                     whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                     border: `1px solid ${activeTheme.isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.04)'}`,
                   }}>
-                    {renderReplyPreviewText(msg.replyTo.text)}
+                    {msg.replyTo.text}
                   </div>
                 </div>
               </div>
@@ -474,14 +452,14 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
             {/* Actual Message Bubble */}
             <div style={{
               background: bubbleBg, color: textColor,
-              padding: isOnlyEmoji ? 0 : (/^\[upload:data:image\/[^;]+;base64,[^\]]+\]$/.test(msg.text.trim()) ? '2px' : (isKeyboardOpen ? '6px 10px' : '8px 12px')),
+              padding: isOnlyEmoji ? 0 : (isKeyboardOpen ? '6px 10px' : '8px 12px'),
               borderRadius: borderRadius, fontSize: isKeyboardOpen ? 12 : 13,
-              lineHeight: 1.4, wordBreak: 'break-word', overflow: 'hidden',
+              lineHeight: 1.4, wordBreak: 'break-word',
               boxShadow: isOnlyEmoji ? 'none' : (activeTheme.isImage && !isMe ? '0 2px 8px rgba(0,0,0,0.2)' : 'none'),
               border: isOnlyEmoji ? 'none' : (isMe ? 'none' : `1px solid ${activeTheme.isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)'}`),
               /* padding/font-size removed from transition to prevent layout thrashing */
             }}>
-              {renderMessageText(msg.text, isOnlyEmoji, onImageClick)}
+              {renderMessageText(msg.text, isOnlyEmoji)}
             </div>
           </div>
         </div>
@@ -503,89 +481,6 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
   const [replyToMsg, setReplyToMsg] = useState<any>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const editableRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [heartPop, setHeartPop] = useState(false);
-  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
-
-  const handleHeartSend = (e: React.MouseEvent | React.TouchEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    getSocket()?.emit('chat:message', { 
-      roomId, 
-      text: '[emoji:heart-on-fire.png]',
-      replyTo: replyToMsg ? { id: replyToMsg.id, username: replyToMsg.displayName ?? replyToMsg.username, text: replyToMsg.text } : undefined
-    });
-    setReplyToMsg(null);
-    setShowEmojiPicker(false);
-    
-    setHeartPop(true);
-    setTimeout(() => setHeartPop(false), 300);
-  };
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    
-    // Compression canvas logic (optional but good for speed before upload)
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const img = new Image();
-      img.onload = async () => {
-        const canvas = document.createElement('canvas');
-        let width = img.width;
-        let height = img.height;
-        
-        const MAX_SIZE = 800;
-        if (width > height) {
-          if (width > MAX_SIZE) {
-            height *= MAX_SIZE / width;
-            width = MAX_SIZE;
-          }
-        } else {
-          if (height > MAX_SIZE) {
-            width *= MAX_SIZE / height;
-            height = MAX_SIZE;
-          }
-        }
-        
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx?.drawImage(img, 0, 0, width, height);
-        
-        const base64Data = canvas.toDataURL('image/jpeg', 0.6);
-        const base64Content = base64Data.split(',')[1];
-        
-        try {
-          const formData = new FormData();
-          formData.append('image', base64Content);
-          
-          const res = await fetch('https://api.imgbb.com/1/upload?key=7bf7ab7443109937733eb7b2287d42ad', {
-            method: 'POST',
-            body: formData
-          });
-          const data = await res.json();
-          
-          if (data && data.success) {
-            const imageUrl = data.data.url;
-            getSocket()?.emit('chat:message', { 
-              roomId, 
-              text: `[upload:${imageUrl}]`,
-              replyTo: replyToMsg ? { id: replyToMsg.id, username: replyToMsg.displayName ?? replyToMsg.username, text: replyToMsg.text } : undefined
-            });
-            setReplyToMsg(null);
-          } else {
-            console.error('ImgBB upload failed', data);
-          }
-        } catch (err) {
-          console.error('Upload error', err);
-        }
-      };
-      img.src = event.target?.result as string;
-    };
-    reader.readAsDataURL(file);
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  };
 
   // ── Overlay Menu State ──
   const { overlayState, openMenu, closeMenu } = useOverlayMenu();
@@ -662,7 +557,7 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
     
     const img = document.createElement('img');
     img.setAttribute('data-emoji', emojiPath);
-    img.src = `${window.location.protocol === 'file:' ? '.' : ''}/emojis/${emojiPath}`;
+    img.src = `./emojis/${emojiPath}`;
     img.alt = "emoji";
     img.style.height = '24px';
     img.style.width = '24px';
@@ -819,7 +714,7 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
             );
           }
 
-          return <SwipableMessage key={msg.id} msg={msg} i={i} username={username} members={members} messages={messages} activeTypers={activeTypers} isKeyboardOpen={isKeyboardOpen} activeTheme={activeTheme} onReply={setReplyToMsg} onOpenOverlay={handleOpenOverlay} onImageClick={setLightboxImage} />;
+          return <SwipableMessage key={msg.id} msg={msg} i={i} username={username} members={members} messages={messages} activeTypers={activeTypers} isKeyboardOpen={isKeyboardOpen} activeTheme={activeTheme} onReply={setReplyToMsg} onOpenOverlay={handleOpenOverlay} />;
         })}
 
         {/* Typing indicator */}
@@ -905,7 +800,7 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
               {replyToMsg.displayName ?? replyToMsg.username} adlı kişiye yanıt veriyorsun
             </span>
             <span style={{ fontSize: 12, opacity: 0.7, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {renderReplyPreviewText(replyToMsg.text)}
+              {replyToMsg.text}
             </span>
           </div>
           <button
@@ -1051,21 +946,8 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
             </button>
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingRight: 8, color: activeTheme.isLight ? '#1e293b' : '#cbd5e1', flexShrink: 0 }}>
-              {/* Hidden File Input */}
-              <input 
-                type="file" 
-                accept="image/*" 
-                ref={fileInputRef} 
-                style={{ display: 'none' }} 
-                onChange={handleFileChange} 
-              />
               {/* Gallery */}
-              <button 
-                onMouseDown={(e) => e.preventDefault()}
-                onTouchStart={(e) => e.preventDefault()}
-                onClick={(e) => { e.preventDefault(); fileInputRef.current?.click(); }}
-                onTouchEnd={(e) => { e.preventDefault(); fileInputRef.current?.click(); }}
-                style={{ background: 'none', border: 'none', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'inherit', cursor: 'pointer' }}>
+              <button style={{ background: 'none', border: 'none', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'inherit', cursor: 'pointer' }}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="3" y="3" width="18" height="18" rx="4" ry="4"/>
                   <circle cx="8.5" cy="8.5" r="1.5"/>
@@ -1073,14 +955,8 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
                 </svg>
               </button>
               {/* Heart */}
-              <button 
-                onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                onTouchStart={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                onTouchEnd={handleHeartSend}
-                onClick={handleHeartSend}
-                className={heartPop ? 'heart-pop-anim' : ''}
-                style={{ background: 'none', border: 'none', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'inherit', cursor: 'pointer' }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill={heartPop ? '#ef4444' : 'none'} stroke={heartPop ? '#ef4444' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transition: 'all 0.2s' }}>
+              <button style={{ background: 'none', border: 'none', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'inherit', cursor: 'pointer' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
                 </svg>
               </button>
@@ -1112,47 +988,11 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
               boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
               border: overlayMsg.userId === username ? 'none' : `1px solid ${activeTheme.isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)'}`,
             }}>
-              {renderMessageText(overlayMsg.text, /^(\s*\[emoji:[^\]]+\]\s*)+$/.test(overlayMsg.text), undefined)}
+              {renderMessageText(overlayMsg.text, /^(\s*\[emoji:[^\]]+\]\s*)+$/.test(overlayMsg.text))}
             </div>
           ) : null
         }
       />
-
-      {/* Lightbox Modal */}
-      {lightboxImage && (
-        <div 
-          onClick={() => setLightboxImage(null)}
-          style={{
-            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.85)',
-            zIndex: 999999,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            padding: '20px',
-            animation: 'fadeIn 0.2s ease-out forwards',
-            WebkitTapHighlightColor: 'transparent'
-          }}
-        >
-          <style>{`
-            @keyframes fadeIn {
-              from { opacity: 0; }
-              to { opacity: 1; }
-            }
-            @keyframes scaleUp {
-              from { transform: scale(0.9); opacity: 0; }
-              to { transform: scale(1); opacity: 1; }
-            }
-          `}</style>
-          <img 
-            src={lightboxImage} 
-            alt="fullscreen" 
-            style={{ 
-              maxWidth: '100%', maxHeight: '100%', 
-              objectFit: 'contain', borderRadius: '8px',
-              animation: 'scaleUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards'
-            }} 
-          />
-        </div>
-      )}
     </div>
   );
 });
@@ -1165,15 +1005,13 @@ interface RoomChatProps {
   isKeyboardOpen?: boolean;
   // Landscape ticker
   tickerItems?: TickerItem[];
-  onRemoveTickerItem?: (key: number) => void;
 }
 
-export function RoomChat({ mode, roomId, members, isKeyboardOpen, tickerItems, onRemoveTickerItem }: RoomChatProps) {
+export function RoomChat({ mode, roomId, members, isKeyboardOpen, tickerItems }: RoomChatProps) {
   if (mode === 'mobile-landscape') {
     return (
       <ChatTicker
         tickerItems={tickerItems || []}
-        onRemoveTickerItem={onRemoveTickerItem || (() => {})}
       />
     );
   }

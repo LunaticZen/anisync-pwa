@@ -4,12 +4,12 @@
 // This file handles ONLY mode detection, sync logic, and layout composition.
 // ═══════════════════════════════════════════════════════════════
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useAuthStore, useRoomStore, useSyncStore, useChatStore, useUIStore } from '../../stores';
 import { getSocket } from '../../services/socket';
 import { isElectron, isMobile, isXiaomi, getTheme, type RoomMode } from './constants';
 import { RoomHeader } from './RoomHeader';
-import { RoomChat, type TickerItem, DANMAKU_LANE_COUNT } from './RoomChat';
+import { RoomChat, type TickerItem, DANMAKU_LANE_COUNT, getDanmakuDuration } from './RoomChat';
 import { RoomVideoArea } from './RoomVideoArea';
 import { RoomModals, MemberList } from './RoomModals';
 
@@ -389,11 +389,34 @@ export default function RoomPage() {
     };
   }, [effectiveLandscape, currentUrl]);
 
-  // ── Landscape ticker: add new messages ──
+  // ── Landscape ticker: add new messages (time-based lifecycle) ──
+  // Items are given a createdAt timestamp + duration. Cleanup uses
+  // setTimeout so items expire even when ChatTicker is unmounted.
   const landscapeSeeded = useRef(false);
+  const tickerTimers = useRef(new Map<number, ReturnType<typeof setTimeout>>());
+
+  // Cleanup all timers on unmount or URL change
   useEffect(() => {
-    if (!isMobile || !effectiveLandscape || !currentUrl) {
-      landscapeSeeded.current = false;
+    shownTickerIds.current.clear();
+    setTickerItems([]);
+    tickerKeyCounter.current = 0;
+    // Clear all pending timers
+    tickerTimers.current.forEach(t => clearTimeout(t));
+    tickerTimers.current.clear();
+    landscapeSeeded.current = false;
+  }, [currentUrl]);
+
+  // Schedule removal of a ticker item after its duration
+  const scheduleTickerRemoval = useCallback((key: number, delayMs: number) => {
+    const timer = setTimeout(() => {
+      setTickerItems(prev => prev.filter(item => item.key !== key));
+      tickerTimers.current.delete(key);
+    }, delayMs);
+    tickerTimers.current.set(key, timer);
+  }, []);
+
+  useEffect(() => {
+    if (!isMobile || !currentUrl) {
       return;
     }
     if (!landscapeSeeded.current) {
@@ -410,15 +433,22 @@ export default function RoomPage() {
       !shownTickerIds.current.has(m.id)
     );
     if (newMsgs.length > 0) {
+      const now = Date.now();
       const items = newMsgs.map(m => {
         shownTickerIds.current.add(m.id);
         tickerKeyCounter.current++;
+        const duration = getDanmakuDuration(m.text);
+        const key = tickerKeyCounter.current;
+        // Schedule auto-removal after duration (works even if ChatTicker unmounted)
+        scheduleTickerRemoval(key, duration * 1000);
         return {
           id: m.id,
           username: (m as any).displayName ?? m.username ?? '?',
           text: m.text,
-          key: tickerKeyCounter.current,
+          key,
           lane: tickerKeyCounter.current % DANMAKU_LANE_COUNT,
+          createdAt: now,
+          duration,
         };
       });
       setTickerItems(prev => [...prev, ...items].slice(-10));
@@ -431,11 +461,7 @@ export default function RoomPage() {
         }
       }
     }
-  }, [chatMessages, effectiveLandscape, currentUrl]);
-
-  const removeTickerItem = (key: number) => {
-    setTickerItems(prev => prev.filter(item => item.key !== key));
-  };
+  }, [chatMessages, currentUrl, scheduleTickerRemoval]);
 
   // ── Android back button → show leave confirmation ──
   useEffect(() => {
@@ -705,7 +731,6 @@ export default function RoomPage() {
           roomId={currentRoom.id}
           members={members}
           tickerItems={tickerItems}
-          onRemoveTickerItem={removeTickerItem}
         />
         <RoomModals {...modalProps} />
       </div>
