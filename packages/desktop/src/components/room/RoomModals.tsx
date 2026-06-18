@@ -302,13 +302,19 @@ export function RoomProfileModal({ onClose }: { onClose: () => void }) {
 function ThemeThumbnail({ theme, currentTheme, handleSelect }: any) {
   const isSelected = currentTheme === theme.id;
   const [isHov, setIsHov] = useState(false);
-  const [loaded, setLoaded] = useState(false);
+  const [posterLoaded, setPosterLoaded] = useState(false);
+  const [videoLoaded, setVideoLoaded] = useState(false);
+
+  // For video themes: JPG poster path (first frame)
+  const posterSrc = theme.isVideo
+    ? (theme.thumbnailVideo || theme.video || '').replace('.mp4', '.jpg')
+    : null;
 
   return (
     <button
       onClick={() => handleSelect(theme.id)}
       onMouseEnter={() => setIsHov(true)}
-      onMouseLeave={() => setIsHov(false)}
+      onMouseLeave={() => { setIsHov(false); setVideoLoaded(false); }}
       style={{
         position: 'relative',
         aspectRatio: '4/3',
@@ -327,50 +333,71 @@ function ThemeThumbnail({ theme, currentTheme, handleSelect }: any) {
         padding: 0,
       }}
     >
-      {!loaded && (
+      {/* Spinner — only while poster/image hasn't loaded yet */}
+      {!(theme.isVideo ? posterLoaded : posterLoaded) && !posterLoaded && (
         <div style={{
           position: 'absolute', inset: 0,
           background: 'rgba(5, 8, 22, 0.65)',
-          zIndex: 1,
+          zIndex: 2,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           backdropFilter: 'none',
         }}>
           <span className="spinner" style={{ width: 24, height: 24 }} />
         </div>
       )}
+
       {theme.isVideo ? (
-        <video
-          src={isHov ? (theme.thumbnailVideo || theme.video) : undefined}
-          poster={theme.thumbnailVideo?.replace('.mp4', '.jpg')}
-          autoPlay={isHov}
-          loop
-          muted
-          playsInline
-          preload="none"
-          onLoadedData={() => setLoaded(true)}
-          onError={() => setLoaded(true)}
-          style={{
-            width: '100%', height: '100%',
-            objectFit: 'cover',
-            transition: 'transform 0.4s ease, opacity 0.3s ease',
-            transform: isHov ? 'scale(1.08)' : 'scale(1)',
-            opacity: loaded ? 1 : 0,
-            backgroundColor: '#0a0a1a',
-          }}
-        />
+        <>
+          {/* Base layer: static JPG poster (loads immediately, always visible) */}
+          <img
+            src={posterSrc}
+            alt={theme.name}
+            loading="lazy"
+            onLoad={() => setPosterLoaded(true)}
+            onError={() => setPosterLoaded(true)}
+            style={{
+              width: '100%', height: '100%',
+              objectFit: 'cover',
+              transition: 'transform 0.4s ease, opacity 0.3s ease',
+              transform: isHov ? 'scale(1.08)' : 'scale(1)',
+              opacity: posterLoaded ? 1 : 0,
+            }}
+          />
+          {/* Overlay: video loads only on hover (desktop) */}
+          {isHov && (
+            <video
+              src={theme.thumbnailVideo || theme.video}
+              autoPlay
+              loop
+              muted
+              playsInline
+              preload="none"
+              onLoadedData={() => setVideoLoaded(true)}
+              style={{
+                position: 'absolute', inset: 0,
+                width: '100%', height: '100%',
+                objectFit: 'cover',
+                transform: 'scale(1.08)',
+                opacity: videoLoaded ? 1 : 0,
+                transition: 'opacity 0.3s ease',
+                zIndex: 1,
+              }}
+            />
+          )}
+        </>
       ) : (
         <img
           src={theme.image}
           alt={theme.name}
           loading="lazy"
-          onLoad={() => setLoaded(true)}
-          onError={() => setLoaded(true)}
+          onLoad={() => setPosterLoaded(true)}
+          onError={() => setPosterLoaded(true)}
           style={{
             width: '100%', height: '100%',
             objectFit: 'cover',
             transition: 'transform 0.4s ease, opacity 0.3s ease',
             transform: isHov ? 'scale(1.08)' : 'scale(1)',
-            opacity: loaded ? 1 : 0
+            opacity: posterLoaded ? 1 : 0
           }}
         />
       )}
@@ -386,6 +413,7 @@ function ThemeThumbnail({ theme, currentTheme, handleSelect }: any) {
         borderTop: `1px solid ${theme.isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'}`,
         borderBottomLeftRadius: 12,
         borderBottomRightRadius: 12,
+        zIndex: 3,
       }}>
         <span style={{
           fontSize: 10, fontWeight: 600,
@@ -403,6 +431,7 @@ function ThemeThumbnail({ theme, currentTheme, handleSelect }: any) {
         border: `1px solid ${theme.isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.15)'}`,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         fontSize: 9,
+        zIndex: 3,
       }}>
         {theme.isLight 
           ? <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
