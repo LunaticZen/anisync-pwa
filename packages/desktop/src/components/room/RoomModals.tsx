@@ -340,11 +340,13 @@ function ThemeThumbnail({ theme, currentTheme, handleSelect }: any) {
       )}
       {theme.isVideo ? (
         <video
-          src={theme.thumbnailVideo || theme.video}
-          autoPlay
+          src={isHov ? (theme.thumbnailVideo || theme.video) : undefined}
+          poster={theme.thumbnailVideo?.replace('.mp4', '.jpg')}
+          autoPlay={isHov}
           loop
           muted
           playsInline
+          preload="none"
           onLoadedData={() => setLoaded(true)}
           onError={() => setLoaded(true)}
           style={{

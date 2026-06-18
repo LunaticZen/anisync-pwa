@@ -65,6 +65,20 @@ function formatRoom(room) {
 
 const app = express();
 app.use(cors({ origin: '*' }));
+
+// Gzip/deflate compression — reduces bandwidth ~60-70% for text assets
+const compression = require('compression');
+app.use(compression({
+  level: 6, // Balance between speed and compression
+  threshold: 1024, // Only compress responses > 1KB
+  filter: (req, res) => {
+    // Don't compress already-compressed formats
+    const type = res.getHeader('Content-Type') || '';
+    if (/image\/(png|jpeg|gif|webp)|video\/|audio\//.test(type)) return false;
+    return compression.filter(req, res);
+  }
+}));
+
 app.use(express.json());
 
 // Serve web UI (assets can be cached, but HTML should not be)
@@ -127,8 +141,8 @@ app.get('*', (_req, res) => {
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: { origin: '*', credentials: true },
-  pingInterval: 10000,
-  pingTimeout: 20000,
+  pingInterval: 25000,  // 25s (was 10s) — saves bandwidth for 2-user setup
+  pingTimeout: 30000,
   maxHttpBufferSize: 1e6,
 });
 
@@ -719,7 +733,7 @@ setInterval(() => {
   }).catch(err => {
     console.log(`[Keep-Alive] Ping failed: ${err.message}`);
   });
-}, 5 * 60 * 1000);
+}, 10 * 60 * 1000); // 10 min (was 5 min) — Render sleeps after 15min
 
 // ─── Cleanup stale rooms every 30 minutes ────────────────────
 

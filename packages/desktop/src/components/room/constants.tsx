@@ -215,7 +215,7 @@ export function getTheme(id: string): ResolvedTheme {
       isLight: imgTheme.isLight,
       isImage: true,
       isVideo: imgTheme.isVideo,
-      image: imgTheme.image && isElectron ? imgTheme.image.replace('./themes/', './themes_4k/') : imgTheme.image,
+      image: imgTheme.image,
       video: imgTheme.video,
       thumbnailVideo: imgTheme.thumbnailVideo,
       glassColor: imgTheme.glassColor,
