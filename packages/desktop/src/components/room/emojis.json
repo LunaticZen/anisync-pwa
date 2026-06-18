@@ -648,56 +648,16 @@
     "name": "speed",
     "emojis": [
       {
-        "path": "speed/0-2.gif",
-        "name": "0-2"
-      },
-      {
-        "path": "speed/10-2.gif",
-        "name": "10-2"
-      },
-      {
         "path": "speed/1183-ishowspeedahegao.png",
         "name": "1183-ishowspeedahegao"
-      },
-      {
-        "path": "speed/2-2.gif",
-        "name": "2-2"
-      },
-      {
-        "path": "speed/20-2.gif",
-        "name": "20-2"
-      },
-      {
-        "path": "speed/24-2.gif",
-        "name": "24-2"
-      },
-      {
-        "path": "speed/26-2.gif",
-        "name": "26-2"
-      },
-      {
-        "path": "speed/33-2.gif",
-        "name": "33-2"
-      },
-      {
-        "path": "speed/36-2.gif",
-        "name": "36-2"
       },
       {
         "path": "speed/405314-homeless.png",
         "name": "405314-homeless"
       },
       {
-        "path": "speed/41-2.gif",
-        "name": "41-2"
-      },
-      {
         "path": "speed/438340-meinchambles.gif",
         "name": "438340-meinchambles"
-      },
-      {
-        "path": "speed/50-2.gif",
-        "name": "50-2"
       },
       {
         "path": "speed/58929-speedscared.png",
@@ -712,14 +672,6 @@
         "name": "6400-angryishowspeed"
       },
       {
-        "path": "speed/66-2.gif",
-        "name": "66-2"
-      },
-      {
-        "path": "speed/69-2.gif",
-        "name": "69-2"
-      },
-      {
         "path": "speed/718610-speed.png",
         "name": "718610-speed"
       },
@@ -728,16 +680,8 @@
         "name": "7962-speed"
       },
       {
-        "path": "speed/8-2.gif",
-        "name": "8-2"
-      },
-      {
         "path": "speed/80721-speed.png",
         "name": "80721-speed"
-      },
-      {
-        "path": "speed/9-2.gif",
-        "name": "9-2"
       }
     ]
   }
