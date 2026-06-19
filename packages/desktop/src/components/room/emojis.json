@@ -3,6 +3,10 @@
     "name": "Mavi",
     "emojis": [
       {
+        "path": "heart-on-fire-new.png",
+        "name": "heart-on-fire"
+      },
+      {
         "path": "Mavi/12422-screaming.png",
         "name": "12422-screaming"
       },
