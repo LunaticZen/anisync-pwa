@@ -81,6 +81,23 @@ app.use(compression({
 
 app.use(express.json());
 
+// --- Bandwidth Logger Middleware ---
+app.use((req, res, next) => {
+  res.on('finish', () => {
+    if (req.path.startsWith('/socket.io/')) return; // Ignore chat pings
+    
+    let bytes = res.getHeader('content-length');
+    if (!bytes && res._contentLength !== undefined) bytes = res._contentLength; 
+    
+    if (bytes) {
+      const kb = (parseInt(bytes) / 1024).toFixed(1);
+      const color = kb > 1000 ? '\x1b[31m' : (kb > 100 ? '\x1b[33m' : '\x1b[32m');
+      console.log(`[HTTP Trafik] ${req.method} ${req.path} -> ${color}${kb} KB\x1b[0m`);
+    }
+  });
+  next();
+});
+
 // Serve web UI (assets can be cached, but HTML should not be)
 app.use(express.static(path.join(__dirname, 'public'), {
   setHeaders: (res, path) => {
