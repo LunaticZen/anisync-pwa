@@ -124,7 +124,7 @@ export default function RoomPage() {
           playing: state.state === 'playing', userId: useAuthStore.getState().username,
         });
       } catch { }
-    }, 5000);
+    }, 2000);
 
     const onPlay = (d: any) => {
       if (d.originUserId === useAuthStore.getState().username) return;
@@ -141,15 +141,15 @@ export default function RoomPage() {
     const onSeek = (d: any) => {
       if (d.originUserId === useAuthStore.getState().username) return;
       ignoreUntil = Date.now() + 1500;
+      ignoreSync.current = Date.now() + 1500;
       (window as any).anisync.player.seek(d.time);
     };
     const onTimecheck = (d: any) => {
       if (d.userId === useAuthStore.getState().username) return;
       (window as any).anisync.player.getState().then((state: any) => {
         if (!state || state.time === undefined) return;
-        const drift = Math.abs(state.time - d.time);
-        if (drift > 1.5) {
-          ignoreUntil = Date.now() + 1500;
+        if (Math.abs(state.time - d.time) > 1.0) {
+          ignoreSync.current = Date.now() + 1500;
           (window as any).anisync.player.seek(d.time);
           if (d.playing && state.state !== 'playing') (window as any).anisync.player.play();
           if (!d.playing && state.state === 'playing') (window as any).anisync.player.pause();
@@ -215,7 +215,7 @@ export default function RoomPage() {
       const hostDrift = Math.abs(d.time - expectedHostTime);
       lastHostTime = d.time;
       lastSyncTime = now;
-      if (hostDrift > 3) {
+      if (hostDrift > 1.5) {
         bridge.controlAnime('seek', d.time || 0);
       }
       if (d.playing) bridge.controlAnime('play', d.time || 0);

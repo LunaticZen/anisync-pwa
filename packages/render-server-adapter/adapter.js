@@ -53,7 +53,7 @@
     sock.on('sync:timecheck',function(d){
       if(!video||d.userId===USER)return;
       var drift=Math.abs(video.currentTime-d.time);
-      if(drift>1.5){
+      if(drift>1.0){
         ignore=true;
         video.currentTime=d.time;
         if(d.playing&&video.paused)video.play().catch(function(){});
@@ -76,11 +76,11 @@
     // ── Start video search ──
     startVideoSearch();
 
-    // ── Emit timecheck every 3s ──
+    // ── Emit timecheck every 2s ──
     setInterval(function(){
       if(!video||!roomId||!sock)return;
       sock.emit('sync:timecheck',{roomId:roomId,time:video.currentTime,playing:!video.paused,userId:USER});
-    },3000);
+    },2000);
   }
 
   function applySync(d,action){
