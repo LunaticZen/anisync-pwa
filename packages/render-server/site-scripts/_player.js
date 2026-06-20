@@ -23,6 +23,20 @@
       hookVideo(videos[0]);
       return true;
     }
+    // Check inside iframes (for same-origin or allowed frames)
+    var frames = document.querySelectorAll('iframe');
+    for (i = 0; i < frames.length; i++) {
+      try {
+        var fv = frames[i].contentDocument;
+        if (fv) {
+          var fvVideo = fv.querySelector('video');
+          if (fvVideo) {
+            hookVideo(fvVideo);
+            return true;
+          }
+        }
+      } catch(e) {}
+    }
     return false;
   }
 

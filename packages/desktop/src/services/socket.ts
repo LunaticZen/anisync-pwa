@@ -11,25 +11,27 @@ type TypedSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 
 let socket: TypedSocket | null = null;
 
-const DEFAULT_SERVER = 'https://anisync-mug9.onrender.com';
+const DEFAULT_SERVER = 'https://anisync.site';
 
 // Server URL: stored in localStorage, configurable from UI
 export function getServerUrl(): string {
   if (typeof window !== 'undefined') {
-    if (window.location.protocol !== 'file:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-      return window.location.origin;
-    }
-    // Check localStorage for saved Render URL
+    // 1. First check localStorage for saved URL (highest priority)
     const saved = localStorage.getItem('anisync_server_url');
-    
     // Auto-migrate defunct server
     if (saved === 'https://anisync-server.onrender.com') {
       localStorage.removeItem('anisync_server_url');
-      return DEFAULT_SERVER;
+    } else if (saved) {
+      return saved;
     }
-    
-    if (saved) return saved;
+
+    // 2. Then fallback to window.location.origin if served from web (e.g. mobile app WebView)
+    if (window.location.protocol !== 'file:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+      return window.location.origin;
+    }
   }
+  
+  // 3. Finally fallback to default server
   return DEFAULT_SERVER;
 }
 

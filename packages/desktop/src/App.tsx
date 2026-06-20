@@ -17,7 +17,9 @@ export default function App() {
   const accessCode = useAuthStore(s => s.accessCode);
 
   // Initialize security guard (production only)
-  useEffect(() => { initSecurityGuard(); }, []);
+  useEffect(() => {
+    // initSecurityGuard(); removed for normal build
+  }, []);
 
   // If no access code saved, force lock screen (unless already on it)
   const effectiveView = (!accessCode && currentView !== 'access') ? 'access' : currentView;

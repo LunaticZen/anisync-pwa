@@ -58,7 +58,7 @@ import org.json.JSONObject;
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "AniSync";
-    private static final String SERVER_URL = "https://anisync-9z1z.onrender.com";
+    private static final String SERVER_URL = "https://anisync.site";
     private static final int FILE_CHOOSER_REQUEST = 1001;
 
     private WebView mainWebView;
@@ -225,6 +225,7 @@ public class MainActivity extends AppCompatActivity {
         appLog("Anime WebView layer: NONE (allows HW video surfaces)");
 
         setupAnimeWebView();
+        animeWebView.addJavascriptInterface(jsBridge, "AniSyncBridge");
     }
 
     /**
@@ -266,96 +267,8 @@ public class MainActivity extends AppCompatActivity {
         cm.setAcceptThirdPartyCookies(mainWebView, true);
 
         // JS Bridge
-        mainWebView.addJavascriptInterface(new Object() {
-            @JavascriptInterface
-            public void openAnime(String url) {
-                runOnUiThread(() -> loadAnime(url));
-            }
-
-            @JavascriptInterface
-            public void closeAnime() {
-                runOnUiThread(() -> hideAnime());
-            }
-
-            @JavascriptInterface
-            public void controlAnime(String command, double time) {
-                runOnUiThread(() -> executeVideoCommand(command, time));
-            }
-
-            // PERF: KeepAliveService lifecycle — start when joining room, stop when leaving
-            @JavascriptInterface
-            public void startKeepAlive() {
-                runOnUiThread(() -> {
-                    try {
-                        Intent i = new Intent(MainActivity.this, KeepAliveService.class);
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                            startForegroundService(i);
-                        } else {
-                            startService(i);
-                        }
-                        appLog("KeepAliveService started (room joined)");
-                    } catch (Exception e) {
-                        appLogError("KeepAliveService start failed: " + e.getMessage());
-                    }
-                });
-            }
-
-            @JavascriptInterface
-            public void stopKeepAlive() {
-                runOnUiThread(() -> {
-                    try {
-                        stopService(new Intent(MainActivity.this, KeepAliveService.class));
-                        appLog("KeepAliveService stopped (room left)");
-                    } catch (Exception e) {
-                        appLogError("KeepAliveService stop failed: " + e.getMessage());
-                    }
-                });
-            }
-
-            @JavascriptInterface
-            public String getLogs() {
-                StringBuilder sb = new StringBuilder();
-                sb.append("=== AniSync Logs ===").append("\n");
-                sb.append("Device: ").append(Build.MANUFACTURER).append(" ").append(Build.MODEL).append("\n");
-                sb.append("Android: ").append(Build.VERSION.RELEASE).append(" (SDK ").append(Build.VERSION.SDK_INT).append("\n");
-                sb.append("Xiaomi: ").append(isXiaomiDevice).append("\n");
-                sb.append("===================").append("\n\n");
-                synchronized (logBuffer) {
-                    for (String line : logBuffer) {
-                        sb.append(line).append("\n");
-                    }
-                }
-                return sb.toString();
-            }
-
-            @JavascriptInterface
-            public void copyLogs() {
-                String logs = getLogs();
-                runOnUiThread(() -> {
-                    ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-                    ClipData clip = ClipData.newPlainText("AniSync Logs", logs);
-                    clipboard.setPrimaryClip(clip);
-                    appLog("Logs copied to clipboard (" + logBuffer.size() + " entries)");
-                });
-            }
-
-            // ── Video Event Bridge ──
-            // _player.js calls pushEvent() when video play/pause/seek happens.
-            // React eventPoll calls getEvent() to read and consume the event.
-            private volatile String pendingEvent = null;
-
-            @JavascriptInterface
-            public void pushEvent(String eventJson) {
-                pendingEvent = eventJson;
-            }
-
-            @JavascriptInterface
-            public String getEvent() {
-                String ev = pendingEvent;
-                pendingEvent = null;
-                return ev;
-            }
-        }, "AniSyncBridge");
+        jsBridge = new AniSyncJSBridge();
+        mainWebView.addJavascriptInterface(jsBridge, "AniSyncBridge");
 
         mainWebView.setWebViewClient(new WebViewClient() {
             @Override
@@ -976,5 +889,100 @@ public class MainActivity extends AppCompatActivity {
             animeWebView = null;
         }
         super.onDestroy();
+    }
+
+    private AniSyncJSBridge jsBridge;
+
+    private class AniSyncJSBridge {
+
+            @JavascriptInterface
+            public void openAnime(String url) {
+                runOnUiThread(() -> loadAnime(url));
+            }
+
+            @JavascriptInterface
+            public void closeAnime() {
+                runOnUiThread(() -> hideAnime());
+            }
+
+            @JavascriptInterface
+            public void controlAnime(String command, double time) {
+                runOnUiThread(() -> executeVideoCommand(command, time));
+            }
+
+            // PERF: KeepAliveService lifecycle — start when joining room, stop when leaving
+            @JavascriptInterface
+            public void startKeepAlive() {
+                runOnUiThread(() -> {
+                    try {
+                        Intent i = new Intent(MainActivity.this, KeepAliveService.class);
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            startForegroundService(i);
+                        } else {
+                            startService(i);
+                        }
+                        appLog("KeepAliveService started (room joined)");
+                    } catch (Exception e) {
+                        appLogError("KeepAliveService start failed: " + e.getMessage());
+                    }
+                });
+            }
+
+            @JavascriptInterface
+            public void stopKeepAlive() {
+                runOnUiThread(() -> {
+                    try {
+                        stopService(new Intent(MainActivity.this, KeepAliveService.class));
+                        appLog("KeepAliveService stopped (room left)");
+                    } catch (Exception e) {
+                        appLogError("KeepAliveService stop failed: " + e.getMessage());
+                    }
+                });
+            }
+
+            @JavascriptInterface
+            public String getLogs() {
+                StringBuilder sb = new StringBuilder();
+                sb.append("=== AniSync Logs ===").append("\n");
+                sb.append("Device: ").append(Build.MANUFACTURER).append(" ").append(Build.MODEL).append("\n");
+                sb.append("Android: ").append(Build.VERSION.RELEASE).append(" (SDK ").append(Build.VERSION.SDK_INT).append("\n");
+                sb.append("Xiaomi: ").append(isXiaomiDevice).append("\n");
+                sb.append("===================").append("\n\n");
+                synchronized (logBuffer) {
+                    for (String line : logBuffer) {
+                        sb.append(line).append("\n");
+                    }
+                }
+                return sb.toString();
+            }
+
+            @JavascriptInterface
+            public void copyLogs() {
+                String logs = getLogs();
+                runOnUiThread(() -> {
+                    ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+                    ClipData clip = ClipData.newPlainText("AniSync Logs", logs);
+                    clipboard.setPrimaryClip(clip);
+                    appLog("Logs copied to clipboard (" + logBuffer.size() + " entries)");
+                });
+            }
+
+            // ── Video Event Bridge ──
+            // _player.js calls pushEvent() when video play/pause/seek happens.
+            // React eventPoll calls getEvent() to read and consume the event.
+            private volatile String pendingEvent = null;
+
+            @JavascriptInterface
+            public void pushEvent(String eventJson) {
+                pendingEvent = eventJson;
+            }
+
+            @JavascriptInterface
+            public String getEvent() {
+                String ev = pendingEvent;
+                pendingEvent = null;
+                return ev;
+            }
+
     }
 }
