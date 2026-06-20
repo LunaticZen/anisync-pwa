@@ -3,6 +3,8 @@
 // ═══════════════════════════════════════════════════════════════
 
 // ── Device Detection ──
+import { useUIStore } from '../../stores';
+
 export const isElectron = !!(window as any).anisync;
 // Detect mobile: user agent OR AniSyncBridge presence (Samsung WebView may not match regex)
 export const isMobile = (
@@ -203,6 +205,8 @@ export interface ResolvedTheme {
 }
 
 export function getTheme(id: string): ResolvedTheme {
+  const isGlobalLight = useUIStore.getState().theme === 'light';
+
   // Check image themes first
   const imgTheme = IMAGE_THEMES.find(t => t.id === id);
   if (imgTheme) {
@@ -226,6 +230,22 @@ export function getTheme(id: string): ResolvedTheme {
 
   // Fallback to color themes
   const colorTheme = COLOR_THEMES.find(t => t.id === id) || COLOR_THEMES[0];
+  
+  if (isGlobalLight) {
+    return {
+      id: colorTheme.id,
+      name: colorTheme.name,
+      bg: colorTheme.lightBg,
+      text: colorTheme.lightText,
+      accent: colorTheme.accent,
+      isLight: true,
+      isImage: false,
+      glassColor: 'rgba(255,255,255,0.55)',
+      textColor: colorTheme.lightText,
+      menuBg: `${colorTheme.lightBg}cc`,
+    };
+  }
+
   return {
     id: colorTheme.id,
     name: colorTheme.name,
