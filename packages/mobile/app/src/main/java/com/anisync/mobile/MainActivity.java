@@ -37,15 +37,23 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.webkit.WebSettingsCompat;
 import androidx.webkit.WebViewFeature;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -103,28 +111,69 @@ public class MainActivity extends AppCompatActivity {
         Log.e(TAG, msg);
     }
 
-    // ── Ad domain set: used for suffix-based matching ──
-    private static final Set<String> AD_DOMAIN_SUFFIXES = new HashSet<>(Arrays.asList(
-            "doubleclick.net", "googlesyndication.com", "googleadservices.com",
-            "google-analytics.com", "adservice.google.com",
-            "facebook.net", "fbcdn.net",
-            "amazon-adsystem.com", "ads-twitter.com",
-            "adnxs.com", "adsrvr.org", "adcolony.com",
-            "moatads.com", "serving-sys.com",
-            "popads.net", "popcash.net", "propellerads.com",
-            "exoclick.com", "juicyads.com",
-            "revcontent.com", "taboola.com", "outbrain.com",
-            "mgid.com", "content-ad.net",
-            "betweendigital.com", "bidvertiser.com",
-            "pushground.com", "trafficstars.com", "clickadu.com",
-            "hilltopads.net", "a-ads.com", "adsterra.com",
-            "vidmoly.me", "vidmoly.to",
-            "turkanime.co", "hdvid.fun", "streamtape.com",
-            "mixdrop.co", "dooood.com", "upstream.to",
-            "apexsec.co", "cpmstar.com", "ad-maven.com",
-            "admaven.com", "monetag.com", "onclicka.com",
-            "onclicksuper.com", "highcpmgate.com",
-            "disqus.com", "yandex.ru", "mc.yandex.ru"));
+    // ── Dynamic Script Delivery ──────────────────────────────────
+    // Ad domains and inject scripts are fetched from backend.
+    // NO hardcoded bypass code in APK — clean for Google Play.
+    private final Set<String> dynamicAdDomains = new HashSet<>();
+    private final CopyOnWriteArrayList<String> dynamicScripts = new CopyOnWriteArrayList<>();
+    private volatile boolean scriptsLoaded = false;
+
+    private void fetchSiteScripts() {
+        new Thread(() -> {
+            try {
+                URL url = new URL(SERVER_URL + "/api/site-scripts");
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setRequestProperty("Content-Type", "application/json");
+                conn.setDoOutput(true);
+                conn.setConnectTimeout(8000);
+                conn.setReadTimeout(8000);
+
+                String body = "{\"url\":\"init\"}";
+                OutputStream os = conn.getOutputStream();
+                os.write(body.getBytes("UTF-8"));
+                os.close();
+
+                if (conn.getResponseCode() == 200) {
+                    BufferedReader reader = new BufferedReader(
+                            new InputStreamReader(conn.getInputStream(), "UTF-8"));
+                    StringBuilder sb = new StringBuilder();
+                    String line;
+                    while ((line = reader.readLine()) != null) sb.append(line);
+                    reader.close();
+
+                    JSONObject json = new JSONObject(sb.toString());
+
+                    // Parse ad domains
+                    JSONArray domains = json.optJSONArray("adDomains");
+                    if (domains != null) {
+                        for (int i = 0; i < domains.length(); i++) {
+                            dynamicAdDomains.add(domains.getString(i));
+                        }
+                    }
+
+                    // Parse scripts
+                    JSONArray scripts = json.optJSONArray("scripts");
+                    if (scripts != null) {
+                        for (int i = 0; i < scripts.length(); i++) {
+                            JSONObject s = scripts.getJSONObject(i);
+                            String code = s.optString("code", "");
+                            if (!code.isEmpty()) dynamicScripts.add(code);
+                        }
+                    }
+
+                    scriptsLoaded = true;
+                    appLog("Site scripts loaded: " + dynamicScripts.size() + " scripts, "
+                            + dynamicAdDomains.size() + " ad domains");
+                } else {
+                    appLogError("Script fetch failed: HTTP " + conn.getResponseCode());
+                }
+                conn.disconnect();
+            } catch (Exception e) {
+                appLogError("Script fetch error: " + e.getMessage());
+            }
+        }).start();
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -134,6 +183,9 @@ public class MainActivity extends AppCompatActivity {
 
         // Detect Xiaomi / MIUI devices
         isXiaomiDevice = detectXiaomi();
+
+        // Fetch site scripts from backend (ad domains + inject scripts)
+        fetchSiteScripts();
         appLog("Device: " + Build.MANUFACTURER + " " + Build.MODEL + " | Xiaomi: " + isXiaomiDevice);
 
         // PERF: KeepAliveService removed from onCreate — now started/stopped via JS Bridge
@@ -425,41 +477,13 @@ public class MainActivity extends AppCompatActivity {
                 // Track page loads for periodic memory cleanup
                 animePageLoadCount++;
 
-                // PERF: All JS injections consolidated into single evaluateJavascript call
-                // to reduce IPC overhead. Guard flag prevents duplicate injection.
-                // MutationObserver REMOVED — CSS !important handles all video elements.
-                String allInjects = "(function(){" +
-                        "if(window.__anisyncInjected)return;" +
-                        "window.__anisyncInjected=true;" +
-                        // Ad-blocker CSS
-                        "var s=document.createElement('style');" +
-                        "s.id='anisync-adblock';" +
-                        "s.textContent='" +
-                        "[class*=\\\"ad-\\\"],[class*=\\\"ads-\\\"],[id*=\\\"ad-\\\"],[id*=\\\"ads-\\\"]," +
-                        "[class*=\\\"banner\\\"],[class*=\\\"popup\\\"],[class*=\\\"reklam\\\"],[id*=\\\"reklam\\\"]," +
-                        ".adsbygoogle,ins.adsbygoogle,[class*=\\\"AdContainer\\\"],[class*=\\\"ad_wrapper\\\"]," +
-                        "div[data-ad],div[data-ads],iframe[src*=\\\"doubleclick\\\"],iframe[src*=\\\"googlesyndication\\\"]," +
-                        "[class*=\\\"overlay\\\"]:not(video):not([class*=\\\"player\\\"])," +
-                        "[class*=\\\"modal\\\"]:not([class*=\\\"player\\\"])," +
-                        "a[target=\\\"_blank\\\"][rel*=\\\"noopener\\\"]" +
-                        "{display:none!important;height:0!important;overflow:hidden!important;}';" +
-                        "document.head.appendChild(s);" +
-                        // Popup blocker
-                        "window.open=function(){return null;};" +
-                        "document.addEventListener('click',function(e){" +
-                        "  var t=e.target;" +
-                        "  if(t.tagName==='A'&&t.target==='_blank'&&t.href&&" +
-                        "    (t.href.indexOf('ad')>-1||t.href.indexOf('click')>-1||t.href.indexOf('track')>-1)){" +
-                        "    e.preventDefault();e.stopPropagation();" +
-                        "  }" +
-                        "},true);" +
-                        // Video letterbox CSS (no MutationObserver — CSS !important is sufficient)
-                        "var s2=document.createElement('style');" +
-                        "s2.id='anisync-letterbox';" +
-                        "s2.textContent='video{object-fit:contain!important;max-width:100%!important;max-height:100%!important;}';" +
-                        "document.head.appendChild(s2);" +
-                        "})();";
-                view.evaluateJavascript(allInjects, null);
+                // Inject dynamic scripts fetched from backend
+                // NO hardcoded bypass code — scripts come from server
+                if (scriptsLoaded && !dynamicScripts.isEmpty()) {
+                    for (String script : dynamicScripts) {
+                        view.evaluateJavascript(script, null);
+                    }
+                }
 
                 // Debounced redraw — cancel previous pending redraws first
                 mainHandler.removeCallbacks(pendingRedraw);
@@ -818,13 +842,15 @@ public class MainActivity extends AppCompatActivity {
     private boolean isAdDomain(String host) {
         if (host == null || host.isEmpty())
             return false;
+        // Dynamic ad domain check — domains fetched from backend
+        if (dynamicAdDomains.isEmpty()) return false;
         // Quick prefix checks for common ad patterns
         if (host.startsWith("ads.") || host.startsWith("ad.") || host.startsWith("tracking."))
             return true;
         // Suffix matching: check "host", then "parent.host", etc.
         String domain = host;
         while (domain.contains(".")) {
-            if (AD_DOMAIN_SUFFIXES.contains(domain))
+            if (dynamicAdDomains.contains(domain))
                 return true;
             int dot = domain.indexOf('.');
             domain = domain.substring(dot + 1);

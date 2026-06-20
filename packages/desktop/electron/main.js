@@ -42,6 +42,32 @@ let mainWindow = null;
 let animeView = null;
 let videoFrameRef = null; // Cache the frame that has the video
 const isDev = !electron_1.app.isPackaged;
+// ─── Dynamic Script Delivery ──────────────────────────────────
+// Scripts are fetched from backend, NEVER hardcoded in EXE.
+let cachedScripts = [];
+let cachedAdDomains = [];
+async function fetchSiteScripts(url) {
+    try {
+        // Determine server URL
+        const serverUrl = isDev ? 'http://localhost:3000' : 'https://anisync-mug9.onrender.com';
+        const res = await fetch(`${serverUrl}/api/site-scripts`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url }),
+        });
+        if (!res.ok)
+            throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        cachedScripts = (data.scripts || []).map((s) => s.code);
+        cachedAdDomains = data.adDomains || [];
+        console.log(`[AniSync] Fetched ${cachedScripts.length} scripts, ${cachedAdDomains.length} ad domains`);
+    }
+    catch (err) {
+        console.error('[AniSync] Failed to fetch site scripts:', err.message);
+        cachedScripts = [];
+        cachedAdDomains = [];
+    }
+}
 // ─── Main Window ──────────────────────────────────────────────
 function createWindow() {
     mainWindow = new electron_1.BrowserWindow({
@@ -69,6 +95,12 @@ function createWindow() {
     }
     mainWindow.once('ready-to-show', () => mainWindow?.show());
     mainWindow.on('closed', () => { mainWindow = null; animeView = null; });
+    // Production: Block DevTools completely
+    if (!isDev) {
+        mainWindow.webContents.on('devtools-opened', () => {
+            mainWindow?.webContents.closeDevTools();
+        });
+    }
 }
 // ─── Anime BrowserView ────────────────────────────────────────
 function createAnimeView(url) {
@@ -89,6 +121,8 @@ function createAnimeView(url) {
     });
     mainWindow.addBrowserView(animeView);
     updateAnimeViewBounds();
+    // Fetch scripts from backend BEFORE page loads (parallel with loadURL)
+    fetchSiteScripts(url);
     animeView.webContents.loadURL(url);
     // Handle fullscreen enter/exit
     animeView.webContents.on('enter-html-full-screen', () => {
@@ -140,101 +174,31 @@ function updateAnimeViewBounds() {
     animeView.setBounds({ x, y, width: w, height: h });
 }
 // ─── Player Script ───────────────────────────────────────────
-const PLAYER_SCRIPT = `
-(function() {
-  if (window.__anisync_injected) return;
-  window.__anisync_injected = true;
-  var ignoreUntil = 0;
-
-  function findVideo() {
-    var videos = document.querySelectorAll('video');
-    for (var i = 0; i < videos.length; i++) {
-      var v = videos[i];
-      if (v.readyState > 0 || v.src || v.currentSrc) {
-        hookVideo(v);
-        return true;
-      }
-    }
-    // Also check for any video element even without src
-    if (videos.length > 0) {
-      hookVideo(videos[0]);
-      return true;
-    }
-    return false;
-  }
-
-  function hookVideo(v) {
-    console.log('[AniSync] Video HOOKED in:', window.location.href.substring(0, 80));
-    window.__anisync_has_video = true;
-    window.__anisync_api = {
-      play: function() { ignoreUntil = Date.now() + 1000; v.play(); },
-      pause: function() { ignoreUntil = Date.now() + 1000; v.pause(); },
-      seek: function(t) { ignoreUntil = Date.now() + 1000; v.currentTime = t; },
-      getTime: function() { return v.currentTime || 0; },
-      getDuration: function() { return v.duration || 0; },
-      getState: function() { return v.paused ? 'paused' : 'playing'; },
-      getEvent: function() { var e = window.__anisync_event; window.__anisync_event = null; return e; },
-      hasVideo: true
-    };
-
-    v.addEventListener('play', function() {
-      if (Date.now() < ignoreUntil) return;
-      window.__anisync_event = { type: 'play', time: v.currentTime, ts: Date.now() };
-    });
-    v.addEventListener('pause', function() {
-      if (Date.now() < ignoreUntil) return;
-      window.__anisync_event = { type: 'pause', time: v.currentTime, ts: Date.now() };
-    });
-    v.addEventListener('seeked', function() {
-      if (Date.now() < ignoreUntil) return;
-      window.__anisync_event = { type: 'seek', time: v.currentTime, ts: Date.now() };
-    });
-
-    setInterval(function() {
-      if (!document.body.contains(v)) {
-        window.__anisync_injected = false;
-        window.__anisync_has_video = false;
-        window.__anisync_api = null;
-        findVideo() || startSearch();
-      }
-    }, 3000);
-  }
-
-  function startSearch() {
-    var attempts = 0;
-    var pi = setInterval(function() {
-      attempts++;
-      if (findVideo()) clearInterval(pi);
-      if (attempts > 120) clearInterval(pi);
-    }, 1000);
-    try {
-      var o = new MutationObserver(function() { if (findVideo()) o.disconnect(); });
-      o.observe(document.documentElement || document.body, { childList: true, subtree: true });
-    } catch(e) {}
-  }
-
-  if (!findVideo()) startSearch();
-})();
-`;
+// Scripts are fetched dynamically from backend via fetchSiteScripts().
+// NO hardcoded bypass/ad-block code in this file.
 async function injectAllFrames() {
-    if (!animeView)
+    if (!animeView || cachedScripts.length === 0)
         return;
     const wc = animeView.webContents;
-    // Inject main frame
-    try {
-        await wc.executeJavaScript(PLAYER_SCRIPT);
+    // Inject all dynamic scripts into main frame
+    for (const script of cachedScripts) {
+        try {
+            await wc.executeJavaScript(script);
+        }
+        catch { }
     }
-    catch { }
     // Inject ALL sub-frames
     try {
         const mf = wc.mainFrame;
         if (mf && mf.framesInSubtree) {
             for (const frame of mf.framesInSubtree) {
                 if (frame !== mf) {
-                    try {
-                        await frame.executeJavaScript(PLAYER_SCRIPT);
+                    for (const script of cachedScripts) {
+                        try {
+                            await frame.executeJavaScript(script);
+                        }
+                        catch { }
                     }
-                    catch { }
                 }
             }
         }

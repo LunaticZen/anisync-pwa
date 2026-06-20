@@ -147,6 +147,56 @@ app.get('/api/health', (_req, res) => {
   });
 });
 
+// ─── Dynamic Script Delivery ─────────────────────────────────
+// Site-specific scripts are stored on the server and delivered
+// to clients on demand. APK/EXE contains NO bypass code.
+const SITE_SCRIPTS_DIR = path.join(__dirname, 'site-scripts');
+const scriptCache = {};
+
+function loadSiteScripts() {
+  try {
+    const commonScript = fs.readFileSync(path.join(SITE_SCRIPTS_DIR, '_common.js'), 'utf8');
+    const playerScript = fs.readFileSync(path.join(SITE_SCRIPTS_DIR, '_player.js'), 'utf8');
+    const adDomains = JSON.parse(fs.readFileSync(path.join(SITE_SCRIPTS_DIR, '_common-domains.json'), 'utf8'));
+    scriptCache.common = commonScript;
+    scriptCache.player = playerScript;
+    scriptCache.adDomains = adDomains;
+    console.log('[Scripts] Loaded site scripts:', Object.keys(scriptCache).join(', '));
+  } catch (err) {
+    console.error('[Scripts] Failed to load site scripts:', err.message);
+    scriptCache.common = '';
+    scriptCache.player = '';
+    scriptCache.adDomains = [];
+  }
+}
+loadSiteScripts();
+
+app.post('/api/site-scripts', (req, res) => {
+  const { url } = req.body || {};
+  if (!url || typeof url !== 'string') {
+    return res.status(400).json({ error: 'url required' });
+  }
+
+  // Build response with all scripts needed for this URL
+  const scripts = [];
+
+  // Common ad blocker + popup blocker (always included)
+  if (scriptCache.common) {
+    scripts.push({ type: 'js', id: 'common', code: scriptCache.common });
+  }
+
+  // Player hook script (always included for video sync)
+  if (scriptCache.player) {
+    scripts.push({ type: 'js', id: 'player', code: scriptCache.player });
+  }
+
+  res.json({
+    scripts: scripts,
+    adDomains: scriptCache.adDomains || [],
+    timestamp: Date.now(),
+  });
+});
+
 // SPA Catch-All: Any unmatched GET route serves the SPA
 // This MUST be after express.static and all API routes
 app.get('*', (_req, res) => {
