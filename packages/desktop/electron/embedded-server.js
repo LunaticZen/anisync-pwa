@@ -3,6 +3,39 @@
 // Embedded Server — Runs inside Electron main process
 // Express + Socket.IO + In-Memory rooms, no external DB needed
 // ═══════════════════════════════════════════════════════════════
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -12,6 +45,7 @@ const express_1 = __importDefault(require("express"));
 const http_1 = require("http");
 const socket_io_1 = require("socket.io");
 const cors_1 = __importDefault(require("cors"));
+const path = __importStar(require("path"));
 const rooms = new Map();
 const codeToId = new Map();
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -58,6 +92,33 @@ function startServer(port = 3000) {
         app.use((0, cors_1.default)({ origin: '*' }));
         app.use(express_1.default.json());
         app.get('/api/health', (_req, res) => { res.json({ status: 'ok' }); });
+        // Dynamic script delivery — same as render-server
+        app.post('/api/site-scripts', (_req, res) => {
+            const fs = require('fs');
+            const scriptsDir = path.join(__dirname, '..', '..', 'render-server', 'site-scripts');
+            try {
+                const scripts = [];
+                const commonPath = path.join(scriptsDir, '_common.js');
+                const playerPath = path.join(scriptsDir, '_player.js');
+                const domainsPath = path.join(scriptsDir, '_common-domains.json');
+                if (fs.existsSync(commonPath)) {
+                    scripts.push({ type: 'js', id: 'common', code: fs.readFileSync(commonPath, 'utf8') });
+                }
+                if (fs.existsSync(playerPath)) {
+                    scripts.push({ type: 'js', id: 'player', code: fs.readFileSync(playerPath, 'utf8') });
+                }
+                let adDomains = [];
+                if (fs.existsSync(domainsPath)) {
+                    adDomains = JSON.parse(fs.readFileSync(domainsPath, 'utf8'));
+                }
+                console.log(`[Scripts] Serving ${scripts.length} scripts, ${adDomains.length} ad domains`);
+                res.json({ scripts, adDomains, timestamp: Date.now() });
+            }
+            catch (err) {
+                console.error('[Scripts] Error loading scripts:', err.message);
+                res.json({ scripts: [], adDomains: [], timestamp: Date.now() });
+            }
+        });
         const httpServer = (0, http_1.createServer)(app);
         const io = new socket_io_1.Server(httpServer, {
             cors: { origin: '*', credentials: true },
@@ -244,7 +305,6 @@ function startServer(port = 3000) {
             }
         });
         // Serve the web UI for mobile devices
-        const path = require('path');
         const distPath = path.join(__dirname, '..', 'dist');
         app.use('/app', express_1.default.static(distPath));
         app.get('/app/*', (_req, res) => { res.sendFile(path.join(distPath, 'index.html')); });
