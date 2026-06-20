@@ -62,13 +62,7 @@ for (const file of electronFiles) {
     console.log(`  ⚠ Skipping ${file} (not found)`);
     continue;
   }
-  console.log(`  Obfuscating ${file}...`);
-  const code = fs.readFileSync(filePath, 'utf8');
-  const result = JavaScriptObfuscator.obfuscate(code, obfuscatorOptions);
-  fs.writeFileSync(filePath, result.getObfuscatedCode());
-  const originalSize = Buffer.byteLength(code, 'utf8');
-  const obfuscatedSize = Buffer.byteLength(result.getObfuscatedCode(), 'utf8');
-  console.log(`  ✓ ${file}: ${Math.round(originalSize/1024)}KB → ${Math.round(obfuscatedSize/1024)}KB`);
+  console.log(`  Skipping obfuscation for ${file} (Using Bytecode only to prevent UI breakage)...`);
 }
 
 // ── Step 4: V8 Bytecode Compilation ──
@@ -83,8 +77,11 @@ try {
     
     console.log(`  Compiling ${file} → ${file.replace('.js', '.jsc')}...`);
     
-    // Compile to bytecode
-    bytenode.compileFile(filePath, jscPath);
+    // Compile to bytecode using Electron's Node version to prevent V8 mismatch crash
+    require('child_process').execSync(`npx electron -e "require('bytenode').compileFile('${filePath.replace(/\\/g, '/')}'.replace(/\\\\/g, '/'), '${jscPath.replace(/\\/g, '/')}'.replace(/\\\\/g, '/'))"`, { 
+      env: Object.assign({}, process.env, { ELECTRON_RUN_AS_NODE: '1' }),
+      stdio: 'inherit'
+    });
     
     // Replace original JS with bytecode loader
     const loader = `'use strict';require('bytenode');require('./${file.replace('.js', '.jsc')}');`;

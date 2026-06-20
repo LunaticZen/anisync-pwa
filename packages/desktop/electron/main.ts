@@ -18,7 +18,7 @@ let cachedAdDomains: string[] = [];
 
 async function fetchSiteScripts(url: string): Promise<void> {
   try {
-    // Determine server URL
+    // Try fetching from cloud server first
     const serverUrl = isDev ? 'http://localhost:3000' : 'https://anisync-mug9.onrender.com';
     const res = await fetch(`${serverUrl}/api/site-scripts`, {
       method: 'POST',
@@ -31,9 +31,29 @@ async function fetchSiteScripts(url: string): Promise<void> {
     cachedAdDomains = data.adDomains || [];
     console.log(`[AniSync] Fetched ${cachedScripts.length} scripts, ${cachedAdDomains.length} ad domains`);
   } catch (err: any) {
-    console.error('[AniSync] Failed to fetch site scripts:', err.message);
-    cachedScripts = [];
-    cachedAdDomains = [];
+    console.warn('[AniSync] Backend fetch failed, trying local fallback:', err.message);
+    // Fallback: read script files directly from render-server/site-scripts/
+    try {
+      const fs = require('fs');
+      const scriptsDir = path.join(__dirname, '..', '..', 'render-server', 'site-scripts');
+      const commonPath = path.join(scriptsDir, '_common.js');
+      const playerPath = path.join(scriptsDir, '_player.js');
+      const domainsPath = path.join(scriptsDir, '_common-domains.json');
+      
+      const scripts: string[] = [];
+      if (fs.existsSync(commonPath)) scripts.push(fs.readFileSync(commonPath, 'utf8'));
+      if (fs.existsSync(playerPath)) scripts.push(fs.readFileSync(playerPath, 'utf8'));
+      cachedScripts = scripts;
+      
+      if (fs.existsSync(domainsPath)) {
+        cachedAdDomains = JSON.parse(fs.readFileSync(domainsPath, 'utf8'));
+      }
+      console.log(`[AniSync] Loaded ${cachedScripts.length} scripts from local files`);
+    } catch (localErr: any) {
+      console.error('[AniSync] Local fallback also failed:', localErr.message);
+      cachedScripts = [];
+      cachedAdDomains = [];
+    }
   }
 }
 
@@ -77,7 +97,7 @@ function createWindow() {
 
 // ─── Anime BrowserView ────────────────────────────────────────
 
-function createAnimeView(url: string) {
+async function createAnimeView(url: string) {
   if (!mainWindow) return;
   if (animeView) {
     mainWindow.removeBrowserView(animeView);
@@ -96,8 +116,8 @@ function createAnimeView(url: string) {
   mainWindow.addBrowserView(animeView);
   updateAnimeViewBounds();
 
-  // Fetch scripts from backend BEFORE page loads (parallel with loadURL)
-  fetchSiteScripts(url);
+  // Fetch scripts from backend BEFORE loading the page
+  await fetchSiteScripts(url);
 
   animeView.webContents.loadURL(url);
 
@@ -126,6 +146,7 @@ function createAnimeView(url: string) {
     setTimeout(() => injectAllFrames(), 300);
     setTimeout(() => injectAllFrames(), 1500);
     setTimeout(() => injectAllFrames(), 4000);
+    setTimeout(() => injectAllFrames(), 8000); // Extra late retry for slow pages
   };
   animeView.webContents.on('did-finish-load', doInject);
   animeView.webContents.on('did-frame-finish-load', doInject);
@@ -159,7 +180,20 @@ function updateAnimeViewBounds() {
 // NO hardcoded bypass/ad-block code in this file.
 
 async function injectAllFrames() {
-  if (!animeView || cachedScripts.length === 0) return;
+  if (!animeView) return;
+
+  // If scripts not yet loaded, wait up to 5s with retries
+  if (cachedScripts.length === 0) {
+    for (let i = 0; i < 10; i++) {
+      await new Promise(r => setTimeout(r, 500));
+      if (cachedScripts.length > 0) break;
+    }
+    if (cachedScripts.length === 0) {
+      console.log('[AniSync] No scripts available, skipping injection');
+      return;
+    }
+  }
+
   const wc = animeView.webContents;
 
   // Inject all dynamic scripts into main frame
