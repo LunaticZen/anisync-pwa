@@ -482,12 +482,6 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
   const uiTheme = useUIStore(s => s.theme);
   const roomTheme = useRoomStore(s => s.theme);
   const activeTheme = getTheme(roomTheme);
-  
-  const isGlobalLight = uiTheme === 'light';
-  const useLightOverride = isGlobalLight && !activeTheme.isImage && !activeTheme.isVideo;
-  const effectiveIsLight = activeTheme.isLight || useLightOverride;
-  const effectiveMenuBg = activeTheme.isImage ? activeTheme.menuBg : (useLightOverride ? '#ffffff' : activeTheme.menuBg);
-  const effectiveTextColor = useLightOverride ? '#0f172a' : activeTheme.textColor;
 
   // ── Overlay Menu State ──
   const { overlayState, openMenu, closeMenu } = useOverlayMenu();
@@ -695,7 +689,7 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" /></svg>
           <span style={{ fontWeight: 700, fontSize: 14 }}>Sohbet</span>
         </div>
-        <span style={{ fontSize: 11, color: effectiveIsLight ? '#64748b' : '#64748b' }}>{messages.length} mesaj</span>
+        <span style={{ fontSize: 11, color: activeTheme.isLight ? '#64748b' : '#64748b' }}>{messages.length} mesaj</span>
       </div>
 
       {/* Messages — compact when keyboard open */}
@@ -708,24 +702,24 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
         /* padding and gap removed from transition */
       }}>
         {messages.length === 0 && (
-          <div style={{ textAlign: 'center', padding: 32, color: effectiveIsLight ? '#94a3b8' : '#475569', fontSize: 13 }}>Henüz mesaj yok</div>
+          <div style={{ textAlign: 'center', padding: 32, color: activeTheme.isLight ? '#94a3b8' : '#475569', fontSize: 13 }}>Henüz mesaj yok</div>
         )}
         {messages.map((msg, i) => {
           if (msg.type === 'system') {
             return (
-              <div key={msg.id} style={{ textAlign: 'center', color: effectiveIsLight ? '#64748b' : '#475569', fontSize: 11, padding: isKeyboardOpen ? '2px 0' : '6px 0' }}>
+              <div key={msg.id} style={{ textAlign: 'center', color: activeTheme.isLight ? '#64748b' : '#475569', fontSize: 11, padding: isKeyboardOpen ? '2px 0' : '6px 0' }}>
                 {msg.text}
               </div>
             );
           }
 
-          return <SwipableMessage key={msg.id} msg={msg} i={i} username={username} members={members} messages={messages} activeTypers={activeTypers} isKeyboardOpen={isKeyboardOpen} activeTheme={activeTheme} effectiveIsLight={effectiveIsLight} onReply={setReplyToMsg} onOpenOverlay={handleOpenOverlay} />;
+          return <SwipableMessage key={msg.id} msg={msg} i={i} username={username} members={members} messages={messages} activeTypers={activeTypers} isKeyboardOpen={isKeyboardOpen} activeTheme={activeTheme} effectiveIsLight={activeTheme.isLight} onReply={setReplyToMsg} onOpenOverlay={handleOpenOverlay} />;
         })}
 
         {/* Typing indicator */}
         {activeTypers.length > 0 && activeTypers.map((t) => {
-          const bubbleBg = effectiveIsLight ? '#f1f5f9' : (activeTheme.isImage ? 'rgba(0,0,0,0.5)' : '#334155');
-          const dotColor = effectiveIsLight ? '#8E8E93' : 'rgba(255,255,255,0.5)';
+          const bubbleBg = activeTheme.isLight ? '#f1f5f9' : (activeTheme.isImage ? 'rgba(0,0,0,0.5)' : '#334155');
+          const dotColor = activeTheme.isLight ? '#8E8E93' : 'rgba(255,255,255,0.5)';
           const avaSize = isKeyboardOpen ? 20 : 28;
           
           const lastMsg = messages.length > 0 ? messages[messages.length - 1] : null;
@@ -771,7 +765,7 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
                   minHeight: isKeyboardOpen ? 28 : 34,
                   borderRadius: typingRadius,
                   boxShadow: activeTheme.isImage ? '0 2px 8px rgba(0,0,0,0.2)' : 'none',
-                  border: `1px solid ${effectiveIsLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)'}`,
+                  border: `1px solid ${activeTheme.isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)'}`,
                 }}>
                   <div className="typing-dot" style={{ background: dotColor }} />
                   <div className="typing-dot" style={{ background: dotColor }} />
@@ -792,16 +786,16 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           padding: '10px 14px',
-          background: effectiveMenuBg,
+          background: activeTheme.menuBg,
           backdropFilter: 'none',
-          borderTop: `1px solid ${effectiveIsLight ? 'rgba(0,0,0,0.08)' : (activeTheme.isImage ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.06)')}`,
+          borderTop: `1px solid ${activeTheme.isLight ? 'rgba(0,0,0,0.08)' : (activeTheme.isImage ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.06)')}`,
           position: 'relative',
           zIndex: 1,
-          color: effectiveTextColor, flexShrink: 0,
+          color: activeTheme.textColor, flexShrink: 0,
           animation: 'slideUpSmooth 0.25s ease-out forwards',
         }}>
           <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1, borderLeft: `3px solid ${activeTheme.accent}`, paddingLeft: 8 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: effectiveTextColor, marginBottom: 2 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: activeTheme.textColor, marginBottom: 2 }}>
               {replyToMsg.displayName ?? replyToMsg.username} adlı kişiye yanıt veriyorsun
             </span>
             <span style={{ fontSize: 12, opacity: 0.7, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -810,7 +804,7 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
           </div>
           <button
             onClick={() => setReplyToMsg(null)}
-            style={{ background: 'none', border: 'none', color: effectiveTextColor, opacity: 0.6, cursor: 'pointer', padding: 4 }}
+            style={{ background: 'none', border: 'none', color: activeTheme.textColor, opacity: 0.6, cursor: 'pointer', padding: 4 }}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
           </button>
@@ -824,8 +818,8 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
         display: 'flex', alignItems: 'center',
         padding: isKeyboardOpen ? '4px 10px' : '8px 16px',
         paddingBottom: isKeyboardOpen ? '4px' : 'max(8px, env(safe-area-inset-bottom, 8px))',
-        borderTop: replyToMsg ? 'none' : `1px solid ${effectiveIsLight ? 'rgba(0,0,0,0.08)' : (activeTheme.isImage ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.06)')}`,
-        background: effectiveMenuBg, flexShrink: 0,
+        borderTop: replyToMsg ? 'none' : `1px solid ${activeTheme.isLight ? 'rgba(0,0,0,0.08)' : (activeTheme.isImage ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.06)')}`,
+        background: activeTheme.menuBg, flexShrink: 0,
         backdropFilter: 'none',
         transition: 'background 0.4s ease', /* padding removed from transition */
         position: 'relative', zIndex: 50
@@ -836,7 +830,7 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
           boxSizing: 'border-box',
           display: 'flex',
           alignItems: 'center',
-          background: effectiveIsLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.1)',
+          background: activeTheme.isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.1)',
           borderRadius: 9999,
           padding: '4px',
           gap: 8,
@@ -860,7 +854,7 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
               style={{ 
                 background: 'none', border: 'none', padding: 0, 
                 display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                color: effectiveIsLight ? '#1e293b' : '#cbd5e1', 
+                color: activeTheme.textColor, 
                 cursor: 'pointer', flexShrink: 0, marginLeft: 4, marginRight: 2 
               }}
             >
@@ -881,7 +875,7 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
                   }
                 }}
                 onClose={() => setShowEmojiPicker(false)}
-                isLight={effectiveIsLight}
+                isLight={activeTheme.isLight}
                 isImage={activeTheme.isImage}
               />
             )}
@@ -892,7 +886,7 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
             {!text && (
               <div style={{
                 position: 'absolute', left: 6, top: '50%', transform: 'translateY(-50%)',
-                color: effectiveIsLight ? '#64748b' : '#94a3b8',
+                color: activeTheme.textColor, opacity: 0.6,
                 pointerEvents: 'none', fontSize: 15, fontFamily: 'inherit'
               }}>
                 Mesaj...
@@ -921,7 +915,7 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
               style={{
                 flex: 1, minHeight: 34, padding: '7px 6px',
                 background: 'transparent', border: 'none',
-                color: effectiveIsLight ? '#1e293b' : '#e2e8f0',
+                color: activeTheme.textColor,
                 fontSize: 15, fontFamily: 'inherit', outline: 'none',
                 boxSizing: 'border-box', overflowY: 'auto', maxHeight: 120,
                 wordBreak: 'break-word', whiteSpace: 'pre-wrap'
@@ -950,7 +944,7 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
               </svg>
             </button>
           ) : (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingRight: 8, color: effectiveIsLight ? '#1e293b' : '#cbd5e1', flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingRight: 8, color: activeTheme.textColor, opacity: 0.8, flexShrink: 0 }}>
               {/* Gallery */}
               <button style={{ background: 'none', border: 'none', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'inherit', cursor: 'pointer' }}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -991,8 +985,8 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
             <div style={{
               background: overlayMsg.userId === username
                 ? activeTheme.accent
-                : (effectiveIsLight ? '#f1f5f9' : (activeTheme.isImage ? 'rgba(0,0,0,0.5)' : '#334155')),
-              color: overlayMsg.userId === username ? 'white' : (effectiveIsLight ? '#0f172a' : '#f8fafc'),
+                : (activeTheme.isLight ? '#f1f5f9' : (activeTheme.isImage ? 'rgba(0,0,0,0.5)' : '#334155')),
+              color: overlayMsg.userId === username ? 'white' : activeTheme.textColor,
               padding: '8px 12px',
               borderRadius: 18,
               fontSize: 13,
