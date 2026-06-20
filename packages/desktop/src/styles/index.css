@@ -885,7 +885,7 @@ body {
 }
 
 .modal {
-  background: var(--bg-glass);
+  background: var(--bg-card);
   /* backdrop-filter removed */
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
