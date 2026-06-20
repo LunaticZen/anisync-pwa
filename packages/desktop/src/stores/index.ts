@@ -250,14 +250,11 @@ export interface Toast {
 let toastCounter = 0;
 
 export const useUIStore = create<UIState>((set, get) => {
-  const initialTheme = (() => {
-    try {
-      const saved = localStorage.getItem('anisync_theme');
-      if (saved === 'light' || saved === 'dark') return saved as 'light' | 'dark';
-    } catch { }
-    return 'light';
-  })();
+  const initialTheme = 'light';
   document.documentElement.setAttribute('data-theme', initialTheme);
+  try {
+    localStorage.setItem('anisync_theme', initialTheme);
+  } catch {}
 
   return {
   currentView: 'home',

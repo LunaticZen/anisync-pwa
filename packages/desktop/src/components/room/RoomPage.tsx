@@ -15,6 +15,7 @@ import { RoomModals, MemberList } from './RoomModals';
 
 export default function RoomPage() {
   const { currentRoom, members, pendingJoinRequests, theme: roomTheme } = useRoomStore();
+  const globalTheme = useUIStore(s => s.theme);
   const activeTheme = getTheme(roomTheme);
   const { currentUrl } = useSyncStore();
   const [animeUrl, setAnimeUrl] = useState('');
@@ -774,13 +775,14 @@ export default function RoomPage() {
     );
   }
 
-  // ── Desktop (includes mobile pre-anime) ──
+  // ─── Desktop (includes mobile pre-anime) ───
+  const isGlobalLight = globalTheme === 'light';
   const desktopBg = (activeTheme.isImage || activeTheme.isVideo)
     ? activeTheme.glassColor
-    : `${activeTheme.bg}dd`;
+    : (isGlobalLight ? '#f1f5f9dd' : `${activeTheme.bg}dd`);
   const sidebarBg = (activeTheme.isImage || activeTheme.isVideo)
     ? activeTheme.glassColor
-    : `${activeTheme.bg}dd`;
+    : (isGlobalLight ? '#ffffffdd' : `${activeTheme.bg}dd`);
 
   return (
     <>
