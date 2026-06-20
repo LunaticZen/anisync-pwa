@@ -676,14 +676,14 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: isKeyboardOpen ? '0 14px' : '8px 14px',
-        borderBottom: isKeyboardOpen ? 'none' : `1px solid ${effectiveIsLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.06)'}`,
+        borderBottom: isKeyboardOpen ? 'none' : `1px solid ${activeTheme.isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.06)'}`,
         flexShrink: 0,
         maxHeight: isKeyboardOpen ? 0 : 40,
         opacity: isKeyboardOpen ? 0 : 1,
         overflow: 'hidden',
         transition: 'opacity 0.2s ease', /* max-height and padding removed from transition */
         pointerEvents: isKeyboardOpen ? 'none' as const : 'auto' as const,
-        color: effectiveTextColor,
+        color: activeTheme.textColor,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" /></svg>
