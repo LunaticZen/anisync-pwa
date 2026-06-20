@@ -11,6 +11,7 @@ import {
   TOUCH_SIZE, HEADER_PAD, ANIM_SPEED, ICON_SIZE, FONT_HEADER, SAFE_TOP,
   type ResolvedTheme, type RoomMode,
 } from './constants';
+import ThemeToggleBtn from '../ThemeToggleBtn';
 
 // ─── Props ────────────────────────────────────────────────
 interface RoomHeaderProps {
@@ -318,8 +319,9 @@ export function RoomHeader({
         {renderBack()}
         {renderRoomInfo()}
         {renderMembers()}
-        {renderTheme()}
         {renderLogButton()}
+        {renderTheme()}
+        <ThemeToggleBtn size={ICON_SIZE} color="white" style={{ padding: isXiaomi ? 8 : 6, opacity: 0.9, minWidth: TOUCH_SIZE, minHeight: TOUCH_SIZE, justifyContent: 'center' }} />
       </div>
     );
   }
@@ -344,8 +346,9 @@ export function RoomHeader({
         {renderAvatar()}
         {renderRoomInfo()}
         {renderMembers()}
-        {renderTheme()}
         {renderLogButton()}
+        {renderTheme()}
+        <ThemeToggleBtn size={isKeyboardOpen ? 13 : (isXiaomi ? 18 : 16)} color={activeTheme.accent} style={{ padding: isKeyboardOpen ? 2 : (isXiaomi ? 6 : 4), flexShrink: 0, minWidth: isKeyboardOpen ? 'auto' : TOUCH_SIZE, minHeight: isKeyboardOpen ? 'auto' : TOUCH_SIZE, justifyContent: 'center' }} />
       </div>
     );
   }
@@ -367,8 +370,9 @@ export function RoomHeader({
         {renderAvatar()}
         {renderRoomInfo()}
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-          {renderTheme()}
           {renderLogButton()}
+          {renderTheme()}
+          <ThemeToggleBtn size={16} color={activeTheme.accent} style={{ padding: 6 }} />
         </div>
       </div>
     );
@@ -380,8 +384,9 @@ export function RoomHeader({
       {renderAvatar()}
       {renderRoomInfo()}
       {renderAnimeButton()}
-      {renderTheme()}
       {renderLogButton()}
+      {renderTheme()}
+      <ThemeToggleBtn size={16} color={activeTheme.accent} style={{ padding: 6 }} />
     </div>
   );
 }

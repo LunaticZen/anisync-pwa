@@ -236,6 +236,7 @@ interface UIState {
   toggleSidebar: () => void;
   addToast: (toast: Omit<Toast, 'id'>) => void;
   removeToast: (id: string) => void;
+  setTheme: (theme: 'dark' | 'light') => void;
 }
 
 export interface Toast {
@@ -248,11 +249,21 @@ export interface Toast {
 
 let toastCounter = 0;
 
-export const useUIStore = create<UIState>((set, get) => ({
+export const useUIStore = create<UIState>((set, get) => {
+  const initialTheme = (() => {
+    try {
+      const saved = localStorage.getItem('anisync_theme');
+      if (saved === 'light' || saved === 'dark') return saved as 'light' | 'dark';
+    } catch { }
+    return 'light';
+  })();
+  document.documentElement.setAttribute('data-theme', initialTheme);
+
+  return {
   currentView: 'home',
   sidebarOpen: true,
   toasts: [],
-  theme: 'dark',
+  theme: initialTheme,
   setView: (currentView) => set({ currentView }),
   toggleSidebar: () => set({ sidebarOpen: !get().sidebarOpen }),
   addToast: (toast) => {
@@ -264,4 +275,10 @@ export const useUIStore = create<UIState>((set, get) => ({
   removeToast: (id) => set({
     toasts: get().toasts.filter(t => t.id !== id),
   }),
-}));
+  setTheme: (theme) => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('anisync_theme', theme);
+    set({ theme });
+  },
+};
+});

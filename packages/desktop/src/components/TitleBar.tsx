@@ -2,27 +2,16 @@
 // TitleBar — Custom frameless window title bar
 // ═══════════════════════════════════════════════════════════════
 
-import React, { useState, useEffect } from 'react';
-
-function getInitialTheme(): 'dark' | 'light' {
-  try {
-    const saved = localStorage.getItem('anisync_theme');
-    if (saved === 'light' || saved === 'dark') return saved;
-  } catch { }
-  return 'dark';
-}
+import React from 'react';
+import { useUIStore } from '../stores';
+import ThemeToggleBtn from './ThemeToggleBtn';
 
 export default function TitleBar() {
   const api = (window as any).anisync;
   const isMobile = !api;
-  const [theme, setTheme] = useState<'dark' | 'light'>(getInitialTheme);
+  const { theme, setTheme } = useUIStore();
 
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('anisync_theme', theme);
-  }, [theme]);
-
-  const toggleTheme = () => setTheme(t => t === 'dark' ? 'light' : 'dark');
+  const toggleTheme = () => setTheme(theme === 'dark' ? 'light' : 'dark');
 
   return (
     <div className="titlebar">
@@ -35,18 +24,7 @@ export default function TitleBar() {
       </div>
 
       <div className="titlebar__controls">
-        {/* Theme toggle */}
-        <button className="titlebar__btn" onClick={toggleTheme} title={theme === 'dark' ? 'Aydınlık Mod' : 'Karanlık Mod'} style={{ marginRight: isMobile ? 0 : 8 }}>
-          {theme === 'dark' ? (
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="5" /><line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" /><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" /><line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" /><line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-            </svg>
-          ) : (
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
-            </svg>
-          )}
-        </button>
+        <ThemeToggleBtn size={14} color="inherit" style={{ marginRight: isMobile ? 0 : 8, width: 36, height: 28, justifyContent: 'center' }} />
 
         {!isMobile && (
           <>
