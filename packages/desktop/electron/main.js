@@ -38,6 +38,7 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 const electron_1 = require("electron");
 const path = __importStar(require("path"));
+const embedded_server_1 = require("./embedded-server");
 let mainWindow = null;
 let animeView = null;
 let videoFrameRef = null; // Cache the frame that has the video
@@ -329,9 +330,9 @@ electron_1.ipcMain.handle('window:maximize', () => {
 });
 electron_1.ipcMain.handle('window:close', () => mainWindow?.close());
 electron_1.ipcMain.handle('window:isMaximized', () => mainWindow?.isMaximized());
-electron_1.ipcMain.handle('anime:navigate', (_e, url) => {
+electron_1.ipcMain.handle('anime:navigate', async (_e, url) => {
     console.log('[AniSync] Navigate to:', url);
-    createAnimeView(url);
+    await createAnimeView(url);
 });
 electron_1.ipcMain.handle('anime:close', () => {
     if (animeView && mainWindow) {
@@ -391,6 +392,16 @@ electron_1.ipcMain.handle('player:getEvent', async () => {
 // ─── App Lifecycle ────────────────────────────────────────────
 electron_1.app.whenReady().then(async () => {
     console.log('[AniSync] Starting...');
+    // Start embedded server in dev mode for local API access
+    if (isDev) {
+        try {
+            await (0, embedded_server_1.startServer)(3000);
+            console.log('[AniSync] Embedded server started on port 3000');
+        }
+        catch (err) {
+            console.warn('[AniSync] Embedded server failed:', err.message);
+        }
+    }
     createWindow();
 });
 electron_1.app.on('window-all-closed', () => electron_1.app.quit());

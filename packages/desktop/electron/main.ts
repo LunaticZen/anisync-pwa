@@ -296,9 +296,9 @@ ipcMain.handle('window:maximize', () => {
 ipcMain.handle('window:close', () => mainWindow?.close());
 ipcMain.handle('window:isMaximized', () => mainWindow?.isMaximized());
 
-ipcMain.handle('anime:navigate', (_e: any, url: string) => {
+ipcMain.handle('anime:navigate', async (_e: any, url: string) => {
   console.log('[AniSync] Navigate to:', url);
-  createAnimeView(url);
+  await createAnimeView(url);
 });
 ipcMain.handle('anime:close', () => {
   if (animeView && mainWindow) {
@@ -360,6 +360,15 @@ ipcMain.handle('player:getEvent', async () => {
 
 app.whenReady().then(async () => {
   console.log('[AniSync] Starting...');
+  // Start embedded server in dev mode for local API access
+  if (isDev) {
+    try {
+      await startServer(3000);
+      console.log('[AniSync] Embedded server started on port 3000');
+    } catch (err: any) {
+      console.warn('[AniSync] Embedded server failed:', err.message);
+    }
+  }
   createWindow();
 });
 
