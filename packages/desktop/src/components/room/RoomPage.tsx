@@ -714,12 +714,16 @@ export default function RoomPage() {
     );
   };
 
+  const isGlobalLight = globalTheme === 'light';
+  const useLightOverride = isGlobalLight && !activeTheme.isImage && !activeTheme.isVideo;
+  const resolvedTextColor = useLightOverride ? '#0F172A' : activeTheme.textColor;
+
   if (mode === 'mobile-landscape') {
     return (
       <div style={{
         position: 'fixed', top: 0, left: 0,
         width: '100vw', height: '100vh',
-        background: 'transparent', color: activeTheme.textColor,
+        background: 'transparent', color: resolvedTextColor,
         fontFamily: 'var(--font-family)',
         overflow: 'hidden',
         pointerEvents: 'none',
@@ -744,8 +748,8 @@ export default function RoomPage() {
         display: 'flex', flexDirection: 'column',
         height: '100%',
         width: '100%',
-        background: (activeTheme.isImage || activeTheme.isVideo) ? '#050816' : activeTheme.bg,
-        color: activeTheme.textColor,
+        background: (activeTheme.isImage || activeTheme.isVideo) ? '#050816' : (isGlobalLight ? '#f1f5f9' : activeTheme.bg),
+        color: resolvedTextColor,
         fontFamily: 'var(--font-family)',
         overflow: 'hidden',
         position: 'fixed', top: 0, left: 0,
@@ -776,14 +780,14 @@ export default function RoomPage() {
   }
 
   // ─── Desktop (includes mobile pre-anime) ───
-  const isGlobalLight = globalTheme === 'light';
+  
   const desktopBg = (activeTheme.isImage || activeTheme.isVideo)
     ? activeTheme.glassColor
     : (isGlobalLight ? '#f1f5f9dd' : `${activeTheme.bg}dd`);
   const sidebarBg = (activeTheme.isImage || activeTheme.isVideo)
     ? activeTheme.glassColor
     : (isGlobalLight ? '#ffffffdd' : `${activeTheme.bg}dd`);
-
+    
   return (
     <>
       {/* Fullscreen background: video — hidden in mobile overlay mode (Xiaomi SOFTWARE layer can't render HW video) */}
@@ -823,7 +827,7 @@ export default function RoomPage() {
       <div className="app__main" style={{
         display: 'flex', flexDirection: 'column',
         background: desktopBg,
-        color: activeTheme.textColor,
+        color: resolvedTextColor,
         transition: 'background 0.4s ease, color 0.4s ease',
         position: 'relative',
         backdropFilter: 'none',
@@ -872,7 +876,7 @@ export default function RoomPage() {
         flexShrink: 0, display: 'flex', flexDirection: 'column',
         background: sidebarBg,
         backdropFilter: 'none',
-        color: activeTheme.textColor,
+        color: resolvedTextColor,
         transition: 'background 0.4s ease, color 0.4s ease',
       }}>
         <MemberList members={members} hostId={currentRoom.hostId} pendingRequests={pendingJoinRequests} />

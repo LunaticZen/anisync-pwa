@@ -4,7 +4,7 @@
 // ═══════════════════════════════════════════════════════════════
 
 import { useState, useEffect } from 'react';
-import { useRoomStore, useAuthStore } from '../../stores';
+import { useRoomStore, useAuthStore, useUIStore } from '../../stores';
 import { isElectron, isMobile, getTheme, type RoomMode } from './constants';
 
 // ─── Web Anime Card (non-Electron browsers) ──────────────
@@ -57,10 +57,14 @@ export function RoomVideoArea({
   showUrlInput, animeUrl, onAnimeUrlChange, onNavigate, onToggleUrlInput,
 }: RoomVideoAreaProps) {
   const isMobile = mode === 'mobile-portrait' || mode === 'mobile-landscape';
-  const isDesktop = mode === 'desktop';
   const themeName = useRoomStore(s => s.theme);
+  const globalTheme = useUIStore(s => s.theme);
   const activeTheme = getTheme(themeName);
-  const bgPrimary = activeTheme.isImage ? 'transparent' : activeTheme.bg;
+  
+  const isGlobalLight = globalTheme === 'light';
+  const useLightOverride = isGlobalLight && !activeTheme.isImage && !activeTheme.isVideo;
+  
+  const bgPrimary = activeTheme.isImage ? 'transparent' : (useLightOverride ? 'var(--bg-primary)' : activeTheme.bg);
   const members = useRoomStore(s => s.members);
   const currentRoom = useRoomStore(s => s.currentRoom);
   const myUsername = useAuthStore(s => s.username);

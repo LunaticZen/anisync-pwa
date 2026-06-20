@@ -5,7 +5,7 @@
 // ═══════════════════════════════════════════════════════════════
 
 import React from 'react';
-import { useAuthStore } from '../../stores';
+import { useAuthStore, useUIStore } from '../../stores';
 import {
   isXiaomi, isMobile,
   TOUCH_SIZE, HEADER_PAD, ANIM_SPEED, ICON_SIZE, FONT_HEADER, SAFE_TOP,
@@ -50,6 +50,15 @@ export function RoomHeader({
   const isLandscape = mode === 'mobile-landscape';
   const isPortraitMode = mode === 'mobile-portrait';
 
+  // ─── Render Helpers ───
+  const globalTheme = useUIStore(s => s.theme);
+  const isGlobalLight = globalTheme === 'light';
+  const useLightOverride = isGlobalLight && !activeTheme.isImage && !activeTheme.isVideo;
+  
+  const headerBg = activeTheme.isImage ? activeTheme.glassColor : (useLightOverride ? '#f1f5f9' : `${activeTheme.bg}ee`);
+  const effectiveIsLight = activeTheme.isLight || useLightOverride;
+  const headerText = effectiveIsLight ? '#475569' : '#94a3b8';
+
   // ── Render: Back Button (defined once) ──
   const renderBack = () => {
     if (isDesktop && !isMobile) {
@@ -64,7 +73,7 @@ export function RoomHeader({
     return (
       <button onClick={onBack} style={{
         background: 'none', border: 'none',
-        color: isLandscape ? 'white' : (activeTheme.isLight ? '#475569' : '#94a3b8'),
+        color: isLandscape ? 'white' : headerText,
         cursor: 'pointer', display: 'flex',
         padding: isLandscape ? (isXiaomi ? 8 : 6) : (isKeyboardOpen ? 2 : (isXiaomi ? 6 : 4)),
         minWidth: isKeyboardOpen ? 'auto' : TOUCH_SIZE,
@@ -146,7 +155,7 @@ export function RoomHeader({
         {!(isPortraitMode && isKeyboardOpen) && (
           <div style={{
             fontSize: isLandscape ? 10 : (isXiaomi ? 12 : 11),
-            color: isLandscape ? undefined : (activeTheme.isLight ? '#64748b' : '#64748b'),
+            color: isLandscape ? undefined : headerText,
             opacity: isLandscape ? 0.6 : undefined,
             display: 'flex', alignItems: 'center', gap: 6,
           }}>
@@ -163,12 +172,11 @@ export function RoomHeader({
     if (isDesktop) return null; // Desktop shows members in sidebar
 
     const iconSize = isPortraitMode && isKeyboardOpen ? 13 : ICON_SIZE;
-    const badgeSize = isPortraitMode && isKeyboardOpen ? 12 : (isXiaomi ? 18 : 16);
 
     return (
       <button onClick={onShowMembers} style={{
         background: 'none', border: 'none',
-        color: isLandscape ? 'white' : (activeTheme.isLight ? '#475569' : '#94a3b8'),
+        color: isLandscape ? 'white' : headerText,
         cursor: 'pointer', display: 'flex', alignItems: 'center',
         gap: isLandscape ? 4 : 3, position: 'relative',
         padding: isLandscape ? (isXiaomi ? 8 : 6) : (isKeyboardOpen ? 2 : (isXiaomi ? 6 : 4)),
@@ -273,7 +281,7 @@ export function RoomHeader({
           ? (isLandscape ? 'rgba(34,197,94,0.2)' : 'rgba(34,197,94,0.15)')
           : 'none',
         border: 'none',
-        color: logCopied ? '#22c55e' : (isLandscape ? 'rgba(255,255,255,0.6)' : (activeTheme.isLight ? '#94a3b8' : '#64748b')),
+        color: logCopied ? '#22c55e' : (isLandscape ? 'rgba(255,255,255,0.6)' : headerText),
         cursor: 'pointer',
         padding: compact ? 2 : (isLandscape ? (isXiaomi ? 8 : 6) : (isXiaomi ? 6 : 4)),
         display: 'flex', borderRadius: 6,
@@ -333,9 +341,9 @@ export function RoomHeader({
         gap: isKeyboardOpen ? 6 : (isXiaomi ? 10 : 8),
         padding: isKeyboardOpen ? '2px 8px' : HEADER_PAD,
         paddingTop: isKeyboardOpen ? 2 : (SAFE_TOP + (isXiaomi ? 10 : 8)),
-        background: activeTheme.isImage ? activeTheme.glassColor : `${activeTheme.bg}ee`,
+        background: headerBg,
         backdropFilter: 'none',
-        borderBottom: `1px solid ${activeTheme.isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.06)'}`,
+        borderBottom: `1px solid ${effectiveIsLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.06)'}`,
         flexShrink: 0,
         transition: `background ${ANIM_SPEED} cubic-bezier(0.4, 0, 0.2, 1)`, /* layout removed */
         minHeight: isKeyboardOpen ? 28 : TOUCH_SIZE,
@@ -357,7 +365,7 @@ export function RoomHeader({
   if (isMobile) {
     return (
       <div className="sync-bar" style={{ 
-        background: activeTheme.isImage ? activeTheme.glassColor : `${activeTheme.bg}ee`, 
+        background: headerBg, 
         transition: 'background 0.4s ease',
         padding: '8px 12px',
         minHeight: 'auto',
@@ -379,7 +387,7 @@ export function RoomHeader({
   }
 
   return (
-    <div className="sync-bar" style={{ background: activeTheme.isImage ? activeTheme.glassColor : `${activeTheme.bg}ee`, transition: 'background 0.4s ease' }}>
+    <div className="sync-bar" style={{ background: headerBg, transition: 'background 0.4s ease' }}>
       {renderBack()}
       {renderAvatar()}
       {renderRoomInfo()}
