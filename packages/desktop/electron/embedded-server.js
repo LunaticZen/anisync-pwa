@@ -204,7 +204,7 @@ function startServer(port = 3000) {
                 room.syncState.lastEventAt = Date.now();
                 io.to(data.roomId).emit('sync:play', {
                     time: data.time, generation: room.syncState.generation,
-                    originUserId: userId, serverTimestamp: Date.now(),
+                    originUserId: userId, originSocketId: socket.id, serverTimestamp: Date.now(),
                 });
             });
             socket.on('sync:pause', (data) => {
@@ -217,7 +217,7 @@ function startServer(port = 3000) {
                 room.syncState.lastEventAt = Date.now();
                 io.to(data.roomId).emit('sync:pause', {
                     time: data.time, generation: room.syncState.generation,
-                    originUserId: userId, serverTimestamp: Date.now(),
+                    originUserId: userId, originSocketId: socket.id, serverTimestamp: Date.now(),
                 });
             });
             socket.on('sync:seek', (data) => {
@@ -229,7 +229,7 @@ function startServer(port = 3000) {
                 room.syncState.lastEventAt = Date.now();
                 io.to(data.roomId).emit('sync:seek', {
                     time: data.time, generation: room.syncState.generation,
-                    originUserId: userId, serverTimestamp: Date.now(),
+                    originUserId: userId, originSocketId: socket.id, serverTimestamp: Date.now(),
                 });
             });
             socket.on('sync:heartbeat', (data) => {

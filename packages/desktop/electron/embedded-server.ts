@@ -199,7 +199,7 @@ export function startServer(port = 3000): Promise<void> {
         room.syncState.lastEventAt = Date.now();
         io.to(data.roomId).emit('sync:play' as any, {
           time: data.time, generation: room.syncState.generation,
-          originUserId: userId, serverTimestamp: Date.now(),
+          originUserId: userId, originSocketId: socket.id, serverTimestamp: Date.now(),
         });
       });
 
@@ -212,7 +212,7 @@ export function startServer(port = 3000): Promise<void> {
         room.syncState.lastEventAt = Date.now();
         io.to(data.roomId).emit('sync:pause' as any, {
           time: data.time, generation: room.syncState.generation,
-          originUserId: userId, serverTimestamp: Date.now(),
+          originUserId: userId, originSocketId: socket.id, serverTimestamp: Date.now(),
         });
       });
 
@@ -224,7 +224,7 @@ export function startServer(port = 3000): Promise<void> {
         room.syncState.lastEventAt = Date.now();
         io.to(data.roomId).emit('sync:seek' as any, {
           time: data.time, generation: room.syncState.generation,
-          originUserId: userId, serverTimestamp: Date.now(),
+          originUserId: userId, originSocketId: socket.id, serverTimestamp: Date.now(),
         });
       });
 

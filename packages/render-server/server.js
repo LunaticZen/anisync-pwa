@@ -241,15 +241,9 @@ io.on('connection', (socket) => {
   const { userId, username } = socket;
   console.log(`[WS] Connected: ${username} (${socket.id})`);
 
-  // ── Duplicate Socket Prevention ──
-  // If same userId connects with a new socket, disconnect old ones
-  for (const [id, existingSocket] of io.sockets.sockets) {
-    if (id !== socket.id && existingSocket.userId === userId && existingSocket.connected) {
-      console.log(`[WS] Disconnecting duplicate socket for ${username}: ${id}`);
-      existingSocket.roomId = undefined; // Prevent handleLeave from triggering grace period
-      existingSocket.disconnect(true);
-    }
-  }
+  // NOTE: Duplicate socket prevention DISABLED to allow same-user multi-device
+  // connections (e.g. testing EXE + DEV with same account).
+  // Each socket gets its own unique socket.id for echo protection.
 
   // ── Clean up stale disconnected memberships for this user ──
   // If user reconnects after app was killed, cancel grace timers and remove
@@ -416,7 +410,7 @@ io.on('connection', (socket) => {
     room.syncState.lastEventAt = Date.now();
     io.to(data.roomId).emit('sync:play', {
       time: data.time, generation: room.syncState.generation,
-      originUserId: userId, serverTimestamp: Date.now(),
+      originUserId: userId, originSocketId: socket.id, serverTimestamp: Date.now(),
     });
   });
 
@@ -429,7 +423,7 @@ io.on('connection', (socket) => {
     room.syncState.lastEventAt = Date.now();
     io.to(data.roomId).emit('sync:pause', {
       time: data.time, generation: room.syncState.generation,
-      originUserId: userId, serverTimestamp: Date.now(),
+      originUserId: userId, originSocketId: socket.id, serverTimestamp: Date.now(),
     });
   });
 
@@ -441,7 +435,7 @@ io.on('connection', (socket) => {
     room.syncState.lastEventAt = Date.now();
     io.to(data.roomId).emit('sync:seek', {
       time: data.time, generation: room.syncState.generation,
-      originUserId: userId, serverTimestamp: Date.now(),
+      originUserId: userId, originSocketId: socket.id, serverTimestamp: Date.now(),
     });
   });
 

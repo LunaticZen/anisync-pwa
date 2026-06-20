@@ -338,6 +338,23 @@ public class MainActivity extends AppCompatActivity {
                     appLog("Logs copied to clipboard (" + logBuffer.size() + " entries)");
                 });
             }
+
+            // ── Video Event Bridge ──
+            // _player.js calls pushEvent() when video play/pause/seek happens.
+            // React eventPoll calls getEvent() to read and consume the event.
+            private volatile String pendingEvent = null;
+
+            @JavascriptInterface
+            public void pushEvent(String eventJson) {
+                pendingEvent = eventJson;
+            }
+
+            @JavascriptInterface
+            public String getEvent() {
+                String ev = pendingEvent;
+                pendingEvent = null;
+                return ev;
+            }
         }, "AniSyncBridge");
 
         mainWebView.setWebViewClient(new WebViewClient() {

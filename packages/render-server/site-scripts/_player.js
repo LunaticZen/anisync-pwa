@@ -41,15 +41,28 @@
 
     v.addEventListener('play', function() {
       if (Date.now() < ignoreUntil) return;
-      window.__anisync_event = { type: 'play', time: v.currentTime, ts: Date.now() };
+      var ev = { type: 'play', time: v.currentTime, ts: Date.now() };
+      window.__anisync_event = ev;
+      // Push to Android bridge if available
+      if (window.AniSyncBridge && window.AniSyncBridge.pushEvent) {
+        try { window.AniSyncBridge.pushEvent(JSON.stringify(ev)); } catch(e) {}
+      }
     });
     v.addEventListener('pause', function() {
       if (Date.now() < ignoreUntil) return;
-      window.__anisync_event = { type: 'pause', time: v.currentTime, ts: Date.now() };
+      var ev = { type: 'pause', time: v.currentTime, ts: Date.now() };
+      window.__anisync_event = ev;
+      if (window.AniSyncBridge && window.AniSyncBridge.pushEvent) {
+        try { window.AniSyncBridge.pushEvent(JSON.stringify(ev)); } catch(e) {}
+      }
     });
     v.addEventListener('seeked', function() {
       if (Date.now() < ignoreUntil) return;
-      window.__anisync_event = { type: 'seek', time: v.currentTime, ts: Date.now() };
+      var ev = { type: 'seek', time: v.currentTime, ts: Date.now() };
+      window.__anisync_event = ev;
+      if (window.AniSyncBridge && window.AniSyncBridge.pushEvent) {
+        try { window.AniSyncBridge.pushEvent(JSON.stringify(ev)); } catch(e) {}
+      }
     });
 
     // Watch for video element being replaced (SPA navigation)

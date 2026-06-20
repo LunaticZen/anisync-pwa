@@ -128,19 +128,19 @@ export default function RoomPage() {
     }, 2000);
 
     const onPlay = (d: any) => {
-      if (d.originUserId === useAuthStore.getState().username) return;
+      if (d.originSocketId === socket.id) return;
       ignoreUntil = Date.now() + 1500;
       (window as any).anisync.player.seek(d.time);
       (window as any).anisync.player.play();
     };
     const onPause = (d: any) => {
-      if (d.originUserId === useAuthStore.getState().username) return;
+      if (d.originSocketId === socket.id) return;
       ignoreUntil = Date.now() + 1500;
       (window as any).anisync.player.seek(d.time);
       (window as any).anisync.player.pause();
     };
     const onSeek = (d: any) => {
-      if (d.originUserId === useAuthStore.getState().username) return;
+      if (d.originSocketId === socket.id) return;
       ignoreUntil = Date.now() + 1500;
       ignoreSync.current = Date.now() + 1500;
       (window as any).anisync.player.seek(d.time);
@@ -191,21 +191,26 @@ export default function RoomPage() {
     const bridge = (window as any).AniSyncBridge;
     if (!bridge?.controlAnime) return;
 
+    let ignoreUntil = 0;
+    let lastEventTs = 0;
     let lastSyncTime = 0;
     let lastHostTime = 0;
 
     const onPlay = (d: any) => {
-      if (d.originUserId === useAuthStore.getState().username) return;
+      if (d.originSocketId === socket.id) return;
+      ignoreUntil = Date.now() + 1500;
       bridge.controlAnime('seek', d.time || 0);
       bridge.controlAnime('play', d.time || 0);
     };
     const onPause = (d: any) => {
-      if (d.originUserId === useAuthStore.getState().username) return;
+      if (d.originSocketId === socket.id) return;
+      ignoreUntil = Date.now() + 1500;
       bridge.controlAnime('seek', d.time || 0);
       bridge.controlAnime('pause', d.time || 0);
     };
     const onSeek = (d: any) => {
-      if (d.originUserId === useAuthStore.getState().username) return;
+      if (d.originSocketId === socket.id) return;
+      ignoreUntil = Date.now() + 1500;
       bridge.controlAnime('seek', d.time || 0);
     };
     const onTimecheck = (d: any) => {
@@ -222,11 +227,29 @@ export default function RoomPage() {
       if (d.playing) bridge.controlAnime('play', d.time || 0);
     };
 
+    // Mobile eventPoll: read video events from Android bridge and emit to server
+    const mobileEventPoll = setInterval(() => {
+      try {
+        if (Date.now() < ignoreUntil) return;
+        const evStr = bridge.getEvent ? bridge.getEvent() : null;
+        if (!evStr) return;
+        const event = typeof evStr === 'string' ? JSON.parse(evStr) : evStr;
+        if (event && event.ts > lastEventTs) {
+          lastEventTs = event.ts;
+          const { type, time } = event;
+          if (type === 'play') socket.emit('sync:play', { roomId: currentRoom.id, time, generation: Date.now() });
+          else if (type === 'pause') socket.emit('sync:pause', { roomId: currentRoom.id, time, generation: Date.now() });
+          else if (type === 'seek') socket.emit('sync:seek', { roomId: currentRoom.id, time, generation: Date.now() });
+        }
+      } catch(e) {}
+    }, 500);
+
     socket.on('sync:play', onPlay);
     socket.on('sync:pause', onPause);
     socket.on('sync:seek', onSeek);
     socket.on('sync:timecheck', onTimecheck);
     return () => {
+      clearInterval(mobileEventPoll);
       socket.off('sync:play', onPlay);
       socket.off('sync:pause', onPause);
       socket.off('sync:seek', onSeek);
