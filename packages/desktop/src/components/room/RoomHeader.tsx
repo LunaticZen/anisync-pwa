@@ -221,9 +221,8 @@ export function RoomHeader({
           borderRadius: 8, color: activeTheme.accent,
         }}>
           <div style={{ width: 12, height: 12, borderRadius: '50%', background: activeTheme.accent, boxShadow: `0 0 6px ${activeTheme.accent}60` }} />
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M9.06 11.9l8.07-8.06a2.85 2.85 0 1 1 4.03 4.03l-8.06 8.08"></path>
-            <path d="M7.07 14.94c-1.66 0-3 1.35-3 3.02 0 1.33-2.5 1.52-2 2.02 1.08 1.35 2.22 1.08 2.22 1.08a4.5 4.5 0 0 0 4.8-4.8l2.05-2.05"></path>
+          <svg width="16" height="16" viewBox="-5 -2 24 24" fill="currentColor" stroke="none">
+            <path d="M2 13a5 5 0 0 0 10 0c0-1.726-1.66-5.031-5-9.653C3.66 7.969 2 11.274 2 13zM7 0c4.667 6.09 7 10.423 7 13a7 7 0 0 1-14 0c0-2.577 2.333-6.91 7-13z"></path>
           </svg>
         </button>
       );
@@ -236,9 +235,8 @@ export function RoomHeader({
           padding: isXiaomi ? 8 : 6, display: 'flex', alignItems: 'center', opacity: 0.9,
           minWidth: TOUCH_SIZE, minHeight: TOUCH_SIZE, justifyContent: 'center',
         }}>
-          <svg width={ICON_SIZE} height={ICON_SIZE} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M9.06 11.9l8.07-8.06a2.85 2.85 0 1 1 4.03 4.03l-8.06 8.08"></path>
-            <path d="M7.07 14.94c-1.66 0-3 1.35-3 3.02 0 1.33-2.5 1.52-2 2.02 1.08 1.35 2.22 1.08 2.22 1.08a4.5 4.5 0 0 0 4.8-4.8l2.05-2.05"></path>
+          <svg width={ICON_SIZE} height={ICON_SIZE} viewBox="-5 -2 24 24" fill="currentColor" stroke="none">
+            <path d="M2 13a5 5 0 0 0 10 0c0-1.726-1.66-5.031-5-9.653C3.66 7.969 2 11.274 2 13zM7 0c4.667 6.09 7 10.423 7 13a7 7 0 0 1-14 0c0-2.577 2.333-6.91 7-13z"></path>
           </svg>
         </button>
       );
@@ -259,9 +257,8 @@ export function RoomHeader({
         transition: isPortraitMode ? `opacity ${ANIM_SPEED} ease` : undefined,
       }}>
         <div style={{ width: dotSz, height: dotSz, borderRadius: '50%', background: activeTheme.accent, boxShadow: `0 0 4px ${activeTheme.accent}60` }} />
-        <svg width={iconSz} height={iconSz} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M9.06 11.9l8.07-8.06a2.85 2.85 0 1 1 4.03 4.03l-8.06 8.08"></path>
-          <path d="M7.07 14.94c-1.66 0-3 1.35-3 3.02 0 1.33-2.5 1.52-2 2.02 1.08 1.35 2.22 1.08 2.22 1.08a4.5 4.5 0 0 0 4.8-4.8l2.05-2.05"></path>
+        <svg width={iconSz} height={iconSz} viewBox="-5 -2 24 24" fill="currentColor" stroke="none">
+          <path d="M2 13a5 5 0 0 0 10 0c0-1.726-1.66-5.031-5-9.653C3.66 7.969 2 11.274 2 13zM7 0c4.667 6.09 7 10.423 7 13a7 7 0 0 1-14 0c0-2.577 2.333-6.91 7-13z"></path>
         </svg>
       </button>
     );
