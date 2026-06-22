@@ -38,58 +38,10 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 const electron_1 = require("electron");
 const path = __importStar(require("path"));
-const embedded_server_1 = require("./embedded-server");
 let mainWindow = null;
 let animeView = null;
 let videoFrameRef = null; // Cache the frame that has the video
 const isDev = !electron_1.app.isPackaged;
-// ─── Dynamic Script Delivery ──────────────────────────────────
-// Scripts are fetched from backend, NEVER hardcoded in EXE.
-let cachedScripts = [];
-let cachedAdDomains = [];
-async function fetchSiteScripts(url) {
-    try {
-        // Try fetching from cloud server first
-        const serverUrl = isDev ? 'http://localhost:3000' : 'https://anisync-mug9.onrender.com';
-        const res = await fetch(`${serverUrl}/api/site-scripts`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ url }),
-        });
-        if (!res.ok)
-            throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        cachedScripts = (data.scripts || []).map((s) => s.code);
-        cachedAdDomains = data.adDomains || [];
-        console.log(`[AniSync] Fetched ${cachedScripts.length} scripts, ${cachedAdDomains.length} ad domains`);
-    }
-    catch (err) {
-        console.warn('[AniSync] Backend fetch failed, trying local fallback:', err.message);
-        // Fallback: read script files directly from render-server/site-scripts/
-        try {
-            const fs = require('fs');
-            const scriptsDir = path.join(__dirname, '..', '..', 'render-server', 'site-scripts');
-            const commonPath = path.join(scriptsDir, '_common.js');
-            const playerPath = path.join(scriptsDir, '_player.js');
-            const domainsPath = path.join(scriptsDir, '_common-domains.json');
-            const scripts = [];
-            if (fs.existsSync(commonPath))
-                scripts.push(fs.readFileSync(commonPath, 'utf8'));
-            if (fs.existsSync(playerPath))
-                scripts.push(fs.readFileSync(playerPath, 'utf8'));
-            cachedScripts = scripts;
-            if (fs.existsSync(domainsPath)) {
-                cachedAdDomains = JSON.parse(fs.readFileSync(domainsPath, 'utf8'));
-            }
-            console.log(`[AniSync] Loaded ${cachedScripts.length} scripts from local files`);
-        }
-        catch (localErr) {
-            console.error('[AniSync] Local fallback also failed:', localErr.message);
-            cachedScripts = [];
-            cachedAdDomains = [];
-        }
-    }
-}
 // ─── Main Window ──────────────────────────────────────────────
 function createWindow() {
     mainWindow = new electron_1.BrowserWindow({
@@ -117,15 +69,9 @@ function createWindow() {
     }
     mainWindow.once('ready-to-show', () => mainWindow?.show());
     mainWindow.on('closed', () => { mainWindow = null; animeView = null; });
-    // Production: Block DevTools completely
-    if (!isDev) {
-        mainWindow.webContents.on('devtools-opened', () => {
-            mainWindow?.webContents.closeDevTools();
-        });
-    }
 }
 // ─── Anime BrowserView ────────────────────────────────────────
-async function createAnimeView(url) {
+function createAnimeView(url) {
     if (!mainWindow)
         return;
     if (animeView) {
@@ -143,8 +89,6 @@ async function createAnimeView(url) {
     });
     mainWindow.addBrowserView(animeView);
     updateAnimeViewBounds();
-    // Fetch scripts from backend BEFORE loading the page
-    await fetchSiteScripts(url);
     animeView.webContents.loadURL(url);
     // Handle fullscreen enter/exit
     animeView.webContents.on('enter-html-full-screen', () => {
@@ -170,7 +114,6 @@ async function createAnimeView(url) {
         setTimeout(() => injectAllFrames(), 300);
         setTimeout(() => injectAllFrames(), 1500);
         setTimeout(() => injectAllFrames(), 4000);
-        setTimeout(() => injectAllFrames(), 8000); // Extra late retry for slow pages
     };
     animeView.webContents.on('did-finish-load', doInject);
     animeView.webContents.on('did-frame-finish-load', doInject);
@@ -197,43 +140,101 @@ function updateAnimeViewBounds() {
     animeView.setBounds({ x, y, width: w, height: h });
 }
 // ─── Player Script ───────────────────────────────────────────
-// Scripts are fetched dynamically from backend via fetchSiteScripts().
-// NO hardcoded bypass/ad-block code in this file.
+const PLAYER_SCRIPT = `
+(function() {
+  if (window.__anisync_injected) return;
+  window.__anisync_injected = true;
+  var ignoreUntil = 0;
+
+  function findVideo() {
+    var videos = document.querySelectorAll('video');
+    for (var i = 0; i < videos.length; i++) {
+      var v = videos[i];
+      if (v.readyState > 0 || v.src || v.currentSrc) {
+        hookVideo(v);
+        return true;
+      }
+    }
+    // Also check for any video element even without src
+    if (videos.length > 0) {
+      hookVideo(videos[0]);
+      return true;
+    }
+    return false;
+  }
+
+  function hookVideo(v) {
+    console.log('[AniSync] Video HOOKED in:', window.location.href.substring(0, 80));
+    window.__anisync_has_video = true;
+    window.__anisync_api = {
+      play: function() { ignoreUntil = Date.now() + 1000; v.play(); },
+      pause: function() { ignoreUntil = Date.now() + 1000; v.pause(); },
+      seek: function(t) { ignoreUntil = Date.now() + 1000; v.currentTime = t; },
+      getTime: function() { return v.currentTime || 0; },
+      getDuration: function() { return v.duration || 0; },
+      getState: function() { return v.paused ? 'paused' : 'playing'; },
+      getEvent: function() { var e = window.__anisync_event; window.__anisync_event = null; return e; },
+      hasVideo: true
+    };
+
+    v.addEventListener('play', function() {
+      if (Date.now() < ignoreUntil) return;
+      window.__anisync_event = { type: 'play', time: v.currentTime, ts: Date.now() };
+    });
+    v.addEventListener('pause', function() {
+      if (Date.now() < ignoreUntil) return;
+      window.__anisync_event = { type: 'pause', time: v.currentTime, ts: Date.now() };
+    });
+    v.addEventListener('seeked', function() {
+      if (Date.now() < ignoreUntil) return;
+      window.__anisync_event = { type: 'seek', time: v.currentTime, ts: Date.now() };
+    });
+
+    setInterval(function() {
+      if (!document.body.contains(v)) {
+        window.__anisync_injected = false;
+        window.__anisync_has_video = false;
+        window.__anisync_api = null;
+        findVideo() || startSearch();
+      }
+    }, 3000);
+  }
+
+  function startSearch() {
+    var attempts = 0;
+    var pi = setInterval(function() {
+      attempts++;
+      if (findVideo()) clearInterval(pi);
+      if (attempts > 120) clearInterval(pi);
+    }, 1000);
+    try {
+      var o = new MutationObserver(function() { if (findVideo()) o.disconnect(); });
+      o.observe(document.documentElement || document.body, { childList: true, subtree: true });
+    } catch(e) {}
+  }
+
+  if (!findVideo()) startSearch();
+})();
+`;
 async function injectAllFrames() {
     if (!animeView)
         return;
-    // If scripts not yet loaded, wait up to 5s with retries
-    if (cachedScripts.length === 0) {
-        for (let i = 0; i < 10; i++) {
-            await new Promise(r => setTimeout(r, 500));
-            if (cachedScripts.length > 0)
-                break;
-        }
-        if (cachedScripts.length === 0) {
-            console.log('[AniSync] No scripts available, skipping injection');
-            return;
-        }
-    }
     const wc = animeView.webContents;
-    // Inject all dynamic scripts into main frame
-    for (const script of cachedScripts) {
-        try {
-            await wc.executeJavaScript(script);
-        }
-        catch { }
+    // Inject main frame
+    try {
+        await wc.executeJavaScript(PLAYER_SCRIPT);
     }
+    catch { }
     // Inject ALL sub-frames
     try {
         const mf = wc.mainFrame;
         if (mf && mf.framesInSubtree) {
             for (const frame of mf.framesInSubtree) {
                 if (frame !== mf) {
-                    for (const script of cachedScripts) {
-                        try {
-                            await frame.executeJavaScript(script);
-                        }
-                        catch { }
+                    try {
+                        await frame.executeJavaScript(PLAYER_SCRIPT);
                     }
+                    catch { }
                 }
             }
         }
@@ -330,9 +331,9 @@ electron_1.ipcMain.handle('window:maximize', () => {
 });
 electron_1.ipcMain.handle('window:close', () => mainWindow?.close());
 electron_1.ipcMain.handle('window:isMaximized', () => mainWindow?.isMaximized());
-electron_1.ipcMain.handle('anime:navigate', async (_e, url) => {
+electron_1.ipcMain.handle('anime:navigate', (_e, url) => {
     console.log('[AniSync] Navigate to:', url);
-    await createAnimeView(url);
+    createAnimeView(url);
 });
 electron_1.ipcMain.handle('anime:close', () => {
     if (animeView && mainWindow) {
@@ -392,16 +393,6 @@ electron_1.ipcMain.handle('player:getEvent', async () => {
 // ─── App Lifecycle ────────────────────────────────────────────
 electron_1.app.whenReady().then(async () => {
     console.log('[AniSync] Starting...');
-    // Start embedded server in dev mode for local API access
-    if (isDev) {
-        try {
-            await (0, embedded_server_1.startServer)(3000);
-            console.log('[AniSync] Embedded server started on port 3000');
-        }
-        catch (err) {
-            console.warn('[AniSync] Embedded server failed:', err.message);
-        }
-    }
     createWindow();
 });
 electron_1.app.on('window-all-closed', () => electron_1.app.quit());

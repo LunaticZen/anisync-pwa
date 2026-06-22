@@ -147,56 +147,6 @@ app.get('/api/health', (_req, res) => {
   });
 });
 
-// ─── Dynamic Script Delivery ─────────────────────────────────
-// Site-specific scripts are stored on the server and delivered
-// to clients on demand. APK/EXE contains NO bypass code.
-const SITE_SCRIPTS_DIR = path.join(__dirname, 'site-scripts');
-const scriptCache = {};
-
-function loadSiteScripts() {
-  try {
-    const commonScript = fs.readFileSync(path.join(SITE_SCRIPTS_DIR, '_common.js'), 'utf8');
-    const playerScript = fs.readFileSync(path.join(SITE_SCRIPTS_DIR, '_player.js'), 'utf8');
-    const adDomains = JSON.parse(fs.readFileSync(path.join(SITE_SCRIPTS_DIR, '_common-domains.json'), 'utf8'));
-    scriptCache.common = commonScript;
-    scriptCache.player = playerScript;
-    scriptCache.adDomains = adDomains;
-    console.log('[Scripts] Loaded site scripts:', Object.keys(scriptCache).join(', '));
-  } catch (err) {
-    console.error('[Scripts] Failed to load site scripts:', err.message);
-    scriptCache.common = '';
-    scriptCache.player = '';
-    scriptCache.adDomains = [];
-  }
-}
-loadSiteScripts();
-
-app.post('/api/site-scripts', (req, res) => {
-  const { url } = req.body || {};
-  if (!url || typeof url !== 'string') {
-    return res.status(400).json({ error: 'url required' });
-  }
-
-  // Build response with all scripts needed for this URL
-  const scripts = [];
-
-  // Common ad blocker + popup blocker (always included)
-  if (scriptCache.common) {
-    scripts.push({ type: 'js', id: 'common', code: scriptCache.common });
-  }
-
-  // Player hook script (always included for video sync)
-  if (scriptCache.player) {
-    scripts.push({ type: 'js', id: 'player', code: scriptCache.player });
-  }
-
-  res.json({
-    scripts: scripts,
-    adDomains: scriptCache.adDomains || [],
-    timestamp: Date.now(),
-  });
-});
-
 // SPA Catch-All: Any unmatched GET route serves the SPA
 // This MUST be after express.static and all API routes
 app.get('*', (_req, res) => {
@@ -241,9 +191,15 @@ io.on('connection', (socket) => {
   const { userId, username } = socket;
   console.log(`[WS] Connected: ${username} (${socket.id})`);
 
-  // NOTE: Duplicate socket prevention DISABLED to allow same-user multi-device
-  // connections (e.g. testing EXE + DEV with same account).
-  // Each socket gets its own unique socket.id for echo protection.
+  // ── Duplicate Socket Prevention ──
+  // If same userId connects with a new socket, disconnect old ones
+  for (const [id, existingSocket] of io.sockets.sockets) {
+    if (id !== socket.id && existingSocket.userId === userId && existingSocket.connected) {
+      console.log(`[WS] Disconnecting duplicate socket for ${username}: ${id}`);
+      existingSocket.roomId = undefined; // Prevent handleLeave from triggering grace period
+      existingSocket.disconnect(true);
+    }
+  }
 
   // ── Clean up stale disconnected memberships for this user ──
   // If user reconnects after app was killed, cancel grace timers and remove
@@ -410,7 +366,7 @@ io.on('connection', (socket) => {
     room.syncState.lastEventAt = Date.now();
     io.to(data.roomId).emit('sync:play', {
       time: data.time, generation: room.syncState.generation,
-      originUserId: userId, originSocketId: socket.id, serverTimestamp: Date.now(),
+      originUserId: userId, serverTimestamp: Date.now(),
     });
   });
 
@@ -423,7 +379,7 @@ io.on('connection', (socket) => {
     room.syncState.lastEventAt = Date.now();
     io.to(data.roomId).emit('sync:pause', {
       time: data.time, generation: room.syncState.generation,
-      originUserId: userId, originSocketId: socket.id, serverTimestamp: Date.now(),
+      originUserId: userId, serverTimestamp: Date.now(),
     });
   });
 
@@ -435,7 +391,7 @@ io.on('connection', (socket) => {
     room.syncState.lastEventAt = Date.now();
     io.to(data.roomId).emit('sync:seek', {
       time: data.time, generation: room.syncState.generation,
-      originUserId: userId, originSocketId: socket.id, serverTimestamp: Date.now(),
+      originUserId: userId, serverTimestamp: Date.now(),
     });
   });
 

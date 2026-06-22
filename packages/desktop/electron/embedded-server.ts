@@ -7,7 +7,6 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
-import * as path from 'path';
 
 // ─── In-Memory State ──────────────────────────────────────────
 
@@ -80,37 +79,7 @@ export function startServer(port = 3000): Promise<void> {
     app.use(cors({ origin: '*' }));
     app.use(express.json());
 
-    app.get('/api/health', (_req: any, res: any) => { res.json({ status: 'ok' }); });
-
-    // Dynamic script delivery — same as render-server
-    app.post('/api/site-scripts', (_req: any, res: any) => {
-      const fs = require('fs');
-      const scriptsDir = path.join(__dirname, '..', '..', 'render-server', 'site-scripts');
-      try {
-        const scripts: any[] = [];
-        const commonPath = path.join(scriptsDir, '_common.js');
-        const playerPath = path.join(scriptsDir, '_player.js');
-        const domainsPath = path.join(scriptsDir, '_common-domains.json');
-
-        if (fs.existsSync(commonPath)) {
-          scripts.push({ type: 'js', id: 'common', code: fs.readFileSync(commonPath, 'utf8') });
-        }
-        if (fs.existsSync(playerPath)) {
-          scripts.push({ type: 'js', id: 'player', code: fs.readFileSync(playerPath, 'utf8') });
-        }
-
-        let adDomains: string[] = [];
-        if (fs.existsSync(domainsPath)) {
-          adDomains = JSON.parse(fs.readFileSync(domainsPath, 'utf8'));
-        }
-
-        console.log(`[Scripts] Serving ${scripts.length} scripts, ${adDomains.length} ad domains`);
-        res.json({ scripts, adDomains, timestamp: Date.now() });
-      } catch (err: any) {
-        console.error('[Scripts] Error loading scripts:', err.message);
-        res.json({ scripts: [], adDomains: [], timestamp: Date.now() });
-      }
-    });
+    app.get('/api/health', (_req, res) => { res.json({ status: 'ok' }); });
 
     const httpServer = createServer(app);
     const io = new Server(httpServer, {
@@ -199,7 +168,7 @@ export function startServer(port = 3000): Promise<void> {
         room.syncState.lastEventAt = Date.now();
         io.to(data.roomId).emit('sync:play' as any, {
           time: data.time, generation: room.syncState.generation,
-          originUserId: userId, originSocketId: socket.id, serverTimestamp: Date.now(),
+          originUserId: userId, serverTimestamp: Date.now(),
         });
       });
 
@@ -212,7 +181,7 @@ export function startServer(port = 3000): Promise<void> {
         room.syncState.lastEventAt = Date.now();
         io.to(data.roomId).emit('sync:pause' as any, {
           time: data.time, generation: room.syncState.generation,
-          originUserId: userId, originSocketId: socket.id, serverTimestamp: Date.now(),
+          originUserId: userId, serverTimestamp: Date.now(),
         });
       });
 
@@ -224,7 +193,7 @@ export function startServer(port = 3000): Promise<void> {
         room.syncState.lastEventAt = Date.now();
         io.to(data.roomId).emit('sync:seek' as any, {
           time: data.time, generation: room.syncState.generation,
-          originUserId: userId, originSocketId: socket.id, serverTimestamp: Date.now(),
+          originUserId: userId, serverTimestamp: Date.now(),
         });
       });
 
@@ -307,6 +276,7 @@ export function startServer(port = 3000): Promise<void> {
     });
 
     // Serve the web UI for mobile devices
+    const path = require('path');
     const distPath = path.join(__dirname, '..', 'dist');
     app.use('/app', express.static(distPath));
     app.get('/app/*', (_req: any, res: any) => { res.sendFile(path.join(distPath, 'index.html')); });

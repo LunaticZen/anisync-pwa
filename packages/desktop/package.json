@@ -9,7 +9,6 @@
     "dev": "concurrently \"vite\" \"tsc -w -p electron/tsconfig.json\" \"wait-on http://localhost:5173 && electron .\"",
     "dev:renderer": "vite",
     "build": "vite build && tsc -p electron/tsconfig.json",
-    "build:secure": "node scripts/build-secure.js",
     "electron:dev": "electron .",
     "package": "electron-builder --win",
     "clean": "rimraf dist out release"
@@ -26,8 +25,7 @@
     "react-router-dom": "^6.23.0",
     "socket.io": "^4.7.5",
     "socket.io-client": "^4.7.5",
-    "zustand": "^4.5.0",
-    "bytenode": "^1.5.0"
+    "zustand": "^4.5.0"
   },
   "devDependencies": {
     "@types/react": "^18.3.0",
@@ -41,8 +39,7 @@
     "sharp": "^0.34.5",
     "typescript": "^5.4.0",
     "vite": "^5.2.0",
-    "wait-on": "^7.2.0",
-    "javascript-obfuscator": "^4.1.0"
+    "wait-on": "^7.2.0"
   },
   "build": {
     "appId": "com.anisync.desktop",
@@ -60,7 +57,6 @@
     "files": [
       "dist/**/*",
       "electron/**/*.js",
-      "electron/**/*.jsc",
       "node_modules/**/*",
       "!node_modules/**/test/**",
       "!node_modules/**/tests/**",

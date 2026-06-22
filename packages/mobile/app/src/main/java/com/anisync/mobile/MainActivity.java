@@ -37,28 +37,20 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.webkit.WebSettingsCompat;
 import androidx.webkit.WebViewFeature;
 
-import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
-import java.util.concurrent.CopyOnWriteArrayList;
-
-import org.json.JSONArray;
-import org.json.JSONObject;
 
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "AniSync";
-    private static final String SERVER_URL = "https://anisync.site";
+    private static final String SERVER_URL = "https://anisync-9z1z.onrender.com";
     private static final int FILE_CHOOSER_REQUEST = 1001;
 
     private WebView mainWebView;
@@ -111,69 +103,28 @@ public class MainActivity extends AppCompatActivity {
         Log.e(TAG, msg);
     }
 
-    // ── Dynamic Script Delivery ──────────────────────────────────
-    // Ad domains and inject scripts are fetched from backend.
-    // NO hardcoded bypass code in APK — clean for Google Play.
-    private final Set<String> dynamicAdDomains = new HashSet<>();
-    private final CopyOnWriteArrayList<String> dynamicScripts = new CopyOnWriteArrayList<>();
-    private volatile boolean scriptsLoaded = false;
-
-    private void fetchSiteScripts() {
-        new Thread(() -> {
-            try {
-                URL url = new URL(SERVER_URL + "/api/site-scripts");
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setRequestMethod("POST");
-                conn.setRequestProperty("Content-Type", "application/json");
-                conn.setDoOutput(true);
-                conn.setConnectTimeout(8000);
-                conn.setReadTimeout(8000);
-
-                String body = "{\"url\":\"init\"}";
-                OutputStream os = conn.getOutputStream();
-                os.write(body.getBytes("UTF-8"));
-                os.close();
-
-                if (conn.getResponseCode() == 200) {
-                    BufferedReader reader = new BufferedReader(
-                            new InputStreamReader(conn.getInputStream(), "UTF-8"));
-                    StringBuilder sb = new StringBuilder();
-                    String line;
-                    while ((line = reader.readLine()) != null) sb.append(line);
-                    reader.close();
-
-                    JSONObject json = new JSONObject(sb.toString());
-
-                    // Parse ad domains
-                    JSONArray domains = json.optJSONArray("adDomains");
-                    if (domains != null) {
-                        for (int i = 0; i < domains.length(); i++) {
-                            dynamicAdDomains.add(domains.getString(i));
-                        }
-                    }
-
-                    // Parse scripts
-                    JSONArray scripts = json.optJSONArray("scripts");
-                    if (scripts != null) {
-                        for (int i = 0; i < scripts.length(); i++) {
-                            JSONObject s = scripts.getJSONObject(i);
-                            String code = s.optString("code", "");
-                            if (!code.isEmpty()) dynamicScripts.add(code);
-                        }
-                    }
-
-                    scriptsLoaded = true;
-                    appLog("Site scripts loaded: " + dynamicScripts.size() + " scripts, "
-                            + dynamicAdDomains.size() + " ad domains");
-                } else {
-                    appLogError("Script fetch failed: HTTP " + conn.getResponseCode());
-                }
-                conn.disconnect();
-            } catch (Exception e) {
-                appLogError("Script fetch error: " + e.getMessage());
-            }
-        }).start();
-    }
+    // ── Ad domain set: used for suffix-based matching ──
+    private static final Set<String> AD_DOMAIN_SUFFIXES = new HashSet<>(Arrays.asList(
+            "doubleclick.net", "googlesyndication.com", "googleadservices.com",
+            "google-analytics.com", "adservice.google.com",
+            "facebook.net", "fbcdn.net",
+            "amazon-adsystem.com", "ads-twitter.com",
+            "adnxs.com", "adsrvr.org", "adcolony.com",
+            "moatads.com", "serving-sys.com",
+            "popads.net", "popcash.net", "propellerads.com",
+            "exoclick.com", "juicyads.com",
+            "revcontent.com", "taboola.com", "outbrain.com",
+            "mgid.com", "content-ad.net",
+            "betweendigital.com", "bidvertiser.com",
+            "pushground.com", "trafficstars.com", "clickadu.com",
+            "hilltopads.net", "a-ads.com", "adsterra.com",
+            "vidmoly.me", "vidmoly.to",
+            "turkanime.co", "hdvid.fun", "streamtape.com",
+            "mixdrop.co", "dooood.com", "upstream.to",
+            "apexsec.co", "cpmstar.com", "ad-maven.com",
+            "admaven.com", "monetag.com", "onclicka.com",
+            "onclicksuper.com", "highcpmgate.com",
+            "disqus.com", "yandex.ru", "mc.yandex.ru"));
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -183,9 +134,6 @@ public class MainActivity extends AppCompatActivity {
 
         // Detect Xiaomi / MIUI devices
         isXiaomiDevice = detectXiaomi();
-
-        // Fetch site scripts from backend (ad domains + inject scripts)
-        fetchSiteScripts();
         appLog("Device: " + Build.MANUFACTURER + " " + Build.MODEL + " | Xiaomi: " + isXiaomiDevice);
 
         // PERF: KeepAliveService removed from onCreate — now started/stopped via JS Bridge
@@ -225,7 +173,6 @@ public class MainActivity extends AppCompatActivity {
         appLog("Anime WebView layer: NONE (allows HW video surfaces)");
 
         setupAnimeWebView();
-        animeWebView.addJavascriptInterface(jsBridge, "AniSyncBridge");
     }
 
     /**
@@ -267,8 +214,79 @@ public class MainActivity extends AppCompatActivity {
         cm.setAcceptThirdPartyCookies(mainWebView, true);
 
         // JS Bridge
-        jsBridge = new AniSyncJSBridge();
-        mainWebView.addJavascriptInterface(jsBridge, "AniSyncBridge");
+        mainWebView.addJavascriptInterface(new Object() {
+            @JavascriptInterface
+            public void openAnime(String url) {
+                runOnUiThread(() -> loadAnime(url));
+            }
+
+            @JavascriptInterface
+            public void closeAnime() {
+                runOnUiThread(() -> hideAnime());
+            }
+
+            @JavascriptInterface
+            public void controlAnime(String command, double time) {
+                runOnUiThread(() -> executeVideoCommand(command, time));
+            }
+
+            // PERF: KeepAliveService lifecycle — start when joining room, stop when leaving
+            @JavascriptInterface
+            public void startKeepAlive() {
+                runOnUiThread(() -> {
+                    try {
+                        Intent i = new Intent(MainActivity.this, KeepAliveService.class);
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            startForegroundService(i);
+                        } else {
+                            startService(i);
+                        }
+                        appLog("KeepAliveService started (room joined)");
+                    } catch (Exception e) {
+                        appLogError("KeepAliveService start failed: " + e.getMessage());
+                    }
+                });
+            }
+
+            @JavascriptInterface
+            public void stopKeepAlive() {
+                runOnUiThread(() -> {
+                    try {
+                        stopService(new Intent(MainActivity.this, KeepAliveService.class));
+                        appLog("KeepAliveService stopped (room left)");
+                    } catch (Exception e) {
+                        appLogError("KeepAliveService stop failed: " + e.getMessage());
+                    }
+                });
+            }
+
+            @JavascriptInterface
+            public String getLogs() {
+                StringBuilder sb = new StringBuilder();
+                sb.append("=== AniSync Logs ===").append("\n");
+                sb.append("Device: ").append(Build.MANUFACTURER).append(" ").append(Build.MODEL).append("\n");
+                sb.append("Android: ").append(Build.VERSION.RELEASE).append(" (SDK ").append(Build.VERSION.SDK_INT).append("\n");
+                sb.append("Xiaomi: ").append(isXiaomiDevice).append("\n");
+                sb.append("===================").append("\n\n");
+                synchronized (logBuffer) {
+                    for (String line : logBuffer) {
+                        sb.append(line).append("\n");
+                    }
+                }
+                return sb.toString();
+            }
+
+            @JavascriptInterface
+            public void copyLogs() {
+                String logs = getLogs();
+                runOnUiThread(() -> {
+                    ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+                    ClipData clip = ClipData.newPlainText("AniSync Logs", logs);
+                    clipboard.setPrimaryClip(clip);
+                    appLog("Logs copied to clipboard (" + logBuffer.size() + " entries)");
+                });
+            }
+        }, "AniSyncBridge");
 
         mainWebView.setWebViewClient(new WebViewClient() {
             @Override
@@ -407,13 +425,41 @@ public class MainActivity extends AppCompatActivity {
                 // Track page loads for periodic memory cleanup
                 animePageLoadCount++;
 
-                // Inject dynamic scripts fetched from backend
-                // NO hardcoded bypass code — scripts come from server
-                if (scriptsLoaded && !dynamicScripts.isEmpty()) {
-                    for (String script : dynamicScripts) {
-                        view.evaluateJavascript(script, null);
-                    }
-                }
+                // PERF: All JS injections consolidated into single evaluateJavascript call
+                // to reduce IPC overhead. Guard flag prevents duplicate injection.
+                // MutationObserver REMOVED — CSS !important handles all video elements.
+                String allInjects = "(function(){" +
+                        "if(window.__anisyncInjected)return;" +
+                        "window.__anisyncInjected=true;" +
+                        // Ad-blocker CSS
+                        "var s=document.createElement('style');" +
+                        "s.id='anisync-adblock';" +
+                        "s.textContent='" +
+                        "[class*=\\\"ad-\\\"],[class*=\\\"ads-\\\"],[id*=\\\"ad-\\\"],[id*=\\\"ads-\\\"]," +
+                        "[class*=\\\"banner\\\"],[class*=\\\"popup\\\"],[class*=\\\"reklam\\\"],[id*=\\\"reklam\\\"]," +
+                        ".adsbygoogle,ins.adsbygoogle,[class*=\\\"AdContainer\\\"],[class*=\\\"ad_wrapper\\\"]," +
+                        "div[data-ad],div[data-ads],iframe[src*=\\\"doubleclick\\\"],iframe[src*=\\\"googlesyndication\\\"]," +
+                        "[class*=\\\"overlay\\\"]:not(video):not([class*=\\\"player\\\"])," +
+                        "[class*=\\\"modal\\\"]:not([class*=\\\"player\\\"])," +
+                        "a[target=\\\"_blank\\\"][rel*=\\\"noopener\\\"]" +
+                        "{display:none!important;height:0!important;overflow:hidden!important;}';" +
+                        "document.head.appendChild(s);" +
+                        // Popup blocker
+                        "window.open=function(){return null;};" +
+                        "document.addEventListener('click',function(e){" +
+                        "  var t=e.target;" +
+                        "  if(t.tagName==='A'&&t.target==='_blank'&&t.href&&" +
+                        "    (t.href.indexOf('ad')>-1||t.href.indexOf('click')>-1||t.href.indexOf('track')>-1)){" +
+                        "    e.preventDefault();e.stopPropagation();" +
+                        "  }" +
+                        "},true);" +
+                        // Video letterbox CSS (no MutationObserver — CSS !important is sufficient)
+                        "var s2=document.createElement('style');" +
+                        "s2.id='anisync-letterbox';" +
+                        "s2.textContent='video{object-fit:contain!important;max-width:100%!important;max-height:100%!important;}';" +
+                        "document.head.appendChild(s2);" +
+                        "})();";
+                view.evaluateJavascript(allInjects, null);
 
                 // Debounced redraw — cancel previous pending redraws first
                 mainHandler.removeCallbacks(pendingRedraw);
@@ -772,15 +818,13 @@ public class MainActivity extends AppCompatActivity {
     private boolean isAdDomain(String host) {
         if (host == null || host.isEmpty())
             return false;
-        // Dynamic ad domain check — domains fetched from backend
-        if (dynamicAdDomains.isEmpty()) return false;
         // Quick prefix checks for common ad patterns
         if (host.startsWith("ads.") || host.startsWith("ad.") || host.startsWith("tracking."))
             return true;
         // Suffix matching: check "host", then "parent.host", etc.
         String domain = host;
         while (domain.contains(".")) {
-            if (dynamicAdDomains.contains(domain))
+            if (AD_DOMAIN_SUFFIXES.contains(domain))
                 return true;
             int dot = domain.indexOf('.');
             domain = domain.substring(dot + 1);
@@ -889,100 +933,5 @@ public class MainActivity extends AppCompatActivity {
             animeWebView = null;
         }
         super.onDestroy();
-    }
-
-    private AniSyncJSBridge jsBridge;
-
-    private class AniSyncJSBridge {
-
-            @JavascriptInterface
-            public void openAnime(String url) {
-                runOnUiThread(() -> loadAnime(url));
-            }
-
-            @JavascriptInterface
-            public void closeAnime() {
-                runOnUiThread(() -> hideAnime());
-            }
-
-            @JavascriptInterface
-            public void controlAnime(String command, double time) {
-                runOnUiThread(() -> executeVideoCommand(command, time));
-            }
-
-            // PERF: KeepAliveService lifecycle — start when joining room, stop when leaving
-            @JavascriptInterface
-            public void startKeepAlive() {
-                runOnUiThread(() -> {
-                    try {
-                        Intent i = new Intent(MainActivity.this, KeepAliveService.class);
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                            startForegroundService(i);
-                        } else {
-                            startService(i);
-                        }
-                        appLog("KeepAliveService started (room joined)");
-                    } catch (Exception e) {
-                        appLogError("KeepAliveService start failed: " + e.getMessage());
-                    }
-                });
-            }
-
-            @JavascriptInterface
-            public void stopKeepAlive() {
-                runOnUiThread(() -> {
-                    try {
-                        stopService(new Intent(MainActivity.this, KeepAliveService.class));
-                        appLog("KeepAliveService stopped (room left)");
-                    } catch (Exception e) {
-                        appLogError("KeepAliveService stop failed: " + e.getMessage());
-                    }
-                });
-            }
-
-            @JavascriptInterface
-            public String getLogs() {
-                StringBuilder sb = new StringBuilder();
-                sb.append("=== AniSync Logs ===").append("\n");
-                sb.append("Device: ").append(Build.MANUFACTURER).append(" ").append(Build.MODEL).append("\n");
-                sb.append("Android: ").append(Build.VERSION.RELEASE).append(" (SDK ").append(Build.VERSION.SDK_INT).append("\n");
-                sb.append("Xiaomi: ").append(isXiaomiDevice).append("\n");
-                sb.append("===================").append("\n\n");
-                synchronized (logBuffer) {
-                    for (String line : logBuffer) {
-                        sb.append(line).append("\n");
-                    }
-                }
-                return sb.toString();
-            }
-
-            @JavascriptInterface
-            public void copyLogs() {
-                String logs = getLogs();
-                runOnUiThread(() -> {
-                    ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-                    ClipData clip = ClipData.newPlainText("AniSync Logs", logs);
-                    clipboard.setPrimaryClip(clip);
-                    appLog("Logs copied to clipboard (" + logBuffer.size() + " entries)");
-                });
-            }
-
-            // ── Video Event Bridge ──
-            // _player.js calls pushEvent() when video play/pause/seek happens.
-            // React eventPoll calls getEvent() to read and consume the event.
-            private volatile String pendingEvent = null;
-
-            @JavascriptInterface
-            public void pushEvent(String eventJson) {
-                pendingEvent = eventJson;
-            }
-
-            @JavascriptInterface
-            public String getEvent() {
-                String ev = pendingEvent;
-                pendingEvent = null;
-                return ev;
-            }
-
     }
 }
