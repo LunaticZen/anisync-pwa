@@ -143,6 +143,16 @@ Bu döküman, AniSync'e eklenen "Resim Yükleme ve Tam Ekran (Lightbox) Özelli�
 **Sürüm:** v1.2.0
 **Tarih:** Haziran 2026
 
+## 6. Mobil ve UI İyileştirmeleri (v1.3.0)
+**Sorunlar ve Yapılanlar:**
+- **Mobil Sync Hassasiyeti:** Mobildeki senkronizasyon toleransı (hostDrift) 3 saniyeden 0.5 saniyeye (500ms) düşürülerek çok daha hassas ve anlık bir izleme deneyimi sağlandı. (`RoomPage.tsx`)
+- **Tema İkonu (Su Damlası):** Lobi ekranındaki tema değiştirme tuşu, seçili temanın vurgu rengiyle dinamik olarak uyum sağlayan özel bir 'Su Damlası' SVG ikonu ile değiştirildi. (`RoomHeader.tsx`)
+- **Dokunma Yansıması (Fix):** Android/Mobil görünümde butonlara basıldığında ortaya çıkan çirkin mavi parlama efekti global CSS ile kapatılarak uygulamanın premium hissiyatı güçlendirildi. (`index.css`)
+
+***
+**Sürüm:** v1.3.0
+**Tarih:** Haziran 2026
+
 
 
 ---
