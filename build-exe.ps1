@@ -1,10 +1,11 @@
-Set-Location "$PSScriptRoot\packages\desktop"
+cd packages\desktop
 $env:CSC_IDENTITY_AUTO_DISCOVERY = "false"
 npx electron-builder --win dir --config.win.signAndEditExecutable=false
 
 # Copy to Desktop
-if (Test-Path 'C:\Users\emin\Desktop\AniSync') {
-    Remove-Item 'C:\Users\emin\Desktop\AniSync' -Recurse -Force
+$desktopPath = "$env:USERPROFILE\Desktop\AniSync"
+if (Test-Path $desktopPath) {
+    Remove-Item $desktopPath -Recurse -Force
 }
-Copy-Item 'release\win-unpacked' 'C:\Users\emin\Desktop\AniSync' -Recurse
+Copy-Item 'release\win-unpacked' $desktopPath -Recurse
 Write-Host "AniSync masaustune kopyalandi!"
