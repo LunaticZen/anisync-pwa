@@ -146,7 +146,7 @@ export function EmojiPicker({ onSelect, onClose, isLight, isImage }: EmojiPicker
                   }}
                 >
                   <img 
-                    src={`https://cdn.jsdelivr.net/gh/LunaticZen/live_wallpapers@main/emojis/${emoji.path}`} 
+                    src={emoji.path.startsWith('http') ? emoji.path : `https://cdn.jsdelivr.net/gh/LunaticZen/live_wallpapers@main/emojis/${emoji.path}`}
                     alt={emoji.name}
                     loading="lazy"
                     decoding="async"

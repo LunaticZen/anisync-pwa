@@ -24,7 +24,7 @@ function renderMessageText(text: string, isOnlyEmoji: boolean) {
     parts.push(
       <img 
         key={match.index} 
-        src={`https://cdn.jsdelivr.net/gh/LunaticZen/live_wallpapers@main/emojis/${emojiPath}`} 
+        src={emojiPath.startsWith('http') ? emojiPath : `https://cdn.jsdelivr.net/gh/LunaticZen/live_wallpapers@main/emojis/${emojiPath}`} 
         alt="emoji" 
         style={{ 
           height: isOnlyEmoji ? 48 : 24, 
@@ -558,7 +558,7 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
     
     const img = document.createElement('img');
     img.setAttribute('data-emoji', emojiPath);
-    img.src = `https://cdn.jsdelivr.net/gh/LunaticZen/live_wallpapers@main/emojis/${emojiPath}`;
+    img.src = emojiPath.startsWith('http') ? emojiPath : `https://cdn.jsdelivr.net/gh/LunaticZen/live_wallpapers@main/emojis/${emojiPath}`;
     img.alt = "emoji";
     img.style.height = '24px';
     img.style.width = '24px';
