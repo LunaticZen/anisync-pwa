@@ -213,6 +213,10 @@ function updateAnimeViewBounds() {
 }
 
 // ─── Player Script ───────────────────────────────────────────
+// This script is injected into EVERY frame (main + sub-frames).
+// For Animecix: finds <video> directly in the frame → hooks it.
+// For Dizibox: also scans iframe contentDocuments (cross-origin access
+//   works because BrowserView has webSecurity: false).
 
 const PLAYER_SCRIPT = `
 (function() {
@@ -221,6 +225,7 @@ const PLAYER_SCRIPT = `
   var ignoreUntil = 0;
 
   function findVideo() {
+    // Strategy 1: Direct video elements in this frame (works for Animecix)
     var videos = document.querySelectorAll('video');
     for (var i = 0; i < videos.length; i++) {
       var v = videos[i];
@@ -229,11 +234,68 @@ const PLAYER_SCRIPT = `
         return true;
       }
     }
-    // Also check for any video element even without src
     if (videos.length > 0) {
       hookVideo(videos[0]);
       return true;
     }
+
+    // Strategy 2: Scan iframe contentDocuments (critical for Dizibox)
+    // In Electron BrowserView with webSecurity:false, we CAN access
+    // cross-origin iframe contentDocuments from the parent frame.
+    if (scanIframes()) return true;
+
+    return false;
+  }
+
+  // ── Dizibox fallback: scan into iframe contentDocuments ──
+  function scanIframes() {
+    try {
+      var iframes = document.querySelectorAll('iframe');
+      for (var i = 0; i < iframes.length; i++) {
+        try {
+          var doc = iframes[i].contentDocument || (iframes[i].contentWindow && iframes[i].contentWindow.document);
+          if (!doc) continue;
+
+          // Look for videos in this iframe
+          var vids = doc.querySelectorAll('video');
+          for (var j = 0; j < vids.length; j++) {
+            var v = vids[j];
+            if (v.readyState > 0 || v.src || v.currentSrc) {
+              console.log('[AniSync] Video found in IFRAME contentDocument:', iframes[i].src ? iframes[i].src.substring(0, 60) : 'no-src');
+              hookVideo(v);
+              return true;
+            }
+          }
+          if (vids.length > 0) {
+            console.log('[AniSync] Video (no-src) found in IFRAME contentDocument:', iframes[i].src ? iframes[i].src.substring(0, 60) : 'no-src');
+            hookVideo(vids[0]);
+            return true;
+          }
+
+          // Also check for nested iframes (2nd level deep)
+          var innerIframes = doc.querySelectorAll('iframe');
+          for (var k = 0; k < innerIframes.length; k++) {
+            try {
+              var innerDoc = innerIframes[k].contentDocument || (innerIframes[k].contentWindow && innerIframes[k].contentWindow.document);
+              if (!innerDoc) continue;
+              var innerVids = innerDoc.querySelectorAll('video');
+              for (var m = 0; m < innerVids.length; m++) {
+                var iv = innerVids[m];
+                if (iv.readyState > 0 || iv.src || iv.currentSrc) {
+                  console.log('[AniSync] Video found in NESTED IFRAME (2 levels deep)');
+                  hookVideo(iv);
+                  return true;
+                }
+              }
+              if (innerVids.length > 0) {
+                hookVideo(innerVids[0]);
+                return true;
+              }
+            } catch(e) { /* cross-origin nested iframe, skip */ }
+          }
+        } catch(e) { /* cross-origin iframe, skip */ }
+      }
+    } catch(e) {}
     return false;
   }
 
@@ -264,8 +326,24 @@ const PLAYER_SCRIPT = `
       window.__anisync_event = { type: 'seek', time: v.currentTime, ts: Date.now() };
     });
 
+    // Monitor video element removal
     setInterval(function() {
-      if (!document.body.contains(v)) {
+      try {
+        // Check if video is still in ANY document (could be iframe)
+        var stillExists = false;
+        if (document.body && document.body.contains(v)) { stillExists = true; }
+        // Also check if video's ownerDocument still has it
+        if (!stillExists && v.ownerDocument && v.ownerDocument.body) {
+          stillExists = v.ownerDocument.body.contains(v);
+        }
+        if (!stillExists) {
+          window.__anisync_injected = false;
+          window.__anisync_has_video = false;
+          window.__anisync_api = null;
+          findVideo() || startSearch();
+        }
+      } catch(e) {
+        // If checking fails, reset and search again
         window.__anisync_injected = false;
         window.__anisync_has_video = false;
         window.__anisync_api = null;
