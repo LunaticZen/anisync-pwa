@@ -127,16 +127,66 @@ function createAnimeView(url: string) {
   // Only touches requests to Dizibox-related domains. Animecix traffic is NEVER affected.
   setupHeaderInterceptors(animeView);
 
-  // Inject on every frame load
+  // Inject on every frame load (works great for Animecix)
   const doInject = () => {
     setTimeout(() => injectAllFrames(), 300);
     setTimeout(() => injectAllFrames(), 1500);
     setTimeout(() => injectAllFrames(), 4000);
-    setTimeout(() => injectAllFrames(), 8000);  // Dizibox: late-loading iframe embeds (Vidmoly/OK.ru)
-    setTimeout(() => injectAllFrames(), 15000); // Extra safety net for very slow connections
+    setTimeout(() => injectAllFrames(), 8000);
   };
   animeView.webContents.on('did-finish-load', doInject);
   animeView.webContents.on('did-frame-finish-load', doInject);
+
+  // ── Continuous Frame Scanner (critical for Dizibox) ──
+  // Dizibox creates video provider iframes (Vidmoly/OK.ru) dynamically via JS.
+  // These iframes may NOT trigger did-frame-finish-load reliably.
+  // This scanner runs every 3s for 2 minutes, checking for new un-injected frames.
+  // For Animecix: __anisync_injected guard prevents any double-hooking.
+  let scanCount = 0;
+  const MAX_SCANS = 40; // 40 × 3s = 2 minutes
+  const continuousScanner = setInterval(async () => {
+    scanCount++;
+    if (!animeView || animeView.webContents.isDestroyed() || scanCount > MAX_SCANS) {
+      clearInterval(continuousScanner);
+      console.log('[AniSync] Continuous scanner stopped (count:', scanCount, ')');
+      return;
+    }
+
+    try {
+      const wc = animeView.webContents;
+      const mf = wc.mainFrame;
+      if (!mf || !mf.framesInSubtree) return;
+
+      let injectedCount = 0;
+      let totalFrames = 0;
+
+      for (const frame of mf.framesInSubtree) {
+        totalFrames++;
+        try {
+          // Check if this frame already has the script
+          const alreadyInjected = await frame.executeJavaScript('!!window.__anisync_injected');
+          if (!alreadyInjected) {
+            await frame.executeJavaScript(PLAYER_SCRIPT);
+            injectedCount++;
+            console.log('[AniSync:Scanner] Injected into NEW frame #' + totalFrames);
+          }
+        } catch { }
+      }
+
+      if (injectedCount > 0) {
+        console.log('[AniSync:Scanner] Scan #' + scanCount + ': injected ' + injectedCount + ' new frames (total: ' + totalFrames + ')');
+        // Re-scan for video after new injections
+        setTimeout(() => scanForVideoFrame(), 2000);
+      }
+
+      // Also check if video was found — if yes, we can slow down
+      const videoFound = await execVideo('!!window.__anisync_has_video');
+      if (videoFound) {
+        console.log('[AniSync:Scanner] Video found! Stopping continuous scan.');
+        clearInterval(continuousScanner);
+      }
+    } catch { }
+  }, 3000);
 
   // Track URL changes
   const notifyUrl = (newUrl: string) => {
@@ -244,9 +294,18 @@ const PLAYER_SCRIPT = `
 async function injectAllFrames() {
   if (!animeView) return;
   const wc = animeView.webContents;
+  let frameCount = 0;
+  let injectedCount = 0;
 
   // Inject main frame
-  try { await wc.executeJavaScript(PLAYER_SCRIPT); } catch { }
+  try {
+    const alreadyDone = await wc.executeJavaScript('!!window.__anisync_injected');
+    if (!alreadyDone) {
+      await wc.executeJavaScript(PLAYER_SCRIPT);
+      injectedCount++;
+    }
+    frameCount++;
+  } catch { }
 
   // Inject ALL sub-frames
   try {
@@ -254,11 +313,22 @@ async function injectAllFrames() {
     if (mf && mf.framesInSubtree) {
       for (const frame of mf.framesInSubtree) {
         if (frame !== mf) {
-          try { await frame.executeJavaScript(PLAYER_SCRIPT); } catch { }
+          frameCount++;
+          try {
+            const alreadyDone = await frame.executeJavaScript('!!window.__anisync_injected');
+            if (!alreadyDone) {
+              await frame.executeJavaScript(PLAYER_SCRIPT);
+              injectedCount++;
+            }
+          } catch { }
         }
       }
     }
   } catch { }
+
+  if (injectedCount > 0) {
+    console.log(`[AniSync] Injected ${injectedCount} new frames (total frames: ${frameCount})`);
+  }
 
   // After injection, scan for which frame has the video
   setTimeout(() => scanForVideoFrame(), 2000);
