@@ -168,7 +168,7 @@ export async function getRoomMessages(roomId: string, limit = 50, before?: strin
     take: limit,
   });
 
-  return messages.reverse().map(m => ({
+  return messages.reverse().map((m: any) => ({
     id: m.id, roomId: m.roomId, userId: m.userId,
     username: m.user.username, displayName: m.user.displayName,
     avatarUrl: m.user.avatarUrl, text: m.text, type: m.type,

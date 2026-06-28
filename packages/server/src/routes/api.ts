@@ -131,7 +131,7 @@ router.get('/friends', authMiddleware, async (req: AuthenticatedRequest, res, ne
         receiver: { select: { id: true, username: true, displayName: true, avatarUrl: true } },
       },
     });
-    const friendList = friends.map(f => f.senderId === req.user!.userId ? f.receiver : f.sender);
+    const friendList = friends.map((f: any) => f.senderId === req.user!.userId ? f.receiver : f.sender);
     res.json({ success: true, data: friendList });
   } catch (err) { next(err); }
 });
