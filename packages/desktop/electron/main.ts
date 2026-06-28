@@ -369,57 +369,88 @@ const PLAYER_SCRIPT = `
 })();
 `;
 
+// ─── Timeout-protected executeJavaScript ──────────────────────
+// Cross-origin frames can cause executeJavaScript to hang forever.
+// This wrapper adds a timeout to prevent blocking the entire injection flow.
+
+function executeWithTimeout(target: any, code: string, timeoutMs = 3000): Promise<any> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('TIMEOUT')), timeoutMs);
+    target.executeJavaScript(code)
+      .then((result: any) => { clearTimeout(timer); resolve(result); })
+      .catch((err: any) => { clearTimeout(timer); reject(err); });
+  });
+}
+
 async function injectAllFrames() {
-  if (!animeView) return;
+  if (!animeView || animeView.webContents.isDestroyed()) return;
   const wc = animeView.webContents;
   let frameCount = 0;
   let injectedCount = 0;
+  let failCount = 0;
+
+  console.log('[AniSync] injectAllFrames() starting...');
 
   // Inject main frame
   try {
-    const alreadyDone = await wc.executeJavaScript('!!window.__anisync_injected');
+    const alreadyDone = await executeWithTimeout(wc, '!!window.__anisync_injected');
     if (!alreadyDone) {
-      await wc.executeJavaScript(PLAYER_SCRIPT);
+      await executeWithTimeout(wc, PLAYER_SCRIPT, 5000);
       injectedCount++;
+      console.log('[AniSync] Injected MAIN frame:', wc.getURL().substring(0, 60));
     }
     frameCount++;
-  } catch { }
+  } catch (e: any) {
+    console.log('[AniSync] Main frame inject error:', e.message);
+    failCount++;
+  }
 
   // Inject ALL sub-frames
   try {
     const mf = wc.mainFrame;
     if (mf && mf.framesInSubtree) {
-      for (const frame of mf.framesInSubtree) {
-        if (frame !== mf) {
-          frameCount++;
-          try {
-            const alreadyDone = await frame.executeJavaScript('!!window.__anisync_injected');
-            if (!alreadyDone) {
-              await frame.executeJavaScript(PLAYER_SCRIPT);
-              injectedCount++;
-            }
-          } catch { }
+      const frames = [...mf.framesInSubtree]; // snapshot to avoid mutation issues
+      console.log('[AniSync] Found', frames.length, 'frames in subtree');
+
+      for (const frame of frames) {
+        if (frame === mf) continue;
+        frameCount++;
+        const frameUrl = (frame as any).url || 'unknown';
+        try {
+          const alreadyDone = await executeWithTimeout(frame, '!!window.__anisync_injected');
+          if (!alreadyDone) {
+            await executeWithTimeout(frame, PLAYER_SCRIPT, 5000);
+            injectedCount++;
+            console.log('[AniSync] Injected sub-frame:', frameUrl.substring(0, 60));
+          }
+        } catch (e: any) {
+          failCount++;
+          console.log('[AniSync] Sub-frame FAILED:', frameUrl.substring(0, 60), '-', e.message);
         }
       }
     }
-  } catch { }
-
-  if (injectedCount > 0) {
-    console.log(`[AniSync] Injected ${injectedCount} new frames (total frames: ${frameCount})`);
+  } catch (e: any) {
+    console.log('[AniSync] framesInSubtree error:', e.message);
   }
+
+  console.log('[AniSync] Injection done: ' + injectedCount + ' injected, ' + failCount + ' failed, ' + frameCount + ' total frames');
 
   // After injection, scan for which frame has the video
   setTimeout(() => scanForVideoFrame(), 2000);
 }
 
 async function scanForVideoFrame() {
-  if (!animeView) return;
+  if (!animeView || animeView.webContents.isDestroyed()) return;
   const wc = animeView.webContents;
 
   // Check main frame
   try {
-    const has = await wc.executeJavaScript('!!window.__anisync_has_video');
-    if (has) { videoFrameRef = null; console.log('[AniSync] Video in MAIN frame'); return; }
+    const has = await executeWithTimeout(wc, '!!window.__anisync_has_video');
+    if (has) {
+      videoFrameRef = null;
+      console.log('[AniSync] Video found in MAIN frame');
+      return;
+    }
   } catch { }
 
   // Check sub-frames
@@ -427,12 +458,15 @@ async function scanForVideoFrame() {
     const mf = wc.mainFrame;
     if (mf && mf.framesInSubtree) {
       for (const frame of mf.framesInSubtree) {
-        if (frame !== mf) {
-          try {
-            const has = await frame.executeJavaScript('!!window.__anisync_has_video');
-            if (has) { videoFrameRef = frame; console.log('[AniSync] Video in SUB-FRAME'); return; }
-          } catch { }
-        }
+        if (frame === mf) continue;
+        try {
+          const has = await executeWithTimeout(frame, '!!window.__anisync_has_video');
+          if (has) {
+            videoFrameRef = frame;
+            console.log('[AniSync] Video found in SUB-FRAME:', (frame as any).url?.substring(0, 60) || 'unknown');
+            return;
+          }
+        } catch { }
       }
     }
   } catch { }
@@ -441,21 +475,21 @@ async function scanForVideoFrame() {
 
 // Execute in the cached video frame
 async function execVideo(js: string): Promise<any> {
-  if (!animeView) return null;
+  if (!animeView || animeView.webContents.isDestroyed()) return null;
 
   // If we have a cached frame ref, try it first
   if (videoFrameRef) {
     try {
-      const has = await videoFrameRef.executeJavaScript('!!window.__anisync_has_video');
-      if (has) return await videoFrameRef.executeJavaScript(js);
+      const has = await executeWithTimeout(videoFrameRef, '!!window.__anisync_has_video');
+      if (has) return await executeWithTimeout(videoFrameRef, js);
     } catch { }
     videoFrameRef = null; // Cache miss, rescan
   }
 
   // Try main frame
   try {
-    const has = await animeView.webContents.executeJavaScript('!!window.__anisync_has_video');
-    if (has) return await animeView.webContents.executeJavaScript(js);
+    const has = await executeWithTimeout(animeView.webContents, '!!window.__anisync_has_video');
+    if (has) return await executeWithTimeout(animeView.webContents, js);
   } catch { }
 
   // Try all sub-frames
@@ -465,10 +499,10 @@ async function execVideo(js: string): Promise<any> {
       for (const frame of mf.framesInSubtree) {
         if (frame !== mf) {
           try {
-            const has = await frame.executeJavaScript('!!window.__anisync_has_video');
+            const has = await executeWithTimeout(frame, '!!window.__anisync_has_video');
             if (has) {
               videoFrameRef = frame; // Cache it
-              return await frame.executeJavaScript(js);
+              return await executeWithTimeout(frame, js);
             }
           } catch { }
         }
@@ -535,18 +569,28 @@ ipcMain.handle('player:command', async (_e: any, cmd: string, ...args: any[]) =>
   return await execVideo(`window.__anisync_api?.${cmd}(${args.map((a: any) => JSON.stringify(a)).join(',')})`);
 });
 
+let stateLogCounter = 0;
 ipcMain.handle('player:getState', async () => {
-  return await execVideo(`
+  const result = await execVideo(`
     (function() {
       var a = window.__anisync_api;
       if (!a || !a.hasVideo) return null;
       return { time: a.getTime(), duration: a.getDuration(), state: a.getState(), speed: 1 };
     })()
   `);
+  stateLogCounter++;
+  if (stateLogCounter % 10 === 1 || result) {
+    console.log('[AniSync] player:getState =', result ? JSON.stringify(result).substring(0, 80) : 'null');
+  }
+  return result;
 });
 
 ipcMain.handle('player:getEvent', async () => {
-  return await execVideo('window.__anisync_api?.getEvent()');
+  const result = await execVideo('window.__anisync_api?.getEvent()');
+  if (result) {
+    console.log('[AniSync] player:getEvent =', JSON.stringify(result));
+  }
+  return result;
 });
 
 // ─── Dizibox: Session Header Interceptors ────────────────────

@@ -42,6 +42,43 @@ let mainWindow = null;
 let animeView = null;
 let videoFrameRef = null; // Cache the frame that has the video
 const isDev = !electron_1.app.isPackaged;
+// ─── Dizibox Multi-Platform Support ──────────────────────────
+// Domain lists for Dizibox and its video providers.
+// These are ONLY used for HTTP header manipulation — Animecix is never touched.
+const DIZIBOX_DOMAINS = ['dizibox.vip', 'dizibox.pw', 'dizibox.live', 'dizibox.com', 'dizibox.tv'];
+const VIDEO_PROVIDER_DOMAINS = [
+    'vidmoly.to', 'vidmoly.me', 'vidmoly.net',
+    'ok.ru', 'odnoklassniki.ru',
+    'filemoon.sx', 'filemoon.to', 'filemoon.in',
+    'doodstream.com', 'dood.to', 'dood.so',
+    'voe.sx',
+    'closeload.top', 'rapidrame.com',
+];
+const ALL_MANAGED_DOMAINS = [...DIZIBOX_DOMAINS, ...VIDEO_PROVIDER_DOMAINS];
+function isDomainMatch(hostname, domainList) {
+    return domainList.some(d => hostname === d || hostname.endsWith('.' + d));
+}
+function isDiziboxRelated(url) {
+    try {
+        const hostname = new URL(url).hostname;
+        return isDomainMatch(hostname, ALL_MANAGED_DOMAINS);
+    }
+    catch {
+        return false;
+    }
+}
+function getRefererForProvider(url) {
+    try {
+        const hostname = new URL(url).hostname;
+        // If this is a request to a video provider, set Referer to the provider's own origin
+        // so the provider thinks the request is coming from its own embed page
+        if (isDomainMatch(hostname, VIDEO_PROVIDER_DOMAINS)) {
+            return `https://${hostname}/`;
+        }
+    }
+    catch { }
+    return null;
+}
 // ─── Main Window ──────────────────────────────────────────────
 function createWindow() {
     mainWindow = new electron_1.BrowserWindow({
@@ -109,14 +146,66 @@ function createAnimeView(url) {
             }
         }
     });
-    // Inject on every frame load
+    // ── Dizibox: HTTP header interceptor for video providers ──
+    // Only touches requests to Dizibox-related domains. Animecix traffic is NEVER affected.
+    setupHeaderInterceptors(animeView);
+    // Inject on every frame load (works great for Animecix)
     const doInject = () => {
         setTimeout(() => injectAllFrames(), 300);
         setTimeout(() => injectAllFrames(), 1500);
         setTimeout(() => injectAllFrames(), 4000);
+        setTimeout(() => injectAllFrames(), 8000);
     };
     animeView.webContents.on('did-finish-load', doInject);
     animeView.webContents.on('did-frame-finish-load', doInject);
+    // ── Continuous Frame Scanner (critical for Dizibox) ──
+    // Dizibox creates video provider iframes (Vidmoly/OK.ru) dynamically via JS.
+    // These iframes may NOT trigger did-frame-finish-load reliably.
+    // This scanner runs every 3s for 2 minutes, checking for new un-injected frames.
+    // For Animecix: __anisync_injected guard prevents any double-hooking.
+    let scanCount = 0;
+    const MAX_SCANS = 40; // 40 × 3s = 2 minutes
+    const continuousScanner = setInterval(async () => {
+        scanCount++;
+        if (!animeView || animeView.webContents.isDestroyed() || scanCount > MAX_SCANS) {
+            clearInterval(continuousScanner);
+            console.log('[AniSync] Continuous scanner stopped (count:', scanCount, ')');
+            return;
+        }
+        try {
+            const wc = animeView.webContents;
+            const mf = wc.mainFrame;
+            if (!mf || !mf.framesInSubtree)
+                return;
+            let injectedCount = 0;
+            let totalFrames = 0;
+            for (const frame of mf.framesInSubtree) {
+                totalFrames++;
+                try {
+                    // Check if this frame already has the script
+                    const alreadyInjected = await frame.executeJavaScript('!!window.__anisync_injected');
+                    if (!alreadyInjected) {
+                        await frame.executeJavaScript(PLAYER_SCRIPT);
+                        injectedCount++;
+                        console.log('[AniSync:Scanner] Injected into NEW frame #' + totalFrames);
+                    }
+                }
+                catch { }
+            }
+            if (injectedCount > 0) {
+                console.log('[AniSync:Scanner] Scan #' + scanCount + ': injected ' + injectedCount + ' new frames (total: ' + totalFrames + ')');
+                // Re-scan for video after new injections
+                setTimeout(() => scanForVideoFrame(), 2000);
+            }
+            // Also check if video was found — if yes, we can slow down
+            const videoFound = await execVideo('!!window.__anisync_has_video');
+            if (videoFound) {
+                console.log('[AniSync:Scanner] Video found! Stopping continuous scan.');
+                clearInterval(continuousScanner);
+            }
+        }
+        catch { }
+    }, 3000);
     // Track URL changes
     const notifyUrl = (newUrl) => {
         if (mainWindow && !mainWindow.isDestroyed()) {
@@ -140,6 +229,10 @@ function updateAnimeViewBounds() {
     animeView.setBounds({ x, y, width: w, height: h });
 }
 // ─── Player Script ───────────────────────────────────────────
+// This script is injected into EVERY frame (main + sub-frames).
+// For Animecix: finds <video> directly in the frame → hooks it.
+// For Dizibox: also scans iframe contentDocuments (cross-origin access
+//   works because BrowserView has webSecurity: false).
 const PLAYER_SCRIPT = `
 (function() {
   if (window.__anisync_injected) return;
@@ -147,6 +240,7 @@ const PLAYER_SCRIPT = `
   var ignoreUntil = 0;
 
   function findVideo() {
+    // Strategy 1: Direct video elements in this frame (works for Animecix)
     var videos = document.querySelectorAll('video');
     for (var i = 0; i < videos.length; i++) {
       var v = videos[i];
@@ -155,11 +249,68 @@ const PLAYER_SCRIPT = `
         return true;
       }
     }
-    // Also check for any video element even without src
     if (videos.length > 0) {
       hookVideo(videos[0]);
       return true;
     }
+
+    // Strategy 2: Scan iframe contentDocuments (critical for Dizibox)
+    // In Electron BrowserView with webSecurity:false, we CAN access
+    // cross-origin iframe contentDocuments from the parent frame.
+    if (scanIframes()) return true;
+
+    return false;
+  }
+
+  // ── Dizibox fallback: scan into iframe contentDocuments ──
+  function scanIframes() {
+    try {
+      var iframes = document.querySelectorAll('iframe');
+      for (var i = 0; i < iframes.length; i++) {
+        try {
+          var doc = iframes[i].contentDocument || (iframes[i].contentWindow && iframes[i].contentWindow.document);
+          if (!doc) continue;
+
+          // Look for videos in this iframe
+          var vids = doc.querySelectorAll('video');
+          for (var j = 0; j < vids.length; j++) {
+            var v = vids[j];
+            if (v.readyState > 0 || v.src || v.currentSrc) {
+              console.log('[AniSync] Video found in IFRAME contentDocument:', iframes[i].src ? iframes[i].src.substring(0, 60) : 'no-src');
+              hookVideo(v);
+              return true;
+            }
+          }
+          if (vids.length > 0) {
+            console.log('[AniSync] Video (no-src) found in IFRAME contentDocument:', iframes[i].src ? iframes[i].src.substring(0, 60) : 'no-src');
+            hookVideo(vids[0]);
+            return true;
+          }
+
+          // Also check for nested iframes (2nd level deep)
+          var innerIframes = doc.querySelectorAll('iframe');
+          for (var k = 0; k < innerIframes.length; k++) {
+            try {
+              var innerDoc = innerIframes[k].contentDocument || (innerIframes[k].contentWindow && innerIframes[k].contentWindow.document);
+              if (!innerDoc) continue;
+              var innerVids = innerDoc.querySelectorAll('video');
+              for (var m = 0; m < innerVids.length; m++) {
+                var iv = innerVids[m];
+                if (iv.readyState > 0 || iv.src || iv.currentSrc) {
+                  console.log('[AniSync] Video found in NESTED IFRAME (2 levels deep)');
+                  hookVideo(iv);
+                  return true;
+                }
+              }
+              if (innerVids.length > 0) {
+                hookVideo(innerVids[0]);
+                return true;
+              }
+            } catch(e) { /* cross-origin nested iframe, skip */ }
+          }
+        } catch(e) { /* cross-origin iframe, skip */ }
+      }
+    } catch(e) {}
     return false;
   }
 
@@ -190,8 +341,24 @@ const PLAYER_SCRIPT = `
       window.__anisync_event = { type: 'seek', time: v.currentTime, ts: Date.now() };
     });
 
+    // Monitor video element removal
     setInterval(function() {
-      if (!document.body.contains(v)) {
+      try {
+        // Check if video is still in ANY document (could be iframe)
+        var stillExists = false;
+        if (document.body && document.body.contains(v)) { stillExists = true; }
+        // Also check if video's ownerDocument still has it
+        if (!stillExists && v.ownerDocument && v.ownerDocument.body) {
+          stillExists = v.ownerDocument.body.contains(v);
+        }
+        if (!stillExists) {
+          window.__anisync_injected = false;
+          window.__anisync_has_video = false;
+          window.__anisync_api = null;
+          findVideo() || startSearch();
+        }
+      } catch(e) {
+        // If checking fails, reset and search again
         window.__anisync_injected = false;
         window.__anisync_has_video = false;
         window.__anisync_api = null;
@@ -216,43 +383,82 @@ const PLAYER_SCRIPT = `
   if (!findVideo()) startSearch();
 })();
 `;
+// ─── Timeout-protected executeJavaScript ──────────────────────
+// Cross-origin frames can cause executeJavaScript to hang forever.
+// This wrapper adds a timeout to prevent blocking the entire injection flow.
+function executeWithTimeout(target, code, timeoutMs = 3000) {
+    return new Promise((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error('TIMEOUT')), timeoutMs);
+        target.executeJavaScript(code)
+            .then((result) => { clearTimeout(timer); resolve(result); })
+            .catch((err) => { clearTimeout(timer); reject(err); });
+    });
+}
 async function injectAllFrames() {
-    if (!animeView)
+    if (!animeView || animeView.webContents.isDestroyed())
         return;
     const wc = animeView.webContents;
+    let frameCount = 0;
+    let injectedCount = 0;
+    let failCount = 0;
+    console.log('[AniSync] injectAllFrames() starting...');
     // Inject main frame
     try {
-        await wc.executeJavaScript(PLAYER_SCRIPT);
+        const alreadyDone = await executeWithTimeout(wc, '!!window.__anisync_injected');
+        if (!alreadyDone) {
+            await executeWithTimeout(wc, PLAYER_SCRIPT, 5000);
+            injectedCount++;
+            console.log('[AniSync] Injected MAIN frame:', wc.getURL().substring(0, 60));
+        }
+        frameCount++;
     }
-    catch { }
+    catch (e) {
+        console.log('[AniSync] Main frame inject error:', e.message);
+        failCount++;
+    }
     // Inject ALL sub-frames
     try {
         const mf = wc.mainFrame;
         if (mf && mf.framesInSubtree) {
-            for (const frame of mf.framesInSubtree) {
-                if (frame !== mf) {
-                    try {
-                        await frame.executeJavaScript(PLAYER_SCRIPT);
+            const frames = [...mf.framesInSubtree]; // snapshot to avoid mutation issues
+            console.log('[AniSync] Found', frames.length, 'frames in subtree');
+            for (const frame of frames) {
+                if (frame === mf)
+                    continue;
+                frameCount++;
+                const frameUrl = frame.url || 'unknown';
+                try {
+                    const alreadyDone = await executeWithTimeout(frame, '!!window.__anisync_injected');
+                    if (!alreadyDone) {
+                        await executeWithTimeout(frame, PLAYER_SCRIPT, 5000);
+                        injectedCount++;
+                        console.log('[AniSync] Injected sub-frame:', frameUrl.substring(0, 60));
                     }
-                    catch { }
+                }
+                catch (e) {
+                    failCount++;
+                    console.log('[AniSync] Sub-frame FAILED:', frameUrl.substring(0, 60), '-', e.message);
                 }
             }
         }
     }
-    catch { }
+    catch (e) {
+        console.log('[AniSync] framesInSubtree error:', e.message);
+    }
+    console.log('[AniSync] Injection done: ' + injectedCount + ' injected, ' + failCount + ' failed, ' + frameCount + ' total frames');
     // After injection, scan for which frame has the video
     setTimeout(() => scanForVideoFrame(), 2000);
 }
 async function scanForVideoFrame() {
-    if (!animeView)
+    if (!animeView || animeView.webContents.isDestroyed())
         return;
     const wc = animeView.webContents;
     // Check main frame
     try {
-        const has = await wc.executeJavaScript('!!window.__anisync_has_video');
+        const has = await executeWithTimeout(wc, '!!window.__anisync_has_video');
         if (has) {
             videoFrameRef = null;
-            console.log('[AniSync] Video in MAIN frame');
+            console.log('[AniSync] Video found in MAIN frame');
             return;
         }
     }
@@ -262,17 +468,17 @@ async function scanForVideoFrame() {
         const mf = wc.mainFrame;
         if (mf && mf.framesInSubtree) {
             for (const frame of mf.framesInSubtree) {
-                if (frame !== mf) {
-                    try {
-                        const has = await frame.executeJavaScript('!!window.__anisync_has_video');
-                        if (has) {
-                            videoFrameRef = frame;
-                            console.log('[AniSync] Video in SUB-FRAME');
-                            return;
-                        }
+                if (frame === mf)
+                    continue;
+                try {
+                    const has = await executeWithTimeout(frame, '!!window.__anisync_has_video');
+                    if (has) {
+                        videoFrameRef = frame;
+                        console.log('[AniSync] Video found in SUB-FRAME:', frame.url?.substring(0, 60) || 'unknown');
+                        return;
                     }
-                    catch { }
                 }
+                catch { }
             }
         }
     }
@@ -281,23 +487,23 @@ async function scanForVideoFrame() {
 }
 // Execute in the cached video frame
 async function execVideo(js) {
-    if (!animeView)
+    if (!animeView || animeView.webContents.isDestroyed())
         return null;
     // If we have a cached frame ref, try it first
     if (videoFrameRef) {
         try {
-            const has = await videoFrameRef.executeJavaScript('!!window.__anisync_has_video');
+            const has = await executeWithTimeout(videoFrameRef, '!!window.__anisync_has_video');
             if (has)
-                return await videoFrameRef.executeJavaScript(js);
+                return await executeWithTimeout(videoFrameRef, js);
         }
         catch { }
         videoFrameRef = null; // Cache miss, rescan
     }
     // Try main frame
     try {
-        const has = await animeView.webContents.executeJavaScript('!!window.__anisync_has_video');
+        const has = await executeWithTimeout(animeView.webContents, '!!window.__anisync_has_video');
         if (has)
-            return await animeView.webContents.executeJavaScript(js);
+            return await executeWithTimeout(animeView.webContents, js);
     }
     catch { }
     // Try all sub-frames
@@ -307,10 +513,10 @@ async function execVideo(js) {
             for (const frame of mf.framesInSubtree) {
                 if (frame !== mf) {
                     try {
-                        const has = await frame.executeJavaScript('!!window.__anisync_has_video');
+                        const has = await executeWithTimeout(frame, '!!window.__anisync_has_video');
                         if (has) {
                             videoFrameRef = frame; // Cache it
-                            return await frame.executeJavaScript(js);
+                            return await executeWithTimeout(frame, js);
                         }
                     }
                     catch { }
@@ -378,18 +584,67 @@ electron_1.ipcMain.handle('player:command', async (_e, cmd, ...args) => {
     console.log('[AniSync] Player command:', cmd, args);
     return await execVideo(`window.__anisync_api?.${cmd}(${args.map((a) => JSON.stringify(a)).join(',')})`);
 });
+let stateLogCounter = 0;
 electron_1.ipcMain.handle('player:getState', async () => {
-    return await execVideo(`
+    const result = await execVideo(`
     (function() {
       var a = window.__anisync_api;
       if (!a || !a.hasVideo) return null;
       return { time: a.getTime(), duration: a.getDuration(), state: a.getState(), speed: 1 };
     })()
   `);
+    stateLogCounter++;
+    if (stateLogCounter % 10 === 1 || result) {
+        console.log('[AniSync] player:getState =', result ? JSON.stringify(result).substring(0, 80) : 'null');
+    }
+    return result;
 });
 electron_1.ipcMain.handle('player:getEvent', async () => {
-    return await execVideo('window.__anisync_api?.getEvent()');
+    const result = await execVideo('window.__anisync_api?.getEvent()');
+    if (result) {
+        console.log('[AniSync] player:getEvent =', JSON.stringify(result));
+    }
+    return result;
 });
+// ─── Dizibox: Session Header Interceptors ────────────────────
+// Manipulates HTTP headers ONLY for Dizibox video providers.
+// Animecix and all other sites are completely unaffected.
+function setupHeaderInterceptors(view) {
+    const ses = view.webContents.session;
+    // Outgoing requests: Set Referer for video provider domains
+    ses.webRequest.onBeforeSendHeaders({ urls: ['*://*/*'] }, (details, callback) => {
+        const headers = { ...details.requestHeaders };
+        if (isDiziboxRelated(details.url)) {
+            const referer = getRefererForProvider(details.url);
+            if (referer) {
+                headers['Referer'] = referer;
+                headers['Origin'] = referer.replace(/\/$/, '');
+            }
+            // Ensure a common User-Agent for consistency
+            if (!headers['User-Agent'] || headers['User-Agent'].includes('Electron')) {
+                headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36';
+            }
+            console.log('[AniSync:Dizibox] Header fix for:', details.url.substring(0, 80));
+        }
+        callback({ requestHeaders: headers });
+    });
+    // Incoming responses: Strip blocking headers from video providers
+    ses.webRequest.onHeadersReceived({ urls: ['*://*/*'] }, (details, callback) => {
+        const headers = { ...details.responseHeaders };
+        if (isDiziboxRelated(details.url)) {
+            // Remove headers that block iframe embedding
+            delete headers['x-frame-options'];
+            delete headers['X-Frame-Options'];
+            // Relax CSP for video providers so their players can load
+            delete headers['content-security-policy'];
+            delete headers['Content-Security-Policy'];
+            delete headers['content-security-policy-report-only'];
+            delete headers['Content-Security-Policy-Report-Only'];
+        }
+        callback({ responseHeaders: headers });
+    });
+    console.log('[AniSync:Dizibox] Header interceptors installed');
+}
 // ─── App Lifecycle ────────────────────────────────────────────
 electron_1.app.whenReady().then(async () => {
     console.log('[AniSync] Starting...');

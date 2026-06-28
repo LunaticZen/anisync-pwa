@@ -351,24 +351,21 @@ public class MainActivity extends AppCompatActivity {
             case "play":
                 js = "(function(){" +
                         "  var v = document.querySelector('video');" +
-                        "  if(!v){var fs=document.querySelectorAll('iframe');for(var i=0;i<fs.length;i++){try{v=fs[i].contentDocument.querySelector('video');if(v)break;}catch(e){}}}"
-                        +
+                        "  if(!v){var fs=document.querySelectorAll('iframe');for(var i=0;i<fs.length;i++){try{v=fs[i].contentDocument.querySelector('video');if(v)break;}catch(e){}}}" +
                         "  if(v){v.currentTime=" + time + ";v.play();}" +
                         "})()";
                 break;
             case "pause":
                 js = "(function(){" +
                         "  var v = document.querySelector('video');" +
-                        "  if(!v){var fs=document.querySelectorAll('iframe');for(var i=0;i<fs.length;i++){try{v=fs[i].contentDocument.querySelector('video');if(v)break;}catch(e){}}}"
-                        +
+                        "  if(!v){var fs=document.querySelectorAll('iframe');for(var i=0;i<fs.length;i++){try{v=fs[i].contentDocument.querySelector('video');if(v)break;}catch(e){}}}" +
                         "  if(v){v.currentTime=" + time + ";v.pause();}" +
                         "})()";
                 break;
             case "seek":
                 js = "(function(){" +
                         "  var v = document.querySelector('video');" +
-                        "  if(!v){var fs=document.querySelectorAll('iframe');for(var i=0;i<fs.length;i++){try{v=fs[i].contentDocument.querySelector('video');if(v)break;}catch(e){}}}"
-                        +
+                        "  if(!v){var fs=document.querySelectorAll('iframe');for(var i=0;i<fs.length;i++){try{v=fs[i].contentDocument.querySelector('video');if(v)break;}catch(e){}}}" +
                         "  if(v){v.currentTime=" + time + ";}" +
                         "})()";
                 break;
