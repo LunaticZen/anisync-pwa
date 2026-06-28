@@ -7,6 +7,37 @@ import { useState, useEffect } from 'react';
 import { useRoomStore, useAuthStore, useUIStore } from '../../stores';
 import { isElectron, isMobile, getTheme, type RoomMode } from './constants';
 
+// ─── Multi-Platform URL Detection ─────────────────────────
+// Auto-detects the streaming platform from the URL for badge display.
+// This is purely cosmetic — the actual navigation logic is unchanged.
+
+interface PlatformInfo {
+  name: string;
+  icon: string;
+  textColor: string;
+  bgColor: string;
+}
+
+function detectPlatform(url: string): PlatformInfo | null {
+  if (!url || url.length < 8) return null;
+  try {
+    // Ensure URL has protocol for parsing
+    const fullUrl = url.startsWith('http') ? url : 'https://' + url;
+    const hostname = new URL(fullUrl).hostname.toLowerCase();
+
+    if (hostname.includes('animecix')) {
+      return { name: 'Animecix', icon: '🎌', textColor: '#e879f9', bgColor: 'rgba(232,121,249,0.12)' };
+    }
+    if (hostname.includes('dizibox')) {
+      return { name: 'Dizibox', icon: '📺', textColor: '#38bdf8', bgColor: 'rgba(56,189,248,0.12)' };
+    }
+    // Generic detected site
+    return { name: hostname.replace('www.', ''), icon: '🌐', textColor: '#94a3b8', bgColor: 'rgba(148,163,184,0.08)' };
+  } catch {
+    return null;
+  }
+}
+
 // ─── Web Anime Card (non-Electron browsers) ──────────────
 function WebAnimeCard({ url }: { url: string }) {
   const [lastOpenedUrl, setLastOpenedUrl] = useState<string | null>(null);
@@ -80,15 +111,47 @@ export function RoomVideoArea({
   // ── Desktop mode ──
   return (
     <>
-      {/* URL Input Bar (pre-anime) */}
+      {/* URL Input Bar (pre-anime) — Multi-platform support */}
       {showUrlInput && !currentUrl && (
-        <div style={{ padding: '8px 16px', background: bgTertiary, borderBottom: '1px solid var(--border)', display: 'flex', gap: 8 }}>
-          <input className="form-input" value={animeUrl} onChange={e => onAnimeUrlChange(e.target.value)}
-            placeholder="https://animecix.tv/..." autoFocus
-            onKeyDown={e => e.key === 'Enter' && onNavigate()}
-            style={{ flex: 1 }} />
-          <button className="btn btn--primary btn--sm" onClick={onNavigate}>Git</button>
-          <button className="btn btn--ghost btn--sm" onClick={onToggleUrlInput}>✕</button>
+        <div style={{ padding: '8px 16px', background: bgTertiary, borderBottom: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <input className="form-input" value={animeUrl} onChange={e => onAnimeUrlChange(e.target.value)}
+              placeholder="Anime veya dizi linki yapıştırın..." autoFocus
+              onKeyDown={e => e.key === 'Enter' && onNavigate()}
+              style={{ flex: 1 }} />
+            <button className="btn btn--primary btn--sm" onClick={onNavigate}>Git</button>
+            <button className="btn btn--ghost btn--sm" onClick={onToggleUrlInput}>✕</button>
+          </div>
+          {/* Platform auto-detection badge + supported sites info */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingLeft: 4 }}>
+            {(() => {
+              const platform = detectPlatform(animeUrl);
+              if (platform) {
+                return (
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                    fontSize: 11, fontWeight: 600, padding: '2px 8px',
+                    borderRadius: 20, background: platform.bgColor,
+                    color: platform.textColor, letterSpacing: 0.3,
+                    transition: 'all 0.2s ease',
+                  }}>
+                    <span style={{ fontSize: 13 }}>{platform.icon}</span>
+                    {platform.name}
+                  </span>
+                );
+              }
+              return (
+                <span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ opacity: 0.6 }}>Desteklenen:</span>
+                  <span style={{ display: 'inline-flex', gap: 4 }}>
+                    <span style={{ padding: '1px 6px', borderRadius: 10, background: 'rgba(232,121,249,0.1)', color: '#e879f9', fontSize: 10, fontWeight: 600 }}>Animecix</span>
+                    <span style={{ padding: '1px 6px', borderRadius: 10, background: 'rgba(56,189,248,0.1)', color: '#38bdf8', fontSize: 10, fontWeight: 600 }}>Dizibox</span>
+                    <span style={{ padding: '1px 6px', borderRadius: 10, background: 'rgba(148,163,184,0.08)', color: '#94a3b8', fontSize: 10, fontWeight: 600 }}>+ Diğer</span>
+                  </span>
+                </span>
+              );
+            })()}
+          </div>
         </div>
       )}
 
