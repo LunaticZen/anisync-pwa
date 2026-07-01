@@ -109,7 +109,7 @@ function ChatTicker({ tickerItems }: {
             }}
           >
             <span style={{ color: '#5b9bff', fontWeight: 700 }}>{item.username}: </span>
-            {item.text}
+            {renderMessageText(item.text, /^(\s*\[emoji:[^\]]+\]\s*)+$/.test(item.text))}
           </span>
         );
       })}
