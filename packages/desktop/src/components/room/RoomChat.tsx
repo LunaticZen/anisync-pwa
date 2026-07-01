@@ -60,7 +60,7 @@ const DANMAKU_CONTAINER_HEIGHT = 120;
 
 /** Calculate danmaku duration based on text length */
 export function getDanmakuDuration(text: string): number {
-  return Math.max(8, text.length * 0.12 + 6);
+  return 10;
 }
 
 // ─── Chat Ticker (Landscape overlay) ──────────────────────
