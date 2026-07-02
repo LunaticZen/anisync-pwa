@@ -142,6 +142,22 @@ public class MainActivity extends AppCompatActivity {
         getWindow().setStatusBarColor(android.graphics.Color.TRANSPARENT);
         getWindow().setNavigationBarColor(android.graphics.Color.TRANSPARENT);
 
+        // Send actual device safe area insets to WebView CSS variables
+        getWindow().getDecorView().setOnApplyWindowInsetsListener((v, insets) -> {
+            float density = getResources().getDisplayMetrics().density;
+            int top = (int) (insets.getSystemWindowInsetTop() / density);
+            int bottom = (int) (insets.getSystemWindowInsetBottom() / density);
+            
+            if (mainWebView != null) {
+                mainWebView.evaluateJavascript(
+                    "document.documentElement.style.setProperty('--safe-top', '" + top + "px');" +
+                    "document.documentElement.style.setProperty('--safe-bottom', '" + bottom + "px');", 
+                    null
+                );
+            }
+            return insets;
+        });
+
         // PERF: FLAG_KEEP_SCREEN_ON removed from here — now only set during video playback
         // to prevent battery drain when user is just chatting or on home screen.
 
