@@ -34,6 +34,10 @@ import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.webkit.WebSettingsCompat;
 import androidx.webkit.WebViewFeature;
 
@@ -135,26 +139,11 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
 
         // Edge-to-Edge layout (transparent status and navigation bars)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            getWindow().setDecorFitsSystemWindows(false);
-        } else {
-            getWindow().getDecorView().setSystemUiVisibility(
-                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
-        }
+        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         getWindow().setStatusBarColor(android.graphics.Color.TRANSPARENT);
         getWindow().setNavigationBarColor(android.graphics.Color.TRANSPARENT);
 
-        // Send actual device safe area insets to WebView CSS variables
-        getWindow().getDecorView().setOnApplyWindowInsetsListener((v, insets) -> {
-            float density = getResources().getDisplayMetrics().density;
-            safeInsetTop = (int) (insets.getSystemWindowInsetTop() / density);
-            safeInsetBottom = (int) (insets.getSystemWindowInsetBottom() / density);
-            
-            applySafeInsetsToWeb();
-            return insets;
-        });
+
 
         // PERF: FLAG_KEEP_SCREEN_ON removed from here — now only set during video playback
         // to prevent battery drain when user is just chatting or on home screen.
@@ -168,6 +157,24 @@ public class MainActivity extends AppCompatActivity {
 
         rootLayout = new LinearLayout(this);
         rootLayout.setBackgroundColor(0xFF050816);
+
+        // Send actual device safe area insets to WebView CSS variables AND handle Keyboard padding
+        ViewCompat.setOnApplyWindowInsetsListener(rootLayout, (v, windowInsets) -> {
+            Insets systemBars = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
+            Insets ime = windowInsets.getInsets(WindowInsetsCompat.Type.ime());
+            
+            float density = getResources().getDisplayMetrics().density;
+            safeInsetTop = (int) (systemBars.top / density);
+            safeInsetBottom = (int) (systemBars.bottom / density);
+            
+            applySafeInsetsToWeb();
+
+            // Handle keyboard: if IME is open, pad the bottom of the root view!
+            int keyboardPadding = ime.bottom > systemBars.bottom ? ime.bottom : 0;
+            v.setPadding(0, 0, 0, keyboardPadding);
+            
+            return windowInsets;
+        });
 
         // ── Main WebView (UI) ──
         mainWebView = new WebView(this);
@@ -669,14 +676,7 @@ public class MainActivity extends AppCompatActivity {
 
                 // Restore system UI
                 // Restore system UI to edge-to-edge
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                    getWindow().setDecorFitsSystemWindows(false);
-                } else {
-                    getWindow().getDecorView().setSystemUiVisibility(
-                            View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                                    | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                                    | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
-                }
+                WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
                 appLog("Fullscreen video ended (normal layout restored)");
             }
         });
