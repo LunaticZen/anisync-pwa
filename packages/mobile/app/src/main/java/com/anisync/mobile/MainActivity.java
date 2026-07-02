@@ -80,6 +80,10 @@ public class MainActivity extends AppCompatActivity {
     // Xiaomi / MIUI detection
     private boolean isXiaomiDevice = false;
 
+    // Window insets (Safe Area) for Web UI
+    private int safeInsetTop = 0;
+    private int safeInsetBottom = 0;
+
     // ── Log Buffer ──
     private static final int MAX_LOG_ENTRIES = 300;
     private static final List<String> logBuffer = new ArrayList<>();
@@ -145,16 +149,10 @@ public class MainActivity extends AppCompatActivity {
         // Send actual device safe area insets to WebView CSS variables
         getWindow().getDecorView().setOnApplyWindowInsetsListener((v, insets) -> {
             float density = getResources().getDisplayMetrics().density;
-            int top = (int) (insets.getSystemWindowInsetTop() / density);
-            int bottom = (int) (insets.getSystemWindowInsetBottom() / density);
+            safeInsetTop = (int) (insets.getSystemWindowInsetTop() / density);
+            safeInsetBottom = (int) (insets.getSystemWindowInsetBottom() / density);
             
-            if (mainWebView != null) {
-                mainWebView.evaluateJavascript(
-                    "document.documentElement.style.setProperty('--safe-top', '" + top + "px');" +
-                    "document.documentElement.style.setProperty('--safe-bottom', '" + bottom + "px');", 
-                    null
-                );
-            }
+            applySafeInsetsToWeb();
             return insets;
         });
 
@@ -213,6 +211,16 @@ public class MainActivity extends AppCompatActivity {
         return manufacturer.contains("xiaomi") || manufacturer.contains("redmi") ||
                manufacturer.contains("poco") || brand.contains("xiaomi") ||
                brand.contains("redmi") || brand.contains("poco");
+    }
+
+    private void applySafeInsetsToWeb() {
+        if (mainWebView != null) {
+            mainWebView.evaluateJavascript(
+                "document.documentElement.style.setProperty('--safe-top', '" + safeInsetTop + "px');" +
+                "document.documentElement.style.setProperty('--safe-bottom', '" + safeInsetBottom + "px');", 
+                null
+            );
+        }
     }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -318,6 +326,12 @@ public class MainActivity extends AppCompatActivity {
         }, "AniSyncBridge");
 
         mainWebView.setWebViewClient(new WebViewClient() {
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                super.onPageFinished(view, url);
+                applySafeInsetsToWeb();
+            }
+
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 String url = request.getUrl().toString();
