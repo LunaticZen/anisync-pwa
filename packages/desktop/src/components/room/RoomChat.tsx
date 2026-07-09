@@ -313,7 +313,7 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
           )}
         </div>
       )}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start', maxWidth: '78%' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start', maxWidth: '78%', minWidth: 0 }}>
         {!isMe && !isConsecutivePrev && (
           <span style={{ fontSize: 11, fontWeight: 600, color: clr, marginLeft: 4, marginBottom: 4 }}>{displayName}</span>
         )}
@@ -349,6 +349,8 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
               flexDirection: 'column', 
               alignItems: isMe ? 'flex-end' : 'flex-start',
               position: 'relative', 
+              maxWidth: '100%',
+              minWidth: 0,
               zIndex: 2,
               cursor: isMobile ? 'default' : 'pointer',
               userSelect: 'none',
@@ -419,13 +421,17 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
                   flexShrink: 0
                 }} />
                 
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start', justifyContent: 'center', minWidth: 0 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start', justifyContent: 'center', minWidth: 0, maxWidth: 'calc(100% - 9px)' }}>
                   {/* Label */}
                   <span style={{ 
                     fontSize: 11, 
                     fontWeight: 600,
                     marginBottom: 4,
                     color: effectiveIsLight ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.6)',
+                    maxWidth: '100%',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
                   }}>
                     {isMe ? 'Yanıt verdin' : (msg.replyTo.userId === username ? 'sana yanıt verdi' : `${msg.replyTo.username} adlı kişiye yanıt verdi`)}
                   </span>
@@ -450,6 +456,7 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
             {/* Actual Message Bubble */}
             <div style={{
               background: bubbleBg, color: textColor,
+              maxWidth: '100%', minWidth: 0,
               padding: isOnlyEmoji ? 0 : (isKeyboardOpen ? '6px 10px' : '8px 12px'),
               borderRadius: borderRadius, fontSize: isKeyboardOpen ? 12 : 13,
               lineHeight: 1.4, wordBreak: 'break-word',
