@@ -575,26 +575,21 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
     img.style.userSelect = 'none';
     img.style.display = 'inline-block';
     img.setAttribute('contenteditable', 'false');
-    const zwsp = document.createTextNode('\u200B');
-
     if (document.activeElement === editableRef.current) {
       const sel = window.getSelection();
       if (sel && sel.rangeCount > 0) {
         const range = sel.getRangeAt(0);
         range.deleteContents();
-        range.insertNode(zwsp);
         range.insertNode(img);
-        range.setStartAfter(zwsp);
+        range.setStartAfter(img);
         range.collapse(true);
         sel.removeAllRanges();
         sel.addRange(range);
       } else {
         editableRef.current.appendChild(img);
-        editableRef.current.appendChild(zwsp);
       }
     } else {
       editableRef.current.appendChild(img);
-      editableRef.current.appendChild(zwsp);
     }
     handleInput();
   };
@@ -807,7 +802,7 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
               {replyToMsg.displayName ?? replyToMsg.username} adlı kişiye yanıt veriyorsun
             </span>
             <span style={{ fontSize: 12, opacity: 0.7, wordBreak: 'break-all', overflowWrap: 'anywhere', whiteSpace: 'pre-wrap', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-              {replyToMsg.text}
+              {renderMessageText(replyToMsg.text, false)}
             </span>
           </div>
           <button
@@ -908,38 +903,6 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
                   handleSend();
-                } else if (e.key === 'Backspace') {
-                  const sel = window.getSelection();
-                  if (sel && sel.isCollapsed && sel.rangeCount > 0) {
-                    const range = sel.getRangeAt(0);
-                    const node = range.startContainer;
-                    const offset = range.startOffset;
-
-                    if (node.nodeType === Node.TEXT_NODE && node.textContent === '\u200B' && offset <= 1) {
-                      const prev = node.previousSibling;
-                      if (prev && prev.nodeName === 'IMG') {
-                        e.preventDefault();
-                        prev.remove();
-                        node.remove();
-                        handleInput();
-                      }
-                    } else if (node === editableRef.current && offset > 0) {
-                      const prevNode = node.childNodes[offset - 1];
-                      if (prevNode && prevNode.nodeName === 'IMG') {
-                        e.preventDefault();
-                        prevNode.remove();
-                        handleInput();
-                      } else if (prevNode && prevNode.nodeType === Node.TEXT_NODE && prevNode.textContent === '\u200B') {
-                        const prevPrev = node.childNodes[offset - 2];
-                        if (prevPrev && prevPrev.nodeName === 'IMG') {
-                          e.preventDefault();
-                          prevNode.remove();
-                          prevPrev.remove();
-                          handleInput();
-                        }
-                      }
-                    }
-                  }
                 }
               }}
               onFocus={(e) => {
