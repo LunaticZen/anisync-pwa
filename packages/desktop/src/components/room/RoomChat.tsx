@@ -447,7 +447,7 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
                     wordBreak: 'break-all', overflowWrap: 'anywhere', whiteSpace: 'pre-wrap',
                     border: `1px solid ${effectiveIsLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.04)'}`,
                   }}>
-                    {msg.replyTo.text}
+                    {renderMessageText(msg.replyTo.text, false)}
                   </div>
                 </div>
               </div>
@@ -572,7 +572,7 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
     img.style.width = '24px';
     img.style.verticalAlign = 'middle';
     img.style.margin = '0 2px';
-    img.style.userSelect = 'text';
+    img.style.userSelect = 'none';
     img.style.display = 'inline-block';
     img.setAttribute('contenteditable', 'false');
     const zwsp = document.createTextNode('\u200B');
@@ -908,6 +908,38 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
                   handleSend();
+                } else if (e.key === 'Backspace') {
+                  const sel = window.getSelection();
+                  if (sel && sel.isCollapsed && sel.rangeCount > 0) {
+                    const range = sel.getRangeAt(0);
+                    const node = range.startContainer;
+                    const offset = range.startOffset;
+
+                    if (node.nodeType === Node.TEXT_NODE && node.textContent === '\u200B' && offset <= 1) {
+                      const prev = node.previousSibling;
+                      if (prev && prev.nodeName === 'IMG') {
+                        e.preventDefault();
+                        prev.remove();
+                        node.remove();
+                        handleInput();
+                      }
+                    } else if (node === editableRef.current && offset > 0) {
+                      const prevNode = node.childNodes[offset - 1];
+                      if (prevNode && prevNode.nodeName === 'IMG') {
+                        e.preventDefault();
+                        prevNode.remove();
+                        handleInput();
+                      } else if (prevNode && prevNode.nodeType === Node.TEXT_NODE && prevNode.textContent === '\u200B') {
+                        const prevPrev = node.childNodes[offset - 2];
+                        if (prevPrev && prevPrev.nodeName === 'IMG') {
+                          e.preventDefault();
+                          prevNode.remove();
+                          prevPrev.remove();
+                          handleInput();
+                        }
+                      }
+                    }
+                  }
                 }
               }}
               onFocus={(e) => {
