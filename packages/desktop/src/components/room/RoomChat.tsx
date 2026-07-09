@@ -878,6 +878,7 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
                 onClose={() => setShowEmojiPicker(false)}
                 isLight={activeTheme.isLight}
                 isImage={activeTheme.isImage}
+                isKeyboardOpen={isKeyboardOpen}
               />
             )}
           </div>

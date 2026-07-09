@@ -6,9 +6,10 @@ interface EmojiPickerProps {
   onClose: () => void;
   isLight: boolean;
   isImage: boolean;
+  isKeyboardOpen?: boolean;
 }
 
-export function EmojiPicker({ onSelect, onClose, isLight, isImage }: EmojiPickerProps) {
+export function EmojiPicker({ onSelect, onClose, isLight, isImage, isKeyboardOpen }: EmojiPickerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Close when clicking outside
@@ -83,16 +84,18 @@ export function EmojiPicker({ onSelect, onClose, isLight, isImage }: EmojiPicker
       `}</style>
       
       {/* Header */}
-      <div style={{
-        padding: '12px 16px',
-        borderBottom: `1px solid ${borderColor}`,
-        fontWeight: 600,
-        fontSize: 14,
-        color: textColor,
-        flexShrink: 0
-      }}>
-        Özel Emojiler
-      </div>
+      {!isKeyboardOpen && (
+        <div style={{
+          padding: '12px 16px',
+          borderBottom: `1px solid ${borderColor}`,
+          fontWeight: 600,
+          fontSize: 14,
+          color: textColor,
+          flexShrink: 0
+        }}>
+          Özel Emojiler
+        </div>
+      )}
 
       {/* Scrollable Content */}
       <div 
