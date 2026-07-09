@@ -437,7 +437,7 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
                     borderRadius: 14,
                     fontSize: 12,
                     maxWidth: '100%',
-                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                    wordBreak: 'break-word', whiteSpace: 'pre-wrap',
                     border: `1px solid ${effectiveIsLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.04)'}`,
                   }}>
                     {msg.replyTo.text}
@@ -798,7 +798,7 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
             <span style={{ fontSize: 12, fontWeight: 700, color: activeTheme.textColor, marginBottom: 2 }}>
               {replyToMsg.displayName ?? replyToMsg.username} adlı kişiye yanıt veriyorsun
             </span>
-            <span style={{ fontSize: 12, opacity: 0.7, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <span style={{ fontSize: 12, opacity: 0.7, wordBreak: 'break-word', whiteSpace: 'pre-wrap', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
               {replyToMsg.text}
             </span>
           </div>
