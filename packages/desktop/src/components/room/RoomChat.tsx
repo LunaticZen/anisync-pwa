@@ -844,14 +844,12 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
             <button 
               onClick={(e) => {
                 e.preventDefault();
-                editableRef.current?.blur();
                 setShowEmojiPicker(prev => !prev);
               }}
               onMouseDown={e => { e.preventDefault(); e.stopPropagation(); }}
               onTouchEnd={(e) => { 
                 e.preventDefault(); 
                 e.stopPropagation(); 
-                editableRef.current?.blur();
                 setShowEmojiPicker(prev => !prev); 
               }}
               style={{ 
