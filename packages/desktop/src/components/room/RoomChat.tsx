@@ -438,8 +438,8 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
                   
                   {/* Reply Preview Capsule */}
                   <div style={{
-                    background: isMe ? 'rgba(255,255,255,0.15)' : (effectiveIsLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.1)'),
-                    color: textColor,
+                    background: effectiveIsLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.1)',
+                    color: effectiveIsLight ? '#0f172a' : '#f8fafc',
                     padding: '6px 12px',
                     borderRadius: 14,
                     fontSize: 12,
