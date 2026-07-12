@@ -38,7 +38,6 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
-import androidx.core.view.WindowInsetsAnimationCompat;
 import androidx.webkit.WebSettingsCompat;
 import androidx.webkit.WebViewFeature;
 
@@ -88,13 +87,6 @@ public class MainActivity extends AppCompatActivity {
     // Window insets (Safe Area) for Web UI
     private int safeInsetTop = 0;
     private int safeInsetBottom = 0;
-
-    // ── Keyboard animation state (Google's RootViewDeferringInsetsCallback pattern) ──
-    // When true, onApplyWindowInsets only applies systemBars, deferring IME insets
-    // until the animation ends. This prevents the "clipped small view" artifact.
-    private boolean deferringImeInsets = false;
-    private WindowInsetsCompat lastWindowInsets = null;
-    private android.animation.ValueAnimator paddingAnimator = null;
 
     // ── Log Buffer ──
     private static final int MAX_LOG_ENTRIES = 300;
@@ -150,7 +142,6 @@ public class MainActivity extends AppCompatActivity {
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         getWindow().setStatusBarColor(android.graphics.Color.TRANSPARENT);
         getWindow().setNavigationBarColor(android.graphics.Color.TRANSPARENT);
-        getWindow().getDecorView().setBackgroundColor(0xFF050816);
 
 
 
@@ -166,56 +157,24 @@ public class MainActivity extends AppCompatActivity {
 
         rootLayout = new LinearLayout(this);
         rootLayout.setBackgroundColor(0xFF050816);
-        // ══════════════════════════════════════════════════════════════════
-        // Keyboard Handling — adjustResize + WindowInsetsAnimationCompat
-        //
-        // Provides a smooth keyboard slide animation.
-        // We set padding dynamically per-frame during the animation.
-        // ══════════════════════════════════════════════════════════════════
 
+        // Send actual device safe area insets to WebView CSS variables AND handle Keyboard padding
         ViewCompat.setOnApplyWindowInsetsListener(rootLayout, (v, windowInsets) -> {
             Insets systemBars = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
+            Insets ime = windowInsets.getInsets(WindowInsetsCompat.Type.ime());
             
-            // We DO NOT apply ime padding to rootLayout anymore.
-            // This keeps the WebView full screen, preventing the header from shrinking or moving natively.
-            v.setPadding(0, 0, 0, systemBars.bottom);
-
             float density = getResources().getDisplayMetrics().density;
             safeInsetTop = (int) (systemBars.top / density);
             safeInsetBottom = (int) (systemBars.bottom / density);
+            
             applySafeInsetsToWeb();
 
-            // Sync keyboard height to JS immediately for state changes (e.g., rotation with open keyboard)
-            Insets ime = windowInsets.getInsets(WindowInsetsCompat.Type.ime());
-            int cssHeight = (int) (ime.bottom / density);
-            if (mainWebView != null) {
-                mainWebView.evaluateJavascript("if(window.anisyncKeyboardAnim) window.anisyncKeyboardAnim(" + cssHeight + ")", null);
-            }
-
-            return WindowInsetsCompat.CONSUMED;
+            // Handle keyboard: if IME is open, pad the bottom of the root view!
+            int keyboardPadding = ime.bottom > systemBars.bottom ? ime.bottom : 0;
+            v.setPadding(0, 0, 0, keyboardPadding);
+            
+            return windowInsets;
         });
-
-        ViewCompat.setWindowInsetsAnimationCallback(rootLayout,
-            new WindowInsetsAnimationCompat.Callback(WindowInsetsAnimationCompat.Callback.DISPATCH_MODE_STOP) {
-                
-                @androidx.annotation.NonNull
-                @Override
-                public WindowInsetsCompat onProgress(
-                        @androidx.annotation.NonNull WindowInsetsCompat insets, 
-                        @androidx.annotation.NonNull List<WindowInsetsAnimationCompat> runningAnimations) {
-                    
-                    Insets ime = insets.getInsets(WindowInsetsCompat.Type.ime());
-                    float density = getResources().getDisplayMetrics().density;
-                    int cssHeight = (int) (ime.bottom / density);
-                    
-                    if (mainWebView != null) {
-                        mainWebView.evaluateJavascript("if(window.anisyncKeyboardAnim) window.anisyncKeyboardAnim(" + cssHeight + ")", null);
-                    }
-                    
-                    return insets;
-                }
-            }
-        );
 
         // ── Main WebView (UI) ──
         mainWebView = new WebView(this);
@@ -378,37 +337,6 @@ public class MainActivity extends AppCompatActivity {
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
                 applySafeInsetsToWeb();
-                // Inject visualViewport keyboard handler
-                // This fires per-frame during keyboard animation (no IPC lag)
-                view.evaluateJavascript(
-                    "(function(){" +
-                    "  if(window._vvKbInit) return;" +
-                    "  window._vvKbInit = true;" +
-                    "  var vv = window.visualViewport;" +
-                    "  if(!vv) return;" +
-                    "  var inputArea = null;" +
-                    "  var msgArea = null;" +
-                    "  var lastKbH = 0;" +
-                    "  function findEls(){" +
-                    "    if(!inputArea) inputArea = document.querySelector('.chat__input-area');" +
-                    "    if(!msgArea) msgArea = document.querySelector('.chat__messages');" +
-                    "  }" +
-                    "  function onResize(){" +
-                    "    findEls();" +
-                    "    var kbH = window.innerHeight - vv.height;" +
-                    "    if(kbH < 0) kbH = 0;" +
-                    "    if(Math.abs(kbH - lastKbH) < 1) return;" +
-                    "    lastKbH = kbH;" +
-                    "    if(inputArea){" +
-                    "      inputArea.style.transform = 'translateY(-' + kbH + 'px)';" +
-                    "    }" +
-                    "    if(msgArea){" +
-                    "      msgArea.style.paddingBottom = kbH + 'px';" +
-                    "    }" +
-                    "  }" +
-                    "  vv.addEventListener('resize', onResize);" +
-                    "  vv.addEventListener('scroll', onResize);" +
-                    "})()", null);
             }
 
             @Override

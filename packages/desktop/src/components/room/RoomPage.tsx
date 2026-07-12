@@ -322,10 +322,7 @@ export default function RoomPage() {
     const onResize = () => {
       const h = vv ? vv.height : window.innerHeight;
       setViewportHeight(h);
-      // GLITCH FIX: We disable React's "compact mode" (isKeyboardOpen) because it conflicts 
-      // with Android's native smooth WindowInsetsAnimationCompat slide animation. 
-      // If we shrink the UI here, it causes massive layout jitter.
-      // setIsKeyboardOpen(h < initialVpHeight.current * 0.75);
+      setIsKeyboardOpen(h < initialVpHeight.current * 0.75);
     };
 
     if (vv) {
@@ -338,20 +335,6 @@ export default function RoomPage() {
       if (vv) vv.removeEventListener('resize', onResize);
       else window.removeEventListener('resize', onResize);
       clearTimeout(initTimer);
-    };
-  }, []);
-
-  // ── Native Keyboard Animation Bridge ──
-  useEffect(() => {
-    (window as any).anisyncKeyboardAnim = (h: number) => {
-      const el = document.getElementById('anisync-chat-container');
-      if (el) {
-        // Shift ONLY the chat container UP by the keyboard height natively reported by Android
-        el.style.transform = `translateY(-${h}px)`;
-      }
-    };
-    return () => {
-      delete (window as any).anisyncKeyboardAnim;
     };
   }, []);
 
@@ -784,14 +767,12 @@ export default function RoomPage() {
         }} />}
         <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
           <RoomHeader {...headerProps} />
-          <div id="anisync-chat-container" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', willChange: 'transform' }}>
-            <RoomChat
-              mode={mode}
-              roomId={currentRoom.id}
-              members={members}
-              isKeyboardOpen={isKeyboardOpen}
-            />
-          </div>
+          <RoomChat
+            mode={mode}
+            roomId={currentRoom.id}
+            members={members}
+            isKeyboardOpen={isKeyboardOpen}
+          />
           <RoomModals {...modalProps} />
         </div>
       </div>
