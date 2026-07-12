@@ -150,6 +150,7 @@ public class MainActivity extends AppCompatActivity {
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         getWindow().setStatusBarColor(android.graphics.Color.TRANSPARENT);
         getWindow().setNavigationBarColor(android.graphics.Color.TRANSPARENT);
+        getWindow().getDecorView().setBackgroundColor(0xFF050816);
 
 
 
@@ -188,15 +189,40 @@ public class MainActivity extends AppCompatActivity {
 
         ViewCompat.setWindowInsetsAnimationCallback(rootLayout,
             new WindowInsetsAnimationCompat.Callback(WindowInsetsAnimationCompat.Callback.DISPATCH_MODE_STOP) {
+                private int startBottom;
+                private int endBottom;
+
+                @Override
+                public void onPrepare(@androidx.annotation.NonNull WindowInsetsAnimationCompat animation) {
+                    startBottom = rootLayout.getPaddingBottom();
+                }
+
                 @androidx.annotation.NonNull
                 @Override
-                public WindowInsetsCompat onProgress(@androidx.annotation.NonNull WindowInsetsCompat insets, 
-                                                     @androidx.annotation.NonNull List<WindowInsetsAnimationCompat> runningAnimations) {
-                    Insets ime = insets.getInsets(WindowInsetsCompat.Type.ime());
-                    Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-                    int bottomPadding = Math.max(systemBars.bottom, ime.bottom);
-                    rootLayout.setPadding(0, 0, 0, bottomPadding);
+                public WindowInsetsAnimationCompat.BoundsCompat onStart(
+                        @androidx.annotation.NonNull WindowInsetsAnimationCompat animation,
+                        @androidx.annotation.NonNull WindowInsetsAnimationCompat.BoundsCompat bounds) {
+                    endBottom = rootLayout.getPaddingBottom();
+                    // Layout has shrunk by (endBottom - startBottom). 
+                    // Translate the view down by that amount so it visually stays in place.
+                    rootLayout.setTranslationY(endBottom - startBottom);
+                    return bounds;
+                }
+
+                @androidx.annotation.NonNull
+                @Override
+                public WindowInsetsCompat onProgress(
+                        @androidx.annotation.NonNull WindowInsetsCompat insets, 
+                        @androidx.annotation.NonNull List<WindowInsetsAnimationCompat> runningAnimations) {
+                    float fraction = runningAnimations.get(0).getInterpolatedFraction();
+                    // Smoothly animate translation back to 0
+                    rootLayout.setTranslationY((endBottom - startBottom) * (1 - fraction));
                     return insets;
+                }
+
+                @Override
+                public void onEnd(@androidx.annotation.NonNull WindowInsetsAnimationCompat animation) {
+                    rootLayout.setTranslationY(0f);
                 }
             }
         );
