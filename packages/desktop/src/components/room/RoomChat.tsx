@@ -842,14 +842,18 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
           {/* Left Emoji Icon */}
           <div style={{ position: 'relative', display: 'flex' }}>
             <button 
+              type="button"
               onClick={(e) => {
                 e.preventDefault();
+                if (!isKeyboardOpen) editableRef.current?.blur();
                 setShowEmojiPicker(prev => !prev);
               }}
               onMouseDown={e => { e.preventDefault(); e.stopPropagation(); }}
+              onTouchStart={e => { e.preventDefault(); e.stopPropagation(); }}
               onTouchEnd={(e) => { 
                 e.preventDefault(); 
                 e.stopPropagation(); 
+                if (!isKeyboardOpen) editableRef.current?.blur();
                 setShowEmojiPicker(prev => !prev); 
               }}
               style={{ 
