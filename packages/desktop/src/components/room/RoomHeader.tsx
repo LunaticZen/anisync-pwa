@@ -266,34 +266,7 @@ export function RoomHeader({
 
   // ── Render: Log Copy Button (defined once, always visible when bridge available) ──
   const renderLogButton = () => {
-    if (!hasBridge) return null;
-
-    // Compact mode when keyboard/split-screen is active
-    const compact = isPortraitMode && isKeyboardOpen;
-    const iconSize = compact ? 13 : (isLandscape ? ICON_SIZE : (isXiaomi ? 18 : 16));
-
-    return (
-      <button onClick={onCopyLogs} title="APK Loglarını Kopyala" style={{
-        background: logCopied
-          ? (isLandscape ? 'rgba(34,197,94,0.2)' : 'rgba(34,197,94,0.15)')
-          : 'none',
-        border: 'none',
-        color: logCopied ? '#22c55e' : (isLandscape ? 'rgba(255,255,255,0.6)' : headerText),
-        cursor: 'pointer',
-        padding: compact ? 2 : (isLandscape ? (isXiaomi ? 8 : 6) : (isXiaomi ? 6 : 4)),
-        display: 'flex', borderRadius: 6,
-        transition: `opacity ${ANIM_SPEED} ease, background ${ANIM_SPEED} ease`,
-        flexShrink: 0,
-        minWidth: compact ? 'auto' : TOUCH_SIZE,
-        minHeight: compact ? 'auto' : TOUCH_SIZE,
-        alignItems: 'center', justifyContent: 'center',
-      }}>
-        <svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/>
-          <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
-        </svg>
-      </button>
-    );
+    return null;
   };
 
   // ── Render: "Anime Aç" Button (desktop only, when no URL) ──
