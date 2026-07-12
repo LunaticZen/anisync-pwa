@@ -341,6 +341,20 @@ export default function RoomPage() {
     };
   }, []);
 
+  // ── Native Keyboard Animation Bridge ──
+  useEffect(() => {
+    (window as any).anisyncKeyboardAnim = (h: number) => {
+      const el = document.getElementById('anisync-chat-container');
+      if (el) {
+        // Shift ONLY the chat container UP by the keyboard height natively reported by Android
+        el.style.transform = `translateY(-${h}px)`;
+      }
+    };
+    return () => {
+      delete (window as any).anisyncKeyboardAnim;
+    };
+  }, []);
+
   // ── Orientation change listeners ──
   useEffect(() => {
     if (isElectron) return;
@@ -770,12 +784,14 @@ export default function RoomPage() {
         }} />}
         <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
           <RoomHeader {...headerProps} />
-          <RoomChat
-            mode={mode}
-            roomId={currentRoom.id}
-            members={members}
-            isKeyboardOpen={isKeyboardOpen}
-          />
+          <div id="anisync-chat-container" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', willChange: 'transform' }}>
+            <RoomChat
+              mode={mode}
+              roomId={currentRoom.id}
+              members={members}
+              isKeyboardOpen={isKeyboardOpen}
+            />
+          </div>
           <RoomModals {...modalProps} />
         </div>
       </div>

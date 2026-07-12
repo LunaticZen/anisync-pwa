@@ -175,54 +175,44 @@ public class MainActivity extends AppCompatActivity {
 
         ViewCompat.setOnApplyWindowInsetsListener(rootLayout, (v, windowInsets) -> {
             Insets systemBars = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
-            Insets ime = windowInsets.getInsets(WindowInsetsCompat.Type.ime());
-            int bottomPadding = Math.max(systemBars.bottom, ime.bottom);
-            v.setPadding(0, 0, 0, bottomPadding);
+            
+            // We DO NOT apply ime padding to rootLayout anymore.
+            // This keeps the WebView full screen, preventing the header from shrinking or moving natively.
+            v.setPadding(0, 0, 0, systemBars.bottom);
 
             float density = getResources().getDisplayMetrics().density;
             safeInsetTop = (int) (systemBars.top / density);
             safeInsetBottom = (int) (systemBars.bottom / density);
             applySafeInsetsToWeb();
 
+            // Sync keyboard height to JS immediately for state changes (e.g., rotation with open keyboard)
+            Insets ime = windowInsets.getInsets(WindowInsetsCompat.Type.ime());
+            int cssHeight = (int) (ime.bottom / density);
+            if (mainWebView != null) {
+                mainWebView.evaluateJavascript("if(window.anisyncKeyboardAnim) window.anisyncKeyboardAnim(" + cssHeight + ")", null);
+            }
+
             return WindowInsetsCompat.CONSUMED;
         });
 
         ViewCompat.setWindowInsetsAnimationCallback(rootLayout,
             new WindowInsetsAnimationCompat.Callback(WindowInsetsAnimationCompat.Callback.DISPATCH_MODE_STOP) {
-                private int startBottom;
-                private int endBottom;
-
-                @Override
-                public void onPrepare(@androidx.annotation.NonNull WindowInsetsAnimationCompat animation) {
-                    startBottom = rootLayout.getPaddingBottom();
-                }
-
-                @androidx.annotation.NonNull
-                @Override
-                public WindowInsetsAnimationCompat.BoundsCompat onStart(
-                        @androidx.annotation.NonNull WindowInsetsAnimationCompat animation,
-                        @androidx.annotation.NonNull WindowInsetsAnimationCompat.BoundsCompat bounds) {
-                    endBottom = rootLayout.getPaddingBottom();
-                    // Layout has shrunk by (endBottom - startBottom). 
-                    // Translate the view down by that amount so it visually stays in place.
-                    rootLayout.setTranslationY(endBottom - startBottom);
-                    return bounds;
-                }
-
+                
                 @androidx.annotation.NonNull
                 @Override
                 public WindowInsetsCompat onProgress(
                         @androidx.annotation.NonNull WindowInsetsCompat insets, 
                         @androidx.annotation.NonNull List<WindowInsetsAnimationCompat> runningAnimations) {
-                    float fraction = runningAnimations.get(0).getInterpolatedFraction();
-                    // Smoothly animate translation back to 0
-                    rootLayout.setTranslationY((endBottom - startBottom) * (1 - fraction));
+                    
+                    Insets ime = insets.getInsets(WindowInsetsCompat.Type.ime());
+                    float density = getResources().getDisplayMetrics().density;
+                    int cssHeight = (int) (ime.bottom / density);
+                    
+                    if (mainWebView != null) {
+                        mainWebView.evaluateJavascript("if(window.anisyncKeyboardAnim) window.anisyncKeyboardAnim(" + cssHeight + ")", null);
+                    }
+                    
                     return insets;
-                }
-
-                @Override
-                public void onEnd(@androidx.annotation.NonNull WindowInsetsAnimationCompat animation) {
-                    rootLayout.setTranslationY(0f);
                 }
             }
         );
