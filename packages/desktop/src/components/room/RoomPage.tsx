@@ -322,7 +322,10 @@ export default function RoomPage() {
     const onResize = () => {
       const h = vv ? vv.height : window.innerHeight;
       setViewportHeight(h);
-      setIsKeyboardOpen(h < initialVpHeight.current * 0.75);
+      // GLITCH FIX: We disable React's "compact mode" (isKeyboardOpen) because it conflicts 
+      // with Android's native smooth WindowInsetsAnimationCompat slide animation. 
+      // If we shrink the UI here, it causes massive layout jitter.
+      // setIsKeyboardOpen(h < initialVpHeight.current * 0.75);
     };
 
     if (vv) {
