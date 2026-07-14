@@ -947,9 +947,25 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
           padding: '4px',
           gap: 8,
           transition: 'all 0.2s ease',
+          position: 'relative'
         }}>
+          {showEmojiPicker && (
+            <EmojiPicker 
+              onSelect={(emojiPath) => {
+                const pathMatch = emojiPath.match(/\[emoji:(.+)\]/);
+                if (pathMatch) {
+                  insertEmoji(pathMatch[1]);
+                }
+              }}
+              onClose={() => setShowEmojiPicker(false)}
+              isLight={activeTheme.isLight}
+              isImage={activeTheme.isImage}
+              isKeyboardOpen={isKeyboardOpen}
+            />
+          )}
+
           {/* Left Emoji Icon */}
-          <div style={{ position: 'relative', display: 'flex' }}>
+          <div style={{ display: 'flex' }}>
             <button 
               type="button"
               onClick={(e) => {
@@ -979,21 +995,6 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
                 <line x1="15" y1="9" x2="15.01" y2="9"/>
               </svg>
             </button>
-            {showEmojiPicker && (
-              <EmojiPicker 
-                onSelect={(emojiPath) => {
-                  // extract path from [emoji:path]
-                  const pathMatch = emojiPath.match(/\[emoji:(.+)\]/);
-                  if (pathMatch) {
-                    insertEmoji(pathMatch[1]);
-                  }
-                }}
-                onClose={() => setShowEmojiPicker(false)}
-                isLight={activeTheme.isLight}
-                isImage={activeTheme.isImage}
-                isKeyboardOpen={isKeyboardOpen}
-              />
-            )}
           </div>
 
           {/* Rich Input Field */}
