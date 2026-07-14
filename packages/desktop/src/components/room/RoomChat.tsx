@@ -964,6 +964,23 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
             />
           )}
 
+          {showStickerPicker && (
+            <StickerPicker
+              onSelect={(stickerUrl) => {
+                const rawUrl = stickerUrl.match(/\[sticker:(.+)\]/)?.[1] || stickerUrl;
+                getSocket()?.emit('chat:message', {
+                  roomId,
+                  text: `[sticker:${rawUrl}]`,
+                  replyTo: replyToMsg ? { id: replyToMsg.id, username: replyToMsg.displayName ?? replyToMsg.username, text: replyToMsg.text } : undefined
+                });
+                setReplyToMsg(null);
+                setShowStickerPicker(false);
+              }}
+              onClose={() => setShowStickerPicker(false)}
+              activeTheme={activeTheme}
+            />
+          )}
+
           {/* Left Emoji Icon */}
           <div style={{ display: 'flex' }}>
             <button 
@@ -1097,22 +1114,6 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
                     <path d="M9 13c.5 1 1.5 1.5 2.5 1.5s2-.5 2.5-1.5" />
                   </svg>
                 </button>
-                {showStickerPicker && (
-                  <StickerPicker
-                    onSelect={(stickerUrl) => {
-                      const rawUrl = stickerUrl.match(/\[sticker:(.+)\]/)?.[1] || stickerUrl;
-                      getSocket()?.emit('chat:message', {
-                        roomId,
-                        text: `[sticker:${rawUrl}]`,
-                        replyTo: replyToMsg ? { id: replyToMsg.id, username: replyToMsg.displayName ?? replyToMsg.username, text: replyToMsg.text } : undefined
-                      });
-                      setReplyToMsg(null);
-                      setShowStickerPicker(false);
-                    }}
-                    onClose={() => setShowStickerPicker(false)}
-                    activeTheme={activeTheme}
-                  />
-                )}
               </div>
               
               {/* Heart */}

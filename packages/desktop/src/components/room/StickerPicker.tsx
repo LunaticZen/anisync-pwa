@@ -129,8 +129,9 @@ export function StickerPicker({ onSelect, onClose, activeTheme }: StickerPickerP
       style={{
         position: 'absolute',
         bottom: 'calc(100% + 10px)',
-        right: 0,
-        width: 320,
+        right: 8,
+        width: 290,
+        maxWidth: 'calc(100% - 16px)',
         height: 400,
         maxHeight: 'min(400px, calc(100cqh - 60px))',
         background: bg,

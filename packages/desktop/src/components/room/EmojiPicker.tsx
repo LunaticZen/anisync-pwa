@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import emojiData from './emojis.json';
 
 interface EmojiPickerProps {
@@ -11,6 +11,7 @@ interface EmojiPickerProps {
 
 export function EmojiPicker({ onSelect, onClose, isLight, isImage, isKeyboardOpen }: EmojiPickerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [search, setSearch] = useState('');
 
   // Close when clicking outside
   useEffect(() => {
@@ -44,15 +45,18 @@ export function EmojiPicker({ onSelect, onClose, isLight, isImage, isKeyboardOpe
     <div style={{
       position: 'absolute',
       bottom: 'calc(100% + 10px)',
-      left: '50%',
-      transform: 'translateX(-50%)',
+      left: 0,
+      right: 0,
+      display: 'flex',
+      justifyContent: 'center',
       zIndex: 100
     }}>
       <div
         ref={containerRef}
         onMouseDown={(e) => e.preventDefault()}
         style={{
-          width: 320,
+          width: 290,
+          maxWidth: 'calc(100% - 16px)',
           height: 400,
           maxHeight: 'min(400px, calc(100cqh - 60px))',
           background: bg,
