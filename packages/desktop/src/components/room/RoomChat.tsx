@@ -1145,21 +1145,31 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
         activeTheme={activeTheme}
         bubbleContent={
           overlayMsg ? (
-            <div style={{
-              background: overlayMsg.userId === username
-                ? activeTheme.accent
-                : (activeTheme.isLight ? '#f1f5f9' : (activeTheme.isImage ? 'rgba(0,0,0,0.5)' : '#334155')),
-              color: overlayMsg.userId === username ? 'white' : activeTheme.textColor,
-              padding: '8px 12px',
-              borderRadius: 18,
-              fontSize: 13,
-              lineHeight: 1.4,
-              wordBreak: 'break-word',
-              boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
-              border: overlayMsg.userId === username ? 'none' : `1px solid ${activeTheme.isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)'}`,
-            }}>
-              {renderMessageText(overlayMsg.text, /^(\s*\[(emoji|sticker):[^\]]+\]\s*)+$/.test(overlayMsg.text))}
-            </div>
+            (() => {
+              const isOnlyEmojiOrSticker = /^(\s*\[(emoji|sticker):[^\]]+\]\s*)+$/.test(overlayMsg.text);
+              return (
+                <div style={{
+                  background: isOnlyEmojiOrSticker
+                    ? 'transparent'
+                    : (overlayMsg.userId === username
+                        ? activeTheme.accent
+                        : (activeTheme.isLight ? '#f1f5f9' : (activeTheme.isImage ? 'rgba(0,0,0,0.5)' : '#334155'))),
+                  color: overlayMsg.userId === username ? 'white' : activeTheme.textColor,
+                  padding: isOnlyEmojiOrSticker ? 0 : '8px 12px',
+                  borderRadius: isOnlyEmojiOrSticker ? 0 : 18,
+                  fontSize: 13,
+                  lineHeight: 1.4,
+                  wordBreak: 'break-word',
+                  boxShadow: isOnlyEmojiOrSticker ? 'none' : '0 4px 20px rgba(0,0,0,0.3)',
+                  border: isOnlyEmojiOrSticker ? 'none' : (overlayMsg.userId === username ? 'none' : `1px solid ${activeTheme.isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)'}`),
+                  display: isOnlyEmojiOrSticker ? 'flex' : 'block',
+                  justifyContent: isOnlyEmojiOrSticker ? 'center' : 'initial',
+                  alignItems: isOnlyEmojiOrSticker ? 'center' : 'initial'
+                }}>
+                  {renderMessageText(overlayMsg.text, isOnlyEmojiOrSticker)}
+                </div>
+              );
+            })()
           ) : null
         }
       />
