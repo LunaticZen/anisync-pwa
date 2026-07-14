@@ -70,6 +70,20 @@ function renderReplyText(text: string) {
   return renderMessageText(text, false);
 }
 
+function renderInputReplyText(text: string) {
+  if (text.includes('[sticker:')) {
+    return (
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+          <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+        </svg>
+        <span>Dosya eki</span>
+      </span>
+    );
+  }
+  return renderMessageText(text, false);
+}
+
 // ─── Ticker Item Type ─────────────────────────────────────
 export interface TickerItem {
   id: string;
@@ -897,7 +911,7 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
               {replyToMsg.displayName ?? replyToMsg.username} adlı kişiye yanıt veriyorsun
             </span>
             <span style={{ fontSize: 12, opacity: 0.7, wordBreak: 'break-all', overflowWrap: 'anywhere', whiteSpace: 'pre-wrap', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-              {renderReplyText(replyToMsg.text)}
+              {renderInputReplyText(replyToMsg.text)}
             </span>
           </div>
           <button
@@ -1085,11 +1099,17 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
                 {showStickerPicker && (
                   <StickerPicker
                     onSelect={(stickerUrl) => {
-                      insertSticker(stickerUrl.match(/\[sticker:(.+)\]/)?.[1] || stickerUrl);
+                      const rawUrl = stickerUrl.match(/\[sticker:(.+)\]/)?.[1] || stickerUrl;
+                      getSocket()?.emit('chat:message', {
+                        roomId,
+                        text: `[sticker:${rawUrl}]`,
+                        replyTo: replyToMsg ? { id: replyToMsg.id, username: replyToMsg.displayName ?? replyToMsg.username, text: replyToMsg.text } : undefined
+                      });
+                      setReplyToMsg(null);
+                      setShowStickerPicker(false);
                     }}
                     onClose={() => setShowStickerPicker(false)}
-                    isLight={activeTheme.isLight}
-                    isImage={activeTheme.isImage}
+                    activeTheme={activeTheme}
                   />
                 )}
               </div>
