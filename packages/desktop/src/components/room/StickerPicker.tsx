@@ -231,9 +231,14 @@ export function StickerPicker({ onSelect, onClose, isLight, isImage }: StickerPi
               textTransform: 'uppercase',
               color: headerColor,
               zIndex: 1,
-              borderRadius: '0 0 4px 4px'
+              borderRadius: '0 0 4px 4px',
+              display: 'flex',
+              alignItems: 'center'
             }}>
-              ⭐ Favoriler
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 6 }}>
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+              </svg>
+              Favoriler
             </div>
             <div style={{
               display: 'grid',
@@ -272,9 +277,17 @@ export function StickerPicker({ onSelect, onClose, isLight, isImage }: StickerPi
             textTransform: 'uppercase',
             color: headerColor,
             zIndex: 1,
-            borderRadius: '0 0 4px 4px'
+            borderRadius: '0 0 4px 4px',
+            display: 'flex',
+            alignItems: 'center'
           }}>
-            🎨 Kendi Çıkartmalarım
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 6 }}>
+              <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 14.7255 3.09032 17.1962 4.85857 19C5.38531 19.5267 6.07172 19.8659 6.8166 19.9587C7.4571 20.0384 8.0772 19.7423 8.35414 19.1643L9.12328 17.5583C9.36215 17.06 9.86903 16.7441 10.4226 16.7441H13.5774C14.131 16.7441 14.6378 17.06 14.8767 17.5583L15.6459 19.1643C15.9228 19.7423 16.5429 20.0384 17.1834 19.9587C17.9283 19.8659 18.6147 19.5267 19.1414 19" />
+              <circle cx="7.5" cy="10.5" r="1" fill="currentColor"/>
+              <circle cx="12" cy="7.5" r="1" fill="currentColor"/>
+              <circle cx="16.5" cy="10.5" r="1" fill="currentColor"/>
+            </svg>
+            Kendi Çıkartmalarım
           </div>
           <div style={{
             display: 'grid',
@@ -321,9 +334,17 @@ export function StickerPicker({ onSelect, onClose, isLight, isImage }: StickerPi
             textTransform: 'uppercase',
             color: headerColor,
             zIndex: 1,
-            borderRadius: '0 0 4px 4px'
+            borderRadius: '0 0 4px 4px',
+            display: 'flex',
+            alignItems: 'center'
           }}>
-            🌟 Çıkartmalar
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 6 }}>
+              <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z" />
+              <circle cx="9" cy="10" r="1" fill="currentColor" />
+              <circle cx="15" cy="10" r="1" fill="currentColor" />
+              <path d="M9 14.5s1 1.5 3 1.5 3-1.5 3-1.5" />
+            </svg>
+            Çıkartmalar
           </div>
           <div style={{
             display: 'grid',
