@@ -963,6 +963,19 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
                 if (pathMatch) {
                   insertEmoji(pathMatch[1]);
                 }
+                // Refocus input to keep keyboard open on mobile!
+                setTimeout(() => {
+                  if (editableRef.current) {
+                    editableRef.current.focus();
+                    // Move cursor to the end
+                    const range = document.createRange();
+                    const sel = window.getSelection();
+                    range.selectNodeContents(editableRef.current);
+                    range.collapse(false);
+                    sel?.removeAllRanges();
+                    sel?.addRange(range);
+                  }
+                }, 50);
               }}
               onClose={() => setShowEmojiPicker(false)}
               isLight={activeTheme.isLight}
@@ -994,16 +1007,28 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
               type="button"
               onClick={(e) => {
                 e.preventDefault();
-                if (!isKeyboardOpen) editableRef.current?.blur();
-                setShowEmojiPicker(prev => !prev);
+                setShowEmojiPicker(prev => {
+                  const next = !prev;
+                  if (next) {
+                    setShowStickerPicker(false);
+                    setTimeout(() => editableRef.current?.focus(), 10);
+                  }
+                  return next;
+                });
               }}
               onMouseDown={e => { e.preventDefault(); e.stopPropagation(); }}
               onTouchStart={e => { e.preventDefault(); e.stopPropagation(); }}
               onTouchEnd={(e) => { 
                 e.preventDefault(); 
                 e.stopPropagation(); 
-                if (!isKeyboardOpen) editableRef.current?.blur();
-                setShowEmojiPicker(prev => !prev); 
+                setShowEmojiPicker(prev => {
+                  const next = !prev;
+                  if (next) {
+                    setShowStickerPicker(false);
+                    setTimeout(() => editableRef.current?.focus(), 10);
+                  }
+                  return next;
+                });
               }}
               style={{ 
                 background: 'none', border: 'none', padding: 0, 
@@ -1100,16 +1125,26 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
                   type="button"
                   onClick={(e) => {
                     e.preventDefault();
-                    if (!isKeyboardOpen) editableRef.current?.blur();
-                    setShowStickerPicker(prev => !prev);
+                    setShowStickerPicker(prev => {
+                      const next = !prev;
+                      if (next) {
+                        setShowEmojiPicker(false);
+                      }
+                      return next;
+                    });
                   }}
                   onMouseDown={e => { e.preventDefault(); e.stopPropagation(); }}
                   onTouchStart={e => { e.preventDefault(); e.stopPropagation(); }}
                   onTouchEnd={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    if (!isKeyboardOpen) editableRef.current?.blur();
-                    setShowStickerPicker(prev => !prev);
+                    setShowStickerPicker(prev => {
+                      const next = !prev;
+                      if (next) {
+                        setShowEmojiPicker(false);
+                      }
+                      return next;
+                    });
                   }}
                   style={{ background: 'none', border: 'none', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'inherit', cursor: 'pointer' }}
                 >
