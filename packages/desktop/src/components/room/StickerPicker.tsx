@@ -8,7 +8,7 @@ interface StickerPickerProps {
 }
 
 const DEFAULT_STICKERS = [
-  "https://github.com/LunaticZen/live_wallpapers/releases/download/stickers/5773-kuromi-wave.png"
+  "https://i.ibb.co/s9JYz5sg/5773-kuromi-wave.png"
 ];
 
 // ImgBB API Key provided by user
