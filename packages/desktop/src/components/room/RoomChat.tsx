@@ -1015,6 +1015,8 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
                     setShowStickerPicker(false);
                     if (isKeyboardOpen) {
                       setTimeout(() => editableRef.current?.focus(), 10);
+                    } else {
+                      editableRef.current?.blur();
                     }
                   }
                   return next;
@@ -1031,6 +1033,8 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
                     setShowStickerPicker(false);
                     if (isKeyboardOpen) {
                       setTimeout(() => editableRef.current?.focus(), 10);
+                    } else {
+                      editableRef.current?.blur();
                     }
                   }
                   return next;
@@ -1135,6 +1139,11 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
                       const next = !prev;
                       if (next) {
                         setShowEmojiPicker(false);
+                        if (isKeyboardOpen) {
+                          setTimeout(() => editableRef.current?.focus(), 10);
+                        } else {
+                          editableRef.current?.blur();
+                        }
                       }
                       return next;
                     });
@@ -1148,6 +1157,11 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
                       const next = !prev;
                       if (next) {
                         setShowEmojiPicker(false);
+                        if (isKeyboardOpen) {
+                          setTimeout(() => editableRef.current?.focus(), 10);
+                        } else {
+                          editableRef.current?.blur();
+                        }
                       }
                       return next;
                     });
