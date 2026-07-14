@@ -35,136 +35,154 @@ export function EmojiPicker({ onSelect, onClose, isLight, isImage, isKeyboardOpe
   const headerColor = isLight ? '#64748b' : '#94a3b8';
   const borderColor = isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)';
 
-  return (
-    <div
-      ref={containerRef}
-      onMouseDown={(e) => e.preventDefault()}
-      style={{
-        position: 'absolute',
-        bottom: 'calc(100% + 10px)',
-        left: 0,
-        width: 320,
-        height: 400,
-        maxHeight: 'min(400px, calc(100cqh - 60px))',
-        background: bg,
-        backdropFilter: 'none',
-        borderRadius: 16,
-        boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
-        border: `1px solid ${borderColor}`,
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
-        animation: 'modernMenuPop 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards',
-        transformOrigin: 'bottom left',
-        zIndex: 100
-      }}
-    >
-      <style>{`
-        @keyframes emojiPickerScaleIn {
-          from { opacity: 0; transform: scale(0.9) translateY(10px); }
-          to { opacity: 1; transform: scale(1) translateY(0); }
-        }
-        .emoji-picker-scroll::-webkit-scrollbar {
-          width: 6px;
-        }
-        .emoji-picker-scroll::-webkit-scrollbar-thumb {
-          background: ${borderColor};
-          border-radius: 4px;
-        }
-        .emoji-item {
-          transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
-          cursor: pointer;
-          border-radius: 8px;
-        }
-        .emoji-item:hover {
-          transform: scale(1.3);
-          background: ${isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.1)'};
-          z-index: 2;
-        }
-      `}</style>
-      
-      {/* Header */}
-      {!isKeyboardOpen && (
-        <div style={{
-          padding: '12px 16px',
-          borderBottom: `1px solid ${borderColor}`,
-          fontWeight: 600,
-          fontSize: 14,
-          color: textColor,
-          flexShrink: 0
-        }}>
-          Özel Emojiler
-        </div>
-      )}
+  const filteredCategories = emojiData.map(cat => ({
+    ...cat,
+    emojis: cat.emojis.filter(e => e.name.toLowerCase().includes(search.toLowerCase()))
+  })).filter(cat => cat.emojis.length > 0);
 
-      {/* Scrollable Content */}
-      <div 
-        className="emoji-picker-scroll"
+  return (
+    <div style={{
+      position: 'absolute',
+      bottom: 'calc(100% + 10px)',
+      left: '50%',
+      transform: 'translateX(-50%)',
+      zIndex: 100
+    }}>
+      <div
+        ref={containerRef}
+        onMouseDown={(e) => e.preventDefault()}
         style={{
-          flex: 1,
-          overflowY: 'auto',
-          padding: '0 8px 8px 8px',
-          position: 'relative'
+          width: 320,
+          height: 400,
+          maxHeight: 'min(400px, calc(100cqh - 60px))',
+          background: bg,
+          backdropFilter: 'none',
+          borderRadius: 16,
+          boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+          border: `1px solid ${borderColor}`,
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+          animation: 'modernMenuPop 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+          transformOrigin: 'bottom center',
         }}
       >
-        {emojiData.map((category) => (
-          <div key={category.name} style={{ marginBottom: 12 }}>
-            <div style={{
-              position: 'sticky',
-              top: 0,
-              background: headerBg,
-              backdropFilter: 'none',
-              padding: '8px 8px',
-              fontSize: 12,
-              fontWeight: 700,
-              textTransform: 'uppercase',
-              color: headerColor,
-              zIndex: 1,
-              borderRadius: '0 0 4px 4px'
-            }}>
-              {category.name}
-            </div>
-            
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(7, 1fr)',
-              gap: 4,
-              padding: '4px'
-            }}>
-              {category.emojis.map((emoji) => (
-                <div
-                  key={emoji.path}
-                  className="emoji-item"
-                  onClick={() => {
-                    onSelect(`[emoji:${emoji.path}]`);
-                    // optionally close on select, but Discord keeps it open. We'll keep it open
-                  }}
-                  title={emoji.name}
-                  style={{
-                    aspectRatio: '1/1',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    position: 'relative'
-                  }}
-                >
-                  <img 
-                    src={emoji.path.startsWith('http') ? emoji.path : `https://cdn.jsdelivr.net/gh/LunaticZen/live_wallpapers@main/emojis/${emoji.path}`}
-                    alt={emoji.name}
-                    loading="lazy"
-                    decoding="async"
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'contain',
-                      pointerEvents: 'none'
+        <style>{`
+          @keyframes emojiPickerScaleIn {
+            from { opacity: 0; transform: scale(0.9) translateY(10px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+          }
+          .emoji-picker-scroll::-webkit-scrollbar {
+            width: 6px;
+          }
+          .emoji-picker-scroll::-webkit-scrollbar-thumb {
+            background: ${borderColor};
+            border-radius: 4px;
+          }
+          .emoji-item {
+            transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+            cursor: pointer;
+            border-radius: 8px;
+          }
+          .emoji-item:hover {
+            transform: scale(1.3);
+          }
+        `}</style>
+        
+        {/* Search header */}
+        <div style={{
+          padding: '8px 12px',
+          borderBottom: `1px solid ${borderColor}`,
+          background: headerBg,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          flexShrink: 0
+        }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={headerColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.6 }}>
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          <input 
+            type="text"
+            placeholder="Emoji ara..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{
+              flex: 1,
+              background: 'none',
+              border: 'none',
+              outline: 'none',
+              fontSize: 14,
+              color: textColor,
+              padding: 0
+            }}
+          />
+        </div>
+
+        {/* Scrollable Emoji Categories */}
+        <div 
+          className="emoji-picker-scroll"
+          style={{
+            flex: 1,
+            overflowY: 'auto',
+            padding: '0 8px 8px 8px'
+          }}
+        >
+          {filteredCategories.map((cat, idx) => (
+            <div key={idx} style={{ marginBottom: 12 }}>
+              <div style={{
+                position: 'sticky',
+                top: 0,
+                background: headerBg,
+                padding: '8px 4px',
+                fontSize: 12,
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                color: headerColor,
+                zIndex: 1
+              }}>
+                {cat.name}
+              </div>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(6, 1fr)',
+                gap: 6
+              }}>
+                {cat.emojis.map((emoji, i) => (
+                  <div
+                    key={i}
+                    className="emoji-item"
+                    onClick={() => {
+                      onSelect(`[emoji:${emoji.path}]`);
+                      onClose();
                     }}
-                  />
-                </div>
-              ))}
+                    style={{
+                      aspectRatio: '1/1',
+                      padding: 4,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    <img 
+                      src={emoji.path.startsWith('http') ? emoji.path : `https://cdn.jsdelivr.net/gh/LunaticZen/live_wallpapers@main/emojis/${emoji.path}`}
+                      alt={emoji.name}
+                      loading="lazy"
+                      decoding="async"
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'contain',
+                        pointerEvents: 'none'
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </div>
   );
