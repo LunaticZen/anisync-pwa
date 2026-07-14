@@ -956,53 +956,6 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
           transition: 'all 0.2s ease',
           position: 'relative'
         }}>
-          {showEmojiPicker && (
-            <EmojiPicker 
-              onSelect={(emojiPath) => {
-                const pathMatch = emojiPath.match(/\[emoji:(.+)\]/);
-                if (pathMatch) {
-                  insertEmoji(pathMatch[1]);
-                }
-                // Refocus input to keep keyboard open on mobile only if keyboard was already open!
-                if (isKeyboardOpen) {
-                  setTimeout(() => {
-                    if (editableRef.current) {
-                      editableRef.current.focus();
-                      // Move cursor to the end
-                      const range = document.createRange();
-                      const sel = window.getSelection();
-                      range.selectNodeContents(editableRef.current);
-                      range.collapse(false);
-                      sel?.removeAllRanges();
-                      sel?.addRange(range);
-                    }
-                  }, 50);
-                }
-              }}
-              onClose={() => setShowEmojiPicker(false)}
-              isLight={activeTheme.isLight}
-              isImage={activeTheme.isImage}
-              isKeyboardOpen={isKeyboardOpen}
-            />
-          )}
-
-          {showStickerPicker && (
-            <StickerPicker
-              onSelect={(stickerUrl) => {
-                const rawUrl = stickerUrl.match(/\[sticker:(.+)\]/)?.[1] || stickerUrl;
-                getSocket()?.emit('chat:message', {
-                  roomId,
-                  text: `[sticker:${rawUrl}]`,
-                  replyTo: replyToMsg ? { id: replyToMsg.id, username: replyToMsg.displayName ?? replyToMsg.username, text: replyToMsg.text } : undefined
-                });
-                setReplyToMsg(null);
-                setShowStickerPicker(false);
-              }}
-              onClose={() => setShowStickerPicker(false)}
-              activeTheme={activeTheme}
-            />
-          )}
-
           {/* Left Emoji Icon */}
           <div style={{ display: 'flex' }}>
             <button 
@@ -1013,7 +966,8 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
                   const next = !prev;
                   if (next) {
                     setShowStickerPicker(false);
-                    if (isKeyboardOpen) {
+                    const isKeyboardActive = isKeyboardOpen && (document.activeElement === editableRef.current);
+                    if (isKeyboardActive) {
                       setTimeout(() => editableRef.current?.focus(), 10);
                     } else {
                       editableRef.current?.blur();
@@ -1031,7 +985,8 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
                   const next = !prev;
                   if (next) {
                     setShowStickerPicker(false);
-                    if (isKeyboardOpen) {
+                    const isKeyboardActive = isKeyboardOpen && (document.activeElement === editableRef.current);
+                    if (isKeyboardActive) {
                       setTimeout(() => editableRef.current?.focus(), 10);
                     } else {
                       editableRef.current?.blur();
@@ -1139,7 +1094,8 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
                       const next = !prev;
                       if (next) {
                         setShowEmojiPicker(false);
-                        if (isKeyboardOpen) {
+                        const isKeyboardActive = isKeyboardOpen && (document.activeElement === editableRef.current);
+                        if (isKeyboardActive) {
                           setTimeout(() => editableRef.current?.focus(), 10);
                         } else {
                           editableRef.current?.blur();
@@ -1157,7 +1113,8 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
                       const next = !prev;
                       if (next) {
                         setShowEmojiPicker(false);
-                        if (isKeyboardOpen) {
+                        const isKeyboardActive = isKeyboardOpen && (document.activeElement === editableRef.current);
+                        if (isKeyboardActive) {
                           setTimeout(() => editableRef.current?.focus(), 10);
                         } else {
                           editableRef.current?.blur();
@@ -1193,6 +1150,54 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
                 </svg>
               </button>
             </div>
+          )}
+
+          {showEmojiPicker && (
+            <EmojiPicker 
+              onSelect={(emojiPath) => {
+                const pathMatch = emojiPath.match(/\[emoji:(.+)\]/);
+                if (pathMatch) {
+                  insertEmoji(pathMatch[1]);
+                }
+                // Refocus input to keep keyboard open on mobile only if keyboard was already open!
+                const isKeyboardActive = isKeyboardOpen && (document.activeElement === editableRef.current);
+                if (isKeyboardActive) {
+                  setTimeout(() => {
+                    if (editableRef.current) {
+                      editableRef.current.focus();
+                      // Move cursor to the end
+                      const range = document.createRange();
+                      const sel = window.getSelection();
+                      range.selectNodeContents(editableRef.current);
+                      range.collapse(false);
+                      sel?.removeAllRanges();
+                      sel?.addRange(range);
+                    }
+                  }, 50);
+                }
+              }}
+              onClose={() => setShowEmojiPicker(false)}
+              isLight={activeTheme.isLight}
+              isImage={activeTheme.isImage}
+              isKeyboardOpen={isKeyboardOpen}
+            />
+          )}
+
+          {showStickerPicker && (
+            <StickerPicker
+              onSelect={(stickerUrl) => {
+                const rawUrl = stickerUrl.match(/\[sticker:(.+)\]/)?.[1] || stickerUrl;
+                getSocket()?.emit('chat:message', {
+                  roomId,
+                  text: `[sticker:${rawUrl}]`,
+                  replyTo: replyToMsg ? { id: replyToMsg.id, username: replyToMsg.displayName ?? replyToMsg.username, text: replyToMsg.text } : undefined
+                });
+                setReplyToMsg(null);
+                setShowStickerPicker(false);
+              }}
+              onClose={() => setShowStickerPicker(false)}
+              activeTheme={activeTheme}
+            />
           )}
         </div>
       </div>
