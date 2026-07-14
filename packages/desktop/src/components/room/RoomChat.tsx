@@ -963,19 +963,21 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
                 if (pathMatch) {
                   insertEmoji(pathMatch[1]);
                 }
-                // Refocus input to keep keyboard open on mobile!
-                setTimeout(() => {
-                  if (editableRef.current) {
-                    editableRef.current.focus();
-                    // Move cursor to the end
-                    const range = document.createRange();
-                    const sel = window.getSelection();
-                    range.selectNodeContents(editableRef.current);
-                    range.collapse(false);
-                    sel?.removeAllRanges();
-                    sel?.addRange(range);
-                  }
-                }, 50);
+                // Refocus input to keep keyboard open on mobile only if keyboard was already open!
+                if (isKeyboardOpen) {
+                  setTimeout(() => {
+                    if (editableRef.current) {
+                      editableRef.current.focus();
+                      // Move cursor to the end
+                      const range = document.createRange();
+                      const sel = window.getSelection();
+                      range.selectNodeContents(editableRef.current);
+                      range.collapse(false);
+                      sel?.removeAllRanges();
+                      sel?.addRange(range);
+                    }
+                  }, 50);
+                }
               }}
               onClose={() => setShowEmojiPicker(false)}
               isLight={activeTheme.isLight}
@@ -1011,7 +1013,9 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
                   const next = !prev;
                   if (next) {
                     setShowStickerPicker(false);
-                    setTimeout(() => editableRef.current?.focus(), 10);
+                    if (isKeyboardOpen) {
+                      setTimeout(() => editableRef.current?.focus(), 10);
+                    }
                   }
                   return next;
                 });
@@ -1025,7 +1029,9 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
                   const next = !prev;
                   if (next) {
                     setShowStickerPicker(false);
-                    setTimeout(() => editableRef.current?.focus(), 10);
+                    if (isKeyboardOpen) {
+                      setTimeout(() => editableRef.current?.focus(), 10);
+                    }
                   }
                   return next;
                 });
