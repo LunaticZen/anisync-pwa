@@ -107,13 +107,9 @@ export function StickerPicker({ onSelect, onClose, isLight, isImage }: StickerPi
     }
   };
 
-  const bg = isLight 
-    ? (isImage ? 'rgba(255, 255, 255, 0.85)' : '#ffffff') 
-    : (isImage ? 'rgba(15, 23, 42, 0.85)' : '#1e293b');
+  const bg = isLight ? '#ffffff' : '#1e293b';
   
-  const headerBg = isLight
-    ? (isImage ? 'rgba(255, 255, 255, 0.95)' : '#ffffff')
-    : (isImage ? 'rgba(15, 23, 42, 0.95)' : '#1e293b');
+  const headerBg = isLight ? '#ffffff' : '#1e293b';
 
   const textColor = isLight ? '#1e293b' : '#f8fafc';
   const headerColor = isLight ? '#64748b' : '#94a3b8';
