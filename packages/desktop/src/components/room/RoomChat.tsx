@@ -272,8 +272,8 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
   const isOnlyEmojiOrSticker = /^(\s*\[(emoji|sticker):[^\]]+\]\s*)+$/.test(msg.text);
   const bubbleBg = isOnlyEmojiOrSticker ? 'transparent' : (isMe ? activeTheme.accent : (effectiveIsLight ? '#f1f5f9' : (activeTheme.isImage ? 'rgba(0,0,0,0.5)' : '#334155')));
   const textColor = isMe ? 'white' : (effectiveIsLight ? '#0f172a' : '#f8fafc');
-  const marginT = isConsecutivePrev ? 2 : (isKeyboardOpen ? 6 : 12);
-  const avaSize = isKeyboardOpen ? 20 : 28;
+  const marginT = isConsecutivePrev ? 2 : (isMobile ? 12 : (isKeyboardOpen ? 6 : 12));
+  const avaSize = isMobile ? (isKeyboardOpen ? 28 : 34) : (isKeyboardOpen ? 20 : 28);
 
   // ── Long-press timer for mobile overlay menu ──
   const longPressTimer = useRef<ReturnType<typeof setTimeout>>();
@@ -356,7 +356,7 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
       )}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start', maxWidth: '78%', minWidth: 0 }}>
         {!isMe && !isConsecutivePrev && (
-          <span style={{ fontSize: 11, fontWeight: 600, color: clr, marginLeft: 4, marginBottom: 4 }}>{displayName}</span>
+          <span style={{ fontSize: isMobile ? 12 : 11, fontWeight: 600, color: clr, marginLeft: 4, marginBottom: 4 }}>{displayName}</span>
         )}
         <div style={{ position: 'relative' }}>
           {/* SecretChat Reply Icon */}
@@ -465,7 +465,7 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start', justifyContent: 'center', minWidth: 0, maxWidth: 'calc(100% - 9px)' }}>
                   {/* Label */}
                   <span style={{ 
-                    fontSize: 11, 
+                    fontSize: isMobile ? 12 : 11, 
                     fontWeight: 600,
                     marginBottom: 4,
                     color: effectiveIsLight ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.6)',
@@ -481,9 +481,9 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
                   <div style={{
                     background: effectiveIsLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.1)',
                     color: effectiveIsLight ? '#0f172a' : '#f8fafc',
-                    padding: '6px 12px',
+                    padding: isMobile ? '8px 14px' : '6px 12px',
                     borderRadius: 14,
-                    fontSize: 12,
+                    fontSize: isMobile ? 13 : 12,
                     maxWidth: '100%',
                     wordBreak: 'break-all', overflowWrap: 'anywhere', whiteSpace: 'pre-wrap',
                     border: `1px solid ${effectiveIsLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.04)'}`,
@@ -498,8 +498,15 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
             <div style={{
               background: bubbleBg, color: textColor,
               maxWidth: '100%', minWidth: 0,
-              padding: isOnlyEmojiOrSticker ? 0 : (isKeyboardOpen ? '6px 10px' : '8px 12px'),
-              borderRadius: borderRadius, fontSize: isKeyboardOpen ? 12 : 13,
+              padding: isOnlyEmojiOrSticker 
+                ? 0 
+                : (isMobile 
+                    ? (isKeyboardOpen ? '8px 12px' : '10px 14px') 
+                    : (isKeyboardOpen ? '6px 10px' : '8px 12px')),
+              borderRadius: borderRadius, 
+              fontSize: isMobile 
+                ? (isKeyboardOpen ? 14 : 15) 
+                : (isKeyboardOpen ? 12 : 13),
               lineHeight: 1.4, wordBreak: 'break-word',
               boxShadow: isOnlyEmojiOrSticker ? 'none' : (activeTheme.isImage && !isMe ? '0 2px 8px rgba(0,0,0,0.2)' : 'none'),
               border: isOnlyEmojiOrSticker ? 'none' : (isMe ? 'none' : `1px solid ${effectiveIsLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)'}`),
