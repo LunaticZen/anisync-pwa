@@ -159,7 +159,6 @@ export function EmojiPicker({ onSelect, onClose, isLight, isImage, isKeyboardOpe
                     className="emoji-item"
                     onClick={() => {
                       onSelect(`[emoji:${emoji.path}]`);
-                      onClose();
                     }}
                     style={{
                       aspectRatio: '1/1',

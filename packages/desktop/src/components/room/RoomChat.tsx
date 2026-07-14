@@ -443,12 +443,15 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
                   const el = document.getElementById(`msg-${msg.replyTo.id}`);
                   if (el) {
                     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    el.classList.remove('highlight-glow');
-                    void el.offsetWidth; // trigger reflow
-                    el.classList.add('highlight-glow');
-                    setTimeout(() => {
-                      el.classList.remove('highlight-glow');
-                    }, 700);
+                    const targetBubble = el.querySelector('.chat-bubble-container');
+                    if (targetBubble) {
+                      targetBubble.classList.remove('highlight-glow');
+                      void (targetBubble as HTMLElement).offsetWidth; // trigger reflow
+                      targetBubble.classList.add('highlight-glow');
+                      setTimeout(() => {
+                        targetBubble.classList.remove('highlight-glow');
+                      }, 1500);
+                    }
                   }
                 }}
               >
