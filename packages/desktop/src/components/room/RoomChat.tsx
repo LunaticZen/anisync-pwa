@@ -8,32 +8,52 @@ import { useAuthStore, useChatStore, useRoomStore, useUIStore } from '../../stor
 import { getSocket } from '../../services/socket';
 import { isMobile, avatarColor, getTheme, type RoomMode } from './constants';
 import { EmojiPicker } from './EmojiPicker';
+import { StickerPicker } from './StickerPicker';
 import { MessageOverlayMenu, useOverlayMenu, type OverlayMenuAction } from './MessageOverlayMenu';
 
-function renderMessageText(text: string, isOnlyEmoji: boolean) {
-  const emojiRegex = /\[emoji:([^\]]+)\]/g;
+function renderMessageText(text: string, isOnlyEmojiOrSticker: boolean) {
+  const tokenRegex = /\[(emoji|sticker):([^\]]+)\]/g;
   const parts = [];
   let lastIndex = 0;
   let match;
   
-  while ((match = emojiRegex.exec(text)) !== null) {
+  while ((match = tokenRegex.exec(text)) !== null) {
     if (match.index > lastIndex) {
       parts.push(text.slice(lastIndex, match.index));
     }
-    const emojiPath = match[1];
-    parts.push(
-      <img 
-        key={match.index} 
-        src={emojiPath.startsWith('http') ? emojiPath : `https://cdn.jsdelivr.net/gh/LunaticZen/live_wallpapers@main/emojis/${emojiPath}`} 
-        alt="emoji" 
-        style={{ 
-          height: isOnlyEmoji ? 48 : 24, 
-          verticalAlign: 'middle', 
-          display: 'inline-block',
-          margin: '0 2px'
-        }} 
-      />
-    );
+    const type = match[1];
+    const path = match[2];
+    
+    if (type === 'emoji') {
+      parts.push(
+        <img 
+          key={match.index} 
+          src={path.startsWith('http') ? path : `https://cdn.jsdelivr.net/gh/LunaticZen/live_wallpapers@main/emojis/${path}`} 
+          alt="emoji" 
+          style={{ 
+            height: isOnlyEmojiOrSticker ? 48 : 24, 
+            verticalAlign: 'middle', 
+            display: 'inline-block',
+            margin: '0 2px'
+          }} 
+        />
+      );
+    } else if (type === 'sticker') {
+      parts.push(
+        <img 
+          key={match.index} 
+          src={path} 
+          alt="sticker" 
+          style={{ 
+            height: isOnlyEmojiOrSticker ? 100 : 32, 
+            verticalAlign: 'middle', 
+            display: 'inline-block',
+            margin: '0 4px',
+            borderRadius: 8
+          }} 
+        />
+      );
+    }
     lastIndex = match.index + match[0].length;
   }
   if (lastIndex < text.length) {
@@ -41,6 +61,13 @@ function renderMessageText(text: string, isOnlyEmoji: boolean) {
   }
   
   return parts.length > 0 ? parts : text;
+}
+
+function renderReplyText(text: string) {
+  if (text.includes('[sticker:')) {
+    return <span style={{ fontStyle: 'italic', opacity: 0.8 }}>Çıkartmayı görmek için tıkla</span>;
+  }
+  return renderMessageText(text, false);
 }
 
 // ─── Ticker Item Type ─────────────────────────────────────
@@ -109,7 +136,7 @@ function ChatTicker({ tickerItems }: {
             }}
           >
             <span style={{ color: '#5b9bff', fontWeight: 700 }}>{item.username}: </span>
-            {renderMessageText(item.text, /^(\s*\[emoji:[^\]]+\]\s*)+$/.test(item.text))}
+            {renderMessageText(item.text, false)}
           </span>
         );
       })}
@@ -228,8 +255,8 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
     ? `${topRadius}px ${isConsecutivePrev ? smallRadius : topRadius}px ${isConsecutiveNext ? smallRadius : bottomRadius}px ${bottomRadius}px`
     : `${isConsecutivePrev ? smallRadius : topRadius}px ${topRadius}px ${bottomRadius}px ${isConsecutiveNext ? smallRadius : bottomRadius}px`;
 
-  const isOnlyEmoji = /^(\s*\[emoji:[^\]]+\]\s*)+$/.test(msg.text);
-  const bubbleBg = isOnlyEmoji ? 'transparent' : (isMe ? activeTheme.accent : (effectiveIsLight ? '#f1f5f9' : (activeTheme.isImage ? 'rgba(0,0,0,0.5)' : '#334155')));
+  const isOnlyEmojiOrSticker = /^(\s*\[(emoji|sticker):[^\]]+\]\s*)+$/.test(msg.text);
+  const bubbleBg = isOnlyEmojiOrSticker ? 'transparent' : (isMe ? activeTheme.accent : (effectiveIsLight ? '#f1f5f9' : (activeTheme.isImage ? 'rgba(0,0,0,0.5)' : '#334155')));
   const textColor = isMe ? 'white' : (effectiveIsLight ? '#0f172a' : '#f8fafc');
   const marginT = isConsecutivePrev ? 2 : (isKeyboardOpen ? 6 : 12);
   const avaSize = isKeyboardOpen ? 20 : 28;
@@ -447,7 +474,7 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
                     wordBreak: 'break-all', overflowWrap: 'anywhere', whiteSpace: 'pre-wrap',
                     border: `1px solid ${effectiveIsLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.04)'}`,
                   }}>
-                    {renderMessageText(msg.replyTo.text, false)}
+                    {renderReplyText(msg.replyTo.text)}
                   </div>
                 </div>
               </div>
@@ -457,14 +484,14 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
             <div style={{
               background: bubbleBg, color: textColor,
               maxWidth: '100%', minWidth: 0,
-              padding: isOnlyEmoji ? 0 : (isKeyboardOpen ? '6px 10px' : '8px 12px'),
+              padding: isOnlyEmojiOrSticker ? 0 : (isKeyboardOpen ? '6px 10px' : '8px 12px'),
               borderRadius: borderRadius, fontSize: isKeyboardOpen ? 12 : 13,
               lineHeight: 1.4, wordBreak: 'break-word',
-              boxShadow: isOnlyEmoji ? 'none' : (activeTheme.isImage && !isMe ? '0 2px 8px rgba(0,0,0,0.2)' : 'none'),
-              border: isOnlyEmoji ? 'none' : (isMe ? 'none' : `1px solid ${effectiveIsLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)'}`),
+              boxShadow: isOnlyEmojiOrSticker ? 'none' : (activeTheme.isImage && !isMe ? '0 2px 8px rgba(0,0,0,0.2)' : 'none'),
+              border: isOnlyEmojiOrSticker ? 'none' : (isMe ? 'none' : `1px solid ${effectiveIsLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)'}`),
               /* padding/font-size removed from transition to prevent layout thrashing */
             }}>
-              {renderMessageText(msg.text, isOnlyEmoji)}
+              {renderMessageText(msg.text, isOnlyEmojiOrSticker)}
             </div>
           </div>
         </div>
@@ -485,6 +512,7 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
   const [text, setText] = useState('');
   const [replyToMsg, setReplyToMsg] = useState<any>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showStickerPicker, setShowStickerPicker] = useState(false);
   const [isHeartClicked, setIsHeartClicked] = useState(false);
   const editableRef = useRef<HTMLDivElement>(null);
   const uiTheme = useUIStore(s => s.theme);
@@ -502,6 +530,14 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
 
   const overlayActions: OverlayMenuAction[] = React.useMemo(() => {
     if (!overlayMsg) return [];
+    
+    const stickerUrlMatch = overlayMsg.text.match(/\[sticker:([^\]]+)\]/);
+    const stickerUrl = stickerUrlMatch ? stickerUrlMatch[1] : null;
+    
+    const favoritesStr = localStorage.getItem('anisync_favorite_stickers');
+    const favorites = favoritesStr ? JSON.parse(favoritesStr) : [];
+    const isFavorited = stickerUrl ? favorites.includes(stickerUrl) : false;
+
     const acts: OverlayMenuAction[] = [
       {
         label: 'Kopyala',
@@ -517,6 +553,28 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
         },
       },
     ];
+
+    if (stickerUrl) {
+      acts.push({
+        label: isFavorited ? 'Favorilerden Çıkar' : 'Favorilere Ekle',
+        icon: (
+          <svg width="18" height="18" viewBox="0 0 24 24" fill={isFavorited ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+          </svg>
+        ),
+        onClick: () => {
+          let updated = [...favorites];
+          if (isFavorited) {
+            updated = updated.filter((u: string) => u !== stickerUrl);
+          } else {
+            updated.push(stickerUrl);
+          }
+          localStorage.setItem('anisync_favorite_stickers', JSON.stringify(updated));
+          window.dispatchEvent(new Event('anisync_favorites_updated'));
+        }
+      });
+    }
+
     // Delete only for own messages
     if (overlayMsg.userId === username) {
       acts.push({
@@ -552,7 +610,9 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
         parsed += node.textContent;
       } else if (node.nodeName === 'IMG') {
         const e = (node as HTMLImageElement).getAttribute('data-emoji');
+        const s = (node as HTMLImageElement).getAttribute('data-sticker');
         if (e) parsed += `[emoji:${e}]`;
+        else if (s) parsed += `[sticker:${s}]`;
       } else if (node.nodeName === 'DIV' || node.nodeName === 'BR') {
         parsed += ' ';
       }
@@ -574,6 +634,40 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
     img.style.margin = '0 2px';
     img.style.userSelect = 'none';
     img.style.display = 'inline-block';
+    img.setAttribute('contenteditable', 'false');
+    if (document.activeElement === editableRef.current) {
+      const sel = window.getSelection();
+      if (sel && sel.rangeCount > 0) {
+        const range = sel.getRangeAt(0);
+        range.deleteContents();
+        range.insertNode(img);
+        range.setStartAfter(img);
+        range.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(range);
+      } else {
+        editableRef.current.appendChild(img);
+      }
+    } else {
+      editableRef.current.appendChild(img);
+    }
+    handleInput();
+  };
+
+  const insertSticker = (stickerUrl: string) => {
+    if (!editableRef.current) return;
+    
+    const img = document.createElement('img');
+    img.setAttribute('data-sticker', stickerUrl);
+    img.src = stickerUrl;
+    img.alt = "sticker";
+    img.style.height = '64px';
+    img.style.width = '64px';
+    img.style.verticalAlign = 'middle';
+    img.style.margin = '0 4px';
+    img.style.userSelect = 'none';
+    img.style.display = 'inline-block';
+    img.style.borderRadius = '8px';
     img.setAttribute('contenteditable', 'false');
     if (document.activeElement === editableRef.current) {
       const sel = window.getSelection();
@@ -650,6 +744,7 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
     setText('');
     setReplyToMsg(null);
     setShowEmojiPicker(false);
+    setShowStickerPicker(false);
     getSocket()?.emit('chat:typing', { roomId, isTyping: false });
     // Keep keyboard open — refocus input after send
     if (isMobile) {
@@ -802,7 +897,7 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
               {replyToMsg.displayName ?? replyToMsg.username} adlı kişiye yanıt veriyorsun
             </span>
             <span style={{ fontSize: 12, opacity: 0.7, wordBreak: 'break-all', overflowWrap: 'anywhere', whiteSpace: 'pre-wrap', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-              {renderMessageText(replyToMsg.text, false)}
+              {renderReplyText(replyToMsg.text)}
             </span>
           </div>
           <button
@@ -959,6 +1054,42 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
                   <path d="M21 15l-5-5L5 21"/>
                 </svg>
               </button>
+              
+              {/* Sticker */}
+              <div style={{ position: 'relative', display: 'flex' }}>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (!isKeyboardOpen) editableRef.current?.blur();
+                    setShowStickerPicker(prev => !prev);
+                  }}
+                  onMouseDown={e => { e.preventDefault(); e.stopPropagation(); }}
+                  onTouchStart={e => { e.preventDefault(); e.stopPropagation(); }}
+                  onTouchEnd={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (!isKeyboardOpen) editableRef.current?.blur();
+                    setShowStickerPicker(prev => !prev);
+                  }}
+                  style={{ background: 'none', border: 'none', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'inherit', cursor: 'pointer' }}
+                >
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M17.75,3 C19.5449254,3 21,4.45507456 21,6.25 L21,13.1286797 C21,13.7254168 20.7629471,14.2977131 20.3409903,14.7196699 L14.7196699,20.3409903 C14.2977131,20.7629471 13.7254168,21 13.1286797,21 L6.25,21 C4.45507456,21 3,19.5449254 3,17.75 L3,6.25 C3,4.45507456 4.45507456,3 6.25,3 L17.75,3 Z M17.75,4.5 L6.25,4.5 C5.28350169,4.5 4.5,5.28350169 4.5,6.25 L4.5,17.75 C4.5,18.7164983 5.28350169,19.5 6.25,19.5 L13,19.5 L13.0009311,16.43647 C12.7797674,16.4695411 12.5550391,16.4914039 12.3268476,16.5020318 L12.0009196,16.5095694 C10.6524195,16.5095694 9.41985327,16.1277457 8.32332796,15.3693213 C7.98266181,15.1336957 7.89750966,14.6665189 8.13313532,14.3258527 C8.36876097,13.9851866 8.83593779,13.9000344 9.17660394,14.1356601 C10.0214496,14.7200073 10.9561858,15.0095694 12.0009196,15.0095694 C12.4632218,15.0095694 12.9039851,14.9528695 13.3249517,14.8390171 C13.8209477,13.810242 14.841241,13.0847218 16.0381726,13.0069334 L16.2511587,13 L19.5,13 L19.5,6.25 C19.5,5.28350169 18.7164983,4.5 17.75,4.5 Z M18.439,14.5 L16.2514009,14.5 C15.3331635,14.5002964 14.5800184,15.2074184 14.5065843,16.1066314 L14.5007131,16.2501337 L14.5,18.439 L18.439,14.5 Z M9.00044779,7.75115873 C9.69041108,7.75115873 10.2497368,8.3104845 10.2497368,9.00044779 C10.2497368,9.69041108 9.69041108,10.2497368 9.00044779,10.2497368 C8.3104845,10.2497368 7.75115873,9.69041108 7.75115873,9.00044779 C7.75115873,8.3104845 8.3104845,7.75115873 9.00044779,7.75115873 Z M15.0004478,7.75115873 C15.6904111,7.75115873 16.2497368,8.3104845 16.2497368,9.00044779 C16.2497368,9.69041108 15.6904111,10.2497368 15.0004478,10.2497368 C14.3104845,10.2497368 13.7511587,9.69041108 13.7511587,9.00044779 C13.7511587,8.3104845 14.3104845,7.75115873 15.0004478,7.75115873 Z" fill="currentColor" />
+                  </svg>
+                </button>
+                {showStickerPicker && (
+                  <StickerPicker
+                    onSelect={(stickerUrl) => {
+                      insertSticker(stickerUrl.match(/\[sticker:(.+)\]/)?.[1] || stickerUrl);
+                    }}
+                    onClose={() => setShowStickerPicker(false)}
+                    isLight={activeTheme.isLight}
+                    isImage={activeTheme.isImage}
+                  />
+                )}
+              </div>
+              
               {/* Heart */}
               <button 
                 className={isHeartClicked ? 'heart-pop-anim' : ''}
@@ -1001,7 +1132,7 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
               boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
               border: overlayMsg.userId === username ? 'none' : `1px solid ${activeTheme.isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)'}`,
             }}>
-              {renderMessageText(overlayMsg.text, /^(\s*\[emoji:[^\]]+\]\s*)+$/.test(overlayMsg.text))}
+              {renderMessageText(overlayMsg.text, /^(\s*\[(emoji|sticker):[^\]]+\]\s*)+$/.test(overlayMsg.text))}
             </div>
           ) : null
         }
