@@ -1226,6 +1226,7 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
           try {
             const formData = new FormData();
             formData.append('image', file);
+            formData.append('expiration', '86400');
             const resp = await fetch(`https://api.imgbb.com/1/upload?key=7bf7ab7443109937733eb7b2287d42ad`, {
               method: 'POST',
               body: formData
