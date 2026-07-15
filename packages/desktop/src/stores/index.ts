@@ -100,19 +100,32 @@ export const useRoomStore = create<RoomState>((set, get) => ({
   setRoom: (room) => {
     // PERF: Start KeepAliveService when joining a room (Android only)
     try { (window as any).AniSyncBridge?.startKeepAlive(); } catch (_) {}
+    const currentTheme = get().theme;
     set({
       currentRoom: room,
       members: room.members ?? [],
       settings: room.settings ?? null,
-      theme: (room as any).theme || 'night',
+      theme: (room as any).theme || currentTheme || 'night',
       error: null,
     });
   },
   updateMembers: (members) => set({ members }),
-  addMember: (member) => set({ members: [...get().members, member] }),
-  removeMember: (userId) => set({
-    members: get().members.filter(m => m.userId !== userId),
-  }),
+  addMember: (member) => {
+    const newMembers = [...get().members, member];
+    const room = get().currentRoom;
+    set({
+      members: newMembers,
+      currentRoom: room ? { ...room, members: newMembers } : null,
+    });
+  },
+  removeMember: (userId) => {
+    const newMembers = get().members.filter(m => m.userId !== userId);
+    const room = get().currentRoom;
+    set({
+      members: newMembers,
+      currentRoom: room ? { ...room, members: newMembers } : null,
+    });
+  },
   updateSettings: (updates) => set({
     settings: { ...get().settings!, ...updates },
   }),
