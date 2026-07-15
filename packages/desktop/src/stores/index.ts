@@ -196,6 +196,7 @@ interface ChatState {
   addMessage: (message: ChatMessage) => void;
   setMessages: (messages: ChatMessage[]) => void;
   removeMessage: (messageId: string) => void;
+  editMessage: (messageId: string, newText: string) => void;
   setTyping: (indicator: TypingIndicator) => void;
   clearTyping: (userId: string) => void;
   setOpen: (open: boolean) => void;
@@ -218,6 +219,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
   setMessages: (messages) => set({ messages }),
   removeMessage: (messageId) => set({
     messages: get().messages.filter(m => m.id !== messageId),
+  }),
+  editMessage: (messageId, newText) => set({
+    messages: get().messages.map(m => m.id === messageId ? { ...m, text: newText, editedAt: new Date().toISOString() } : m),
   }),
   setTyping: (indicator) => {
     // Clean stale typing indicators (>10s old) to prevent phantom "typing..." states

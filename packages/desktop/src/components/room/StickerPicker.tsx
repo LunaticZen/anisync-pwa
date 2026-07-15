@@ -260,6 +260,29 @@ export function StickerPicker({ onSelect, onClose, activeTheme }: StickerPickerP
                   key={i}
                   className="sticker-item"
                   onClick={() => onSelect(`[sticker:${url}]`)}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    if (confirm('Bu çıkartmayı favorilerden çıkarmak istiyor musun?')) {
+                      const updated = favoriteStickers.filter(u => u !== url);
+                      setFavoriteStickers(updated);
+                      localStorage.setItem('anisync_favorite_stickers', JSON.stringify(updated));
+                      window.dispatchEvent(new Event('anisync_favorites_updated'));
+                    }
+                  }}
+                  onTouchStart={(e) => {
+                    const timer = setTimeout(() => {
+                      e.preventDefault();
+                      if (confirm('Bu çıkartmayı favorilerden çıkarmak istiyor musun?')) {
+                        const updated = favoriteStickers.filter(u => u !== url);
+                        setFavoriteStickers(updated);
+                        localStorage.setItem('anisync_favorite_stickers', JSON.stringify(updated));
+                        window.dispatchEvent(new Event('anisync_favorites_updated'));
+                      }
+                    }, 500);
+                    (e.currentTarget as any)._lp = timer;
+                  }}
+                  onTouchEnd={(e) => { clearTimeout((e.currentTarget as any)._lp); }}
+                  onTouchMove={(e) => { clearTimeout((e.currentTarget as any)._lp); }}
                   style={{ aspectRatio: '1/1', padding: 4 }}
                 >
                   <img 
@@ -318,6 +341,27 @@ export function StickerPicker({ onSelect, onClose, activeTheme }: StickerPickerP
                 key={i}
                 className="sticker-item"
                 onClick={() => onSelect(`[sticker:${url}]`)}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  if (confirm('Bu çıkartmayı silmek istiyor musun?')) {
+                    const updated = customStickers.filter(u => u !== url);
+                    setCustomStickers(updated);
+                    localStorage.setItem('anisync_custom_stickers', JSON.stringify(updated));
+                  }
+                }}
+                onTouchStart={(e) => {
+                  const timer = setTimeout(() => {
+                    e.preventDefault();
+                    if (confirm('Bu çıkartmayı silmek istiyor musun?')) {
+                      const updated = customStickers.filter(u => u !== url);
+                      setCustomStickers(updated);
+                      localStorage.setItem('anisync_custom_stickers', JSON.stringify(updated));
+                    }
+                  }, 500);
+                  (e.currentTarget as any)._lp = timer;
+                }}
+                onTouchEnd={(e) => { clearTimeout((e.currentTarget as any)._lp); }}
+                onTouchMove={(e) => { clearTimeout((e.currentTarget as any)._lp); }}
                 style={{ aspectRatio: '1/1', padding: 4 }}
               >
                 <img 

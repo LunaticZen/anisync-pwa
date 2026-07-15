@@ -323,6 +323,15 @@ function registerChatHandlers(socket: TypedSocket) {
       io!.to(data.roomId).emit('chat:deleted', { messageId: data.messageId });
     }
   });
+
+  (socket as any).on('chat:edit', (data: any) => {
+    if (!data.roomId || !data.messageId || !data.text) return;
+    io!.to(data.roomId).emit('chat:edited', {
+      messageId: data.messageId,
+      text: data.text,
+      editedAt: new Date().toISOString()
+    });
+  });
 }
 
 // ─── Presence Handlers ────────────────────────────────────────

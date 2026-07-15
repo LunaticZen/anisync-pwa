@@ -538,6 +538,9 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
               /* padding/font-size removed from transition to prevent layout thrashing */
             }}>
               {renderMessageText(msg.text, isOnlyEmojiOrSticker)}
+              {msg.editedAt && !isOnlyEmojiOrSticker && (
+                <span style={{ fontSize: 10, opacity: 0.5, marginLeft: 6, fontStyle: 'italic', whiteSpace: 'nowrap' }}>(düzenlendi)</span>
+              )}
             </div>
           </div>
         </div>
@@ -557,6 +560,7 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
   const { username } = useAuthStore();
   const [text, setText] = useState('');
   const [replyToMsg, setReplyToMsg] = useState<any>(null);
+  const [editingMsg, setEditingMsg] = useState<any>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showStickerPicker, setShowStickerPicker] = useState(false);
   const [isHeartClicked, setIsHeartClicked] = useState(false);
@@ -623,8 +627,58 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
       });
     }
 
-    // Delete only for own messages
+    // Edit & Delete only for own messages
     if (overlayMsg.userId === username) {
+      // Only allow editing text messages (not stickers/images)
+      const isMediaOnly = /^\s*\[(sticker|image):[^\]]+\]\s*$/.test(overlayMsg.text);
+      if (!isMediaOnly) {
+        acts.push({
+          label: 'Düzenle',
+          icon: (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+          ),
+          onClick: () => {
+            setEditingMsg(overlayMsg);
+            setReplyToMsg(null);
+            // Set the text to the plain text version (strip emoji/sticker tags for editing)
+            const plainText = overlayMsg.text;
+            setText(plainText);
+            if (editableRef.current) {
+              editableRef.current.innerHTML = '';
+              // Re-render with proper emoji images
+              const tokenRegex = /\[(emoji):([^\]]+)\]/g;
+              let lastIdx = 0;
+              let m;
+              while ((m = tokenRegex.exec(plainText)) !== null) {
+                if (m.index > lastIdx) {
+                  editableRef.current.appendChild(document.createTextNode(plainText.slice(lastIdx, m.index)));
+                }
+                const img = document.createElement('img');
+                img.setAttribute('data-emoji', m[2]);
+                img.src = m[2].startsWith('http') ? m[2] : `https://cdn.jsdelivr.net/gh/LunaticZen/live_wallpapers@main/emojis/${m[2]}`;
+                img.alt = 'emoji';
+                img.style.height = '24px';
+                img.style.width = '24px';
+                img.style.verticalAlign = 'middle';
+                img.style.margin = '0 2px';
+                img.style.userSelect = 'none';
+                img.style.display = 'inline-block';
+                img.setAttribute('contenteditable', 'false');
+                editableRef.current.appendChild(img);
+                lastIdx = m.index + m[0].length;
+              }
+              if (lastIdx < plainText.length) {
+                editableRef.current.appendChild(document.createTextNode(plainText.slice(lastIdx)));
+              }
+              editableRef.current.focus();
+            }
+          },
+        });
+      }
+
       acts.push({
         label: 'Sil',
         icon: (
@@ -784,13 +838,21 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
   const handleSend = () => {
     const cleanText = text.replace(/[\u200B]/g, '').trim();
     if (!cleanText) return;
-    getSocket()?.emit('chat:message', { 
-      roomId, 
-      text: cleanText,
-      replyTo: replyToMsg ? { id: replyToMsg.id, username: replyToMsg.displayName ?? replyToMsg.username, text: replyToMsg.text } : undefined
-    });
+    
+    if (editingMsg) {
+      // Edit mode: emit edit event
+      getSocket()?.emit('chat:edit', { roomId, messageId: editingMsg.id, text: cleanText });
+      setEditingMsg(null);
+    } else {
+      // Normal send
+      getSocket()?.emit('chat:message', { 
+        roomId, 
+        text: cleanText,
+        replyTo: replyToMsg ? { id: replyToMsg.id, username: replyToMsg.displayName ?? replyToMsg.username, text: replyToMsg.text } : undefined
+      });
+      setReplyToMsg(null);
+    }
     setText('');
-    setReplyToMsg(null);
     setShowEmojiPicker(false);
     setShowStickerPicker(false);
     getSocket()?.emit('chat:typing', { roomId, isTyping: false });
@@ -957,6 +1019,37 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
         </div>
       )}
 
+      {/* Editing Preview Banner */}
+      {editingMsg && (
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '10px 14px',
+          background: activeTheme.menuBg,
+          backdropFilter: 'none',
+          borderTop: `1px solid ${activeTheme.isLight ? 'rgba(0,0,0,0.08)' : (activeTheme.isImage ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.06)')}`,
+          position: 'relative',
+          zIndex: 1,
+          color: activeTheme.textColor, flexShrink: 0,
+          animation: 'slideUpSmooth 0.25s ease-out forwards',
+        }}>
+          <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1, borderLeft: `3px solid #f59e0b`, paddingLeft: 8 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b', marginBottom: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+              </svg>
+              Mesajı düzenliyorsun
+            </span>
+          </div>
+          <button
+            onClick={() => { setEditingMsg(null); setText(''); if (editableRef.current) editableRef.current.innerHTML = ''; }}
+            style={{ background: 'none', border: 'none', color: activeTheme.textColor, opacity: 0.6, cursor: 'pointer', padding: 4 }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+        </div>
+      )}
+
       {/* Input Area (Instagram Style) */}
       <div style={{
         boxSizing: 'border-box',
@@ -964,7 +1057,7 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
         display: 'flex', alignItems: 'center',
         padding: isKeyboardOpen ? '4px 10px' : '8px 16px',
         paddingBottom: isKeyboardOpen ? '4px' : 'max(8px, env(safe-area-inset-bottom, 8px))',
-        borderTop: replyToMsg ? 'none' : `1px solid ${activeTheme.isLight ? 'rgba(0,0,0,0.08)' : (activeTheme.isImage ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.06)')}`,
+        borderTop: (replyToMsg || editingMsg) ? 'none' : `1px solid ${activeTheme.isLight ? 'rgba(0,0,0,0.08)' : (activeTheme.isImage ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.06)')}`,
         background: activeTheme.menuBg, flexShrink: 0,
         backdropFilter: 'none',
         transition: 'background 0.4s ease', /* padding removed from transition */

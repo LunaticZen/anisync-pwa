@@ -94,6 +94,7 @@ export interface ServerToClientEvents {
   'chat:typing': (data: TypingIndicator) => void;
   'chat:reaction': (data: { messageId: string; emoji: string; userId: string }) => void;
   'chat:deleted': (data: { messageId: string }) => void;
+  'chat:edited': (data: { messageId: string; text: string; editedAt: string }) => void;
   'chat:system': (data: { text: string }) => void;
 
   // ── Presence Events ──
