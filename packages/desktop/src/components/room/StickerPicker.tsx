@@ -440,20 +440,35 @@ export function StickerPicker({ onSelect, onClose, activeTheme }: StickerPickerP
             style={{ position: 'absolute', inset: 0, zIndex: 100 }}
           />
           {/* Menu */}
-          <div style={{
-            position: 'absolute',
-            left: contextMenu.x,
-            top: contextMenu.y - 8,
-            transform: 'translate(-50%, -100%)',
-            zIndex: 101,
-            background: activeTheme.isLight ? '#ffffff' : '#1e293b',
-            borderRadius: 12,
-            boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
-            border: `1px solid ${activeTheme.isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)'}`,
-            overflow: 'hidden',
-            animation: 'fadeIn 0.15s ease-out',
-            minWidth: 160,
-          }}>
+          {(() => {
+            const menuW = 170;
+            const containerW = containerRef.current?.offsetWidth || 290;
+            const pad = 8;
+            // Clamp x so popup stays inside container
+            let clampedX = contextMenu.x;
+            let translateX = '-50%';
+            if (clampedX - menuW / 2 < pad) {
+              clampedX = pad;
+              translateX = '0%';
+            } else if (clampedX + menuW / 2 > containerW - pad) {
+              clampedX = containerW - pad;
+              translateX = '-100%';
+            }
+            return (
+              <div style={{
+                position: 'absolute',
+                left: clampedX,
+                top: contextMenu.y - 8,
+                transform: `${translateX === '-50%' ? 'translateX(-50%)' : `translateX(${translateX})`} translateY(-100%)`,
+                zIndex: 101,
+                background: activeTheme.isLight ? '#ffffff' : '#1e293b',
+                borderRadius: 12,
+                boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+                border: `1px solid ${activeTheme.isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)'}`,
+                overflow: 'hidden',
+                animation: 'fadeIn 0.15s ease-out',
+                width: menuW,
+              }}>
             <button
               onClick={() => {
                 if (contextMenu.type === 'favorite') {
@@ -485,6 +500,8 @@ export function StickerPicker({ onSelect, onClose, activeTheme }: StickerPickerP
               {contextMenu.type === 'favorite' ? 'Favorilerden Çıkar' : 'Çıkartmayı Sil'}
             </button>
           </div>
+            );
+          })()}
         </>
       )}
     </div>
