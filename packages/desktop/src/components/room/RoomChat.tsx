@@ -967,15 +967,7 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
                 e.preventDefault();
                 setShowEmojiPicker(prev => {
                   const next = !prev;
-                  if (next) {
-                    setShowStickerPicker(false);
-                    const isKeyboardActive = isKeyboardOpen && (document.activeElement === editableRef.current);
-                    if (isKeyboardActive) {
-                      setTimeout(() => editableRef.current?.focus(), 10);
-                    } else {
-                      editableRef.current?.blur();
-                    }
-                  }
+                  if (next) setShowStickerPicker(false);
                   return next;
                 });
               }}
@@ -986,15 +978,7 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
                 e.stopPropagation(); 
                 setShowEmojiPicker(prev => {
                   const next = !prev;
-                  if (next) {
-                    setShowStickerPicker(false);
-                    const isKeyboardActive = isKeyboardOpen && (document.activeElement === editableRef.current);
-                    if (isKeyboardActive) {
-                      setTimeout(() => editableRef.current?.focus(), 10);
-                    } else {
-                      editableRef.current?.blur();
-                    }
-                  }
+                  if (next) setShowStickerPicker(false);
                   return next;
                 });
               }}
@@ -1095,15 +1079,7 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
                     e.preventDefault();
                     setShowStickerPicker(prev => {
                       const next = !prev;
-                      if (next) {
-                        setShowEmojiPicker(false);
-                        const isKeyboardActive = isKeyboardOpen && (document.activeElement === editableRef.current);
-                        if (isKeyboardActive) {
-                          setTimeout(() => editableRef.current?.focus(), 10);
-                        } else {
-                          editableRef.current?.blur();
-                        }
-                      }
+                      if (next) setShowEmojiPicker(false);
                       return next;
                     });
                   }}
@@ -1114,15 +1090,7 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
                     e.stopPropagation();
                     setShowStickerPicker(prev => {
                       const next = !prev;
-                      if (next) {
-                        setShowEmojiPicker(false);
-                        const isKeyboardActive = isKeyboardOpen && (document.activeElement === editableRef.current);
-                        if (isKeyboardActive) {
-                          setTimeout(() => editableRef.current?.focus(), 10);
-                        } else {
-                          editableRef.current?.blur();
-                        }
-                      }
+                      if (next) setShowEmojiPicker(false);
                       return next;
                     });
                   }}
@@ -1161,22 +1129,6 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
                 const pathMatch = emojiPath.match(/\[emoji:(.+)\]/);
                 if (pathMatch) {
                   insertEmoji(pathMatch[1]);
-                }
-                // Refocus input to keep keyboard open on mobile only if keyboard was already open!
-                const isKeyboardActive = isKeyboardOpen && (document.activeElement === editableRef.current);
-                if (isKeyboardActive) {
-                  setTimeout(() => {
-                    if (editableRef.current) {
-                      editableRef.current.focus();
-                      // Move cursor to the end
-                      const range = document.createRange();
-                      const sel = window.getSelection();
-                      range.selectNodeContents(editableRef.current);
-                      range.collapse(false);
-                      sel?.removeAllRanges();
-                      sel?.addRange(range);
-                    }
-                  }, 50);
                 }
               }}
               onClose={() => setShowEmojiPicker(false)}

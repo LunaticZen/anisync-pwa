@@ -126,6 +126,7 @@ export function StickerPicker({ onSelect, onClose, activeTheme }: StickerPickerP
     <div
       ref={containerRef}
       onMouseDown={(e) => e.preventDefault()}
+      onTouchStart={(e) => e.preventDefault()}
       style={{
         position: 'absolute',
         bottom: 'calc(100% + 10px)',

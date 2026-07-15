@@ -54,6 +54,7 @@ export function EmojiPicker({ onSelect, onClose, isLight, isImage, isKeyboardOpe
       <div
         ref={containerRef}
         onMouseDown={(e) => e.preventDefault()}
+        onTouchStart={(e) => { if ((e.target as HTMLElement).tagName !== 'INPUT') e.preventDefault(); }}
         style={{
           width: 290,
           maxWidth: 'calc(100% - 16px)',
@@ -112,6 +113,8 @@ export function EmojiPicker({ onSelect, onClose, isLight, isImage, isKeyboardOpe
             placeholder="Emoji ara..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            onTouchStart={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
             style={{
               flex: 1,
               background: 'none',
