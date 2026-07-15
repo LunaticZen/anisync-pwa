@@ -12,7 +12,7 @@ import { StickerPicker } from './StickerPicker';
 import { MessageOverlayMenu, useOverlayMenu, type OverlayMenuAction } from './MessageOverlayMenu';
 
 function renderMessageText(text: string, isOnlyEmojiOrSticker: boolean) {
-  const tokenRegex = /\[(emoji|sticker):([^\]]+)\]/g;
+  const tokenRegex = /\[(emoji|sticker|image):([^\]]+)\]/g;
   const parts = [];
   let lastIndex = 0;
   let match;
@@ -53,6 +53,25 @@ function renderMessageText(text: string, isOnlyEmojiOrSticker: boolean) {
           }} 
         />
       );
+    } else if (type === 'image') {
+      parts.push(
+        <img 
+          key={match.index} 
+          src={path} 
+          alt="image" 
+          style={{ 
+            maxWidth: isOnlyEmojiOrSticker ? 220 : 160, 
+            maxHeight: isOnlyEmojiOrSticker ? 220 : 160,
+            width: 'auto',
+            height: 'auto',
+            verticalAlign: 'middle', 
+            display: 'inline-block',
+            margin: '0 2px',
+            borderRadius: 10,
+            objectFit: 'contain'
+          }} 
+        />
+      );
     }
     lastIndex = match.index + match[0].length;
   }
@@ -64,14 +83,14 @@ function renderMessageText(text: string, isOnlyEmojiOrSticker: boolean) {
 }
 
 function renderReplyText(text: string) {
-  if (text.includes('[sticker:')) {
+  if (text.includes('[sticker:') || text.includes('[image:')) {
     return <span style={{ fontStyle: 'italic', opacity: 0.8 }}>Çıkartmayı görmek için tıkla</span>;
   }
   return renderMessageText(text, false);
 }
 
 function renderInputReplyText(text: string) {
-  if (text.includes('[sticker:')) {
+  if (text.includes('[sticker:') || text.includes('[image:')) {
     return (
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
@@ -269,7 +288,7 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
     ? `${topRadius}px ${isConsecutivePrev ? smallRadius : topRadius}px ${isConsecutiveNext ? smallRadius : bottomRadius}px ${bottomRadius}px`
     : `${isConsecutivePrev ? smallRadius : topRadius}px ${topRadius}px ${bottomRadius}px ${isConsecutiveNext ? smallRadius : bottomRadius}px`;
 
-  const isOnlyEmojiOrSticker = /^(\s*\[(emoji|sticker):[^\]]+\]\s*)+$/.test(msg.text);
+  const isOnlyEmojiOrSticker = /^(\s*\[(emoji|sticker|image):[^\]]+\]\s*)+$/.test(msg.text);
   const bubbleBg = isOnlyEmojiOrSticker ? 'transparent' : (isMe ? activeTheme.accent : (effectiveIsLight ? '#f1f5f9' : (activeTheme.isImage ? 'rgba(0,0,0,0.5)' : '#334155')));
   const textColor = isMe ? 'white' : (effectiveIsLight ? '#0f172a' : '#f8fafc');
   const marginT = isConsecutivePrev ? 2 : (isMobile ? 12 : (isKeyboardOpen ? 6 : 12));
@@ -538,7 +557,9 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showStickerPicker, setShowStickerPicker] = useState(false);
   const [isHeartClicked, setIsHeartClicked] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const editableRef = useRef<HTMLDivElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const uiTheme = useUIStore(s => s.theme);
   const roomTheme = useRoomStore(s => s.theme);
   const activeTheme = getTheme(roomTheme);
@@ -1072,12 +1093,25 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingRight: 8, color: activeTheme.textColor, opacity: 0.8, flexShrink: 0 }}>
               {/* Gallery */}
-              <button style={{ background: 'none', border: 'none', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'inherit', cursor: 'pointer' }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="3" width="18" height="18" rx="4" ry="4"/>
-                  <circle cx="8.5" cy="8.5" r="1.5"/>
-                  <path d="M21 15l-5-5L5 21"/>
-                </svg>
+              <button 
+                onClick={() => imageInputRef.current?.click()}
+                onMouseDown={e => { e.preventDefault(); e.stopPropagation(); }}
+                onTouchStart={e => { e.preventDefault(); e.stopPropagation(); }}
+                onTouchEnd={(e) => { e.preventDefault(); e.stopPropagation(); imageInputRef.current?.click(); }}
+                style={{ background: 'none', border: 'none', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: isUploadingImage ? activeTheme.accent : 'inherit', cursor: 'pointer', opacity: isUploadingImage ? 0.5 : 1 }}
+                disabled={isUploadingImage}
+              >
+                {isUploadingImage ? (
+                  <svg width="24" height="24" viewBox="0 0 24 24" style={{ animation: 'spin 1s linear infinite' }}>
+                    <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" strokeWidth="2" strokeDasharray="31.4" strokeDashoffset="10" strokeLinecap="round" />
+                  </svg>
+                ) : (
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="4" ry="4"/>
+                    <circle cx="8.5" cy="8.5" r="1.5"/>
+                    <path d="M21 15l-5-5L5 21"/>
+                  </svg>
+                )}
               </button>
               
               {/* Sticker */}
@@ -1174,6 +1208,46 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
         </div>
       </div>
 
+      {/* Hidden image file input */}
+      <input
+        ref={imageInputRef}
+        type="file"
+        accept="image/*"
+        style={{ display: 'none' }}
+        onChange={async (e) => {
+          const file = e.target.files?.[0];
+          if (!file) return;
+          if (imageInputRef.current) imageInputRef.current.value = '';
+          
+          setIsUploadingImage(true);
+          try {
+            const formData = new FormData();
+            formData.append('image', file);
+            const resp = await fetch(`https://api.imgbb.com/1/upload?key=7bf7ab7443109937733eb7b2287d42ad`, {
+              method: 'POST',
+              body: formData
+            });
+            const result = await resp.json();
+            if (result.success && result.data?.url) {
+              getSocket()?.emit('chat:message', {
+                roomId,
+                text: `[image:${result.data.url}]`,
+                replyTo: replyToMsg ? { id: replyToMsg.id, username: replyToMsg.displayName ?? replyToMsg.username, text: replyToMsg.text } : undefined
+              });
+              setReplyToMsg(null);
+            } else {
+              const errMsg = result.error?.message || 'Resim yüklenemedi.';
+              alert(errMsg);
+            }
+          } catch (err: any) {
+            console.error('Image upload error:', err);
+            alert('Resim yüklenirken bir hata oluştu. Dosya boyutu çok büyük olabilir.');
+          } finally {
+            setIsUploadingImage(false);
+          }
+        }}
+      />
+
       {/* Overlay Menu Portal — rendered to document.body */}
       <MessageOverlayMenu
         isOpen={overlayState.isOpen}
@@ -1185,7 +1259,7 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
         bubbleContent={
           overlayMsg ? (
             (() => {
-              const isOnlyEmojiOrSticker = /^(\s*\[(emoji|sticker):[^\]]+\]\s*)+$/.test(overlayMsg.text);
+              const isOnlyEmojiOrSticker = /^(\s*\[(emoji|sticker|image):[^\]]+\]\s*)+$/.test(overlayMsg.text);
               return (
                 <div style={{
                   background: isOnlyEmojiOrSticker
