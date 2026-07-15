@@ -459,6 +459,15 @@ io.on('connection', (socket) => {
     io.to(data.roomId).emit('chat:deleted', { messageId: data.messageId });
   });
 
+  socket.on('chat:edit', (data) => {
+    if (!data.roomId || !data.messageId || !data.text) return;
+    io.to(data.roomId).emit('chat:edited', {
+      messageId: data.messageId,
+      text: data.text,
+      editedAt: new Date().toISOString()
+    });
+  });
+
   // ── Discovery ──
   socket.on('rooms:discover', (_data, cb) => {
     const publicRooms = [...rooms.values()].filter(r => r.members.size > 0);
