@@ -965,6 +965,11 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
               type="button"
               onClick={(e) => {
                 e.preventDefault();
+                // Sync check: is keyboard ACTUALLY visible right now?
+                const kbVisible = window.visualViewport
+                  ? (window.innerHeight - window.visualViewport.height) > 100
+                  : false;
+                if (!kbVisible) editableRef.current?.blur();
                 setShowEmojiPicker(prev => {
                   const next = !prev;
                   if (next) setShowStickerPicker(false);
@@ -976,6 +981,10 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
               onTouchEnd={(e) => { 
                 e.preventDefault(); 
                 e.stopPropagation(); 
+                const kbVisible = window.visualViewport
+                  ? (window.innerHeight - window.visualViewport.height) > 100
+                  : false;
+                if (!kbVisible) editableRef.current?.blur();
                 setShowEmojiPicker(prev => {
                   const next = !prev;
                   if (next) setShowStickerPicker(false);
@@ -1077,6 +1086,10 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
                   type="button"
                   onClick={(e) => {
                     e.preventDefault();
+                    const kbVisible = window.visualViewport
+                      ? (window.innerHeight - window.visualViewport.height) > 100
+                      : false;
+                    if (!kbVisible) editableRef.current?.blur();
                     setShowStickerPicker(prev => {
                       const next = !prev;
                       if (next) setShowEmojiPicker(false);
@@ -1088,6 +1101,10 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
                   onTouchEnd={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
+                    const kbVisible = window.visualViewport
+                      ? (window.innerHeight - window.visualViewport.height) > 100
+                      : false;
+                    if (!kbVisible) editableRef.current?.blur();
                     setShowStickerPicker(prev => {
                       const next = !prev;
                       if (next) setShowEmojiPicker(false);
