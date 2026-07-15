@@ -389,6 +389,7 @@ export function StickerPicker({ onSelect, onClose, activeTheme }: StickerPickerP
             setCropImageSrc(null);
             if (fileInputRef.current) fileInputRef.current.value = '';
           }}
+          activeTheme={activeTheme}
         />
       )}
     </div>
@@ -396,7 +397,7 @@ export function StickerPicker({ onSelect, onClose, activeTheme }: StickerPickerP
 }
 
 // ─── Embedded Crop Modal ───────────────────────────────────────
-function CropModal({ imageSrc, onCrop, onClose }: { imageSrc: string, onCrop: (blob: Blob) => void, onClose: () => void }) {
+function CropModal({ imageSrc, onCrop, onClose, activeTheme }: { imageSrc: string, onCrop: (blob: Blob) => void, onClose: () => void, activeTheme?: any }) {
   const [zoom, setZoom] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
@@ -441,13 +442,9 @@ function CropModal({ imageSrc, onCrop, onClose }: { imageSrc: string, onCrop: (b
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
 
-    const imgWidth = img.naturalWidth;
-    const imgHeight = img.naturalHeight;
-
     const centerX = vWidth / 2 + offset.x;
     const centerY = vHeight / 2 + offset.y;
 
-    // Use current scale of image element compared to natural width/height
     const elWidth = img.clientWidth;
     const elHeight = img.clientHeight;
 
@@ -466,30 +463,65 @@ function CropModal({ imageSrc, onCrop, onClose }: { imageSrc: string, onCrop: (b
     }, 'image/png');
   };
 
+  // Theme-aware colors
+  const isLight = activeTheme?.isLight ?? false;
+  const cardBg = isLight ? '#ffffff' : '#1e293b';
+  const overlayBg = isLight ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.85)';
+  const titleColor = isLight ? '#0f172a' : '#f1f5f9';
+  const labelColor = isLight ? '#475569' : '#94a3b8';
+  const borderCol = isLight ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.12)';
+  const viewportBg = isLight ? '#f1f5f9' : '#0f172a';
+  const viewportBorder = isLight ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.2)';
+  const cancelBg = isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)';
+  const cancelColor = isLight ? '#334155' : '#cbd5e1';
+  const cancelBorder = isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)';
+  const accent = activeTheme?.accent || '#6366f1';
+
   return (
     <div className="crop-modal-container" style={{
       position: 'fixed',
       top: 0, left: 0, right: 0, bottom: 0,
-      background: 'rgba(0,0,0,0.85)',
+      background: overlayBg,
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
-      justifyContent: 'center',
+      justifyContent: 'flex-start',
       zIndex: 1100,
-      padding: 16
+      padding: '8px 12px',
+      overflowY: 'auto',
+      WebkitOverflowScrolling: 'touch'
     }}>
+      {/* Spacer top — pushes card to center when space is available */}
+      <div style={{ flex: '1 1 0', minHeight: 4 }} />
+
       <div style={{
-        background: '#1e293b',
-        borderRadius: 16,
-        padding: 24,
+        background: cardBg,
+        borderRadius: 20,
+        padding: '16px 16px 14px',
         width: '100%',
-        maxWidth: 320,
+        maxWidth: 280,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)'
+        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.4)',
+        border: `1px solid ${borderCol}`,
+        flexShrink: 0
       }}>
-        <div style={{ color: '#fff', fontSize: 16, fontWeight: 600, marginBottom: 16 }}>
+        {/* Title */}
+        <div style={{
+          color: titleColor,
+          fontSize: 15,
+          fontWeight: 700,
+          marginBottom: 12,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8
+        }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={accent} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+            <circle cx="8.5" cy="8.5" r="1.5"/>
+            <path d="M21 15l-5-5L5 21"/>
+          </svg>
           Çıkartmayı Kırp
         </div>
 
@@ -500,15 +532,17 @@ function CropModal({ imageSrc, onCrop, onClose }: { imageSrc: string, onCrop: (b
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
           style={{
-            width: 200,
-            height: 200,
+            width: '100%',
+            maxWidth: 160,
+            aspectRatio: '1/1',
             overflow: 'hidden',
             position: 'relative',
-            border: '2px solid rgba(255,255,255,0.2)',
-            borderRadius: 12,
+            border: `2px solid ${viewportBorder}`,
+            borderRadius: 14,
             cursor: 'move',
             touchAction: 'none',
-            background: '#0f172a'
+            background: viewportBg,
+            boxShadow: `inset 0 2px 8px rgba(0,0,0,${isLight ? '0.06' : '0.3'})`
           }}
         >
           <img
@@ -526,13 +560,26 @@ function CropModal({ imageSrc, onCrop, onClose }: { imageSrc: string, onCrop: (b
               pointerEvents: 'none'
             }}
           />
+          {/* Corner crop guides */}
+          <div style={{ position: 'absolute', top: 5, left: 5, width: 14, height: 14, borderTop: `2px solid ${accent}`, borderLeft: `2px solid ${accent}`, borderRadius: '4px 0 0 0', opacity: 0.7 }} />
+          <div style={{ position: 'absolute', top: 5, right: 5, width: 14, height: 14, borderTop: `2px solid ${accent}`, borderRight: `2px solid ${accent}`, borderRadius: '0 4px 0 0', opacity: 0.7 }} />
+          <div style={{ position: 'absolute', bottom: 5, left: 5, width: 14, height: 14, borderBottom: `2px solid ${accent}`, borderLeft: `2px solid ${accent}`, borderRadius: '0 0 0 4px', opacity: 0.7 }} />
+          <div style={{ position: 'absolute', bottom: 5, right: 5, width: 14, height: 14, borderBottom: `2px solid ${accent}`, borderRight: `2px solid ${accent}`, borderRadius: '0 0 4px 0', opacity: 0.7 }} />
         </div>
 
         {/* Zoom Slider */}
-        <div style={{ width: '100%', marginTop: 20 }}>
-          <div style={{ color: '#94a3b8', fontSize: 12, marginBottom: 4, display: 'flex', justifyContent: 'space-between' }}>
-            <span>Yakınlaştır</span>
-            <span>{Math.round(zoom * 100)}%</span>
+        <div style={{ width: '100%', marginTop: 12 }}>
+          <div style={{ color: labelColor, fontSize: 11, fontWeight: 500, marginBottom: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                <line x1="11" y1="8" x2="11" y2="14" />
+                <line x1="8" y1="11" x2="14" y2="11" />
+              </svg>
+              Yakınlaştır
+            </span>
+            <span style={{ fontFamily: 'monospace', fontSize: 11 }}>{Math.round(zoom * 100)}%</span>
           </div>
           <input
             type="range"
@@ -541,23 +588,25 @@ function CropModal({ imageSrc, onCrop, onClose }: { imageSrc: string, onCrop: (b
             step="0.1"
             value={zoom}
             onChange={(e) => setZoom(parseFloat(e.target.value))}
-            style={{ width: '100%', accentColor: '#3b82f6' }}
+            style={{ width: '100%', accentColor: accent, height: 4 }}
           />
         </div>
 
         {/* Buttons */}
-        <div style={{ display: 'flex', width: '100%', gap: 12, marginTop: 24 }}>
+        <div style={{ display: 'flex', width: '100%', gap: 10, marginTop: 14 }}>
           <button
             onClick={onClose}
             style={{
               flex: 1,
-              padding: '10px',
-              borderRadius: 8,
-              border: '1px solid rgba(255,255,255,0.1)',
-              background: 'transparent',
-              color: '#cbd5e1',
-              fontWeight: 500,
-              cursor: 'pointer'
+              padding: '9px 0',
+              borderRadius: 10,
+              border: `1px solid ${cancelBorder}`,
+              background: cancelBg,
+              color: cancelColor,
+              fontWeight: 600,
+              fontSize: 13,
+              cursor: 'pointer',
+              transition: 'all 0.15s ease'
             }}
           >
             İptal
@@ -566,19 +615,26 @@ function CropModal({ imageSrc, onCrop, onClose }: { imageSrc: string, onCrop: (b
             onClick={handleSave}
             style={{
               flex: 1,
-              padding: '10px',
-              borderRadius: 8,
+              padding: '9px 0',
+              borderRadius: 10,
               border: 'none',
-              background: '#3b82f6',
+              background: `linear-gradient(135deg, ${accent}, ${accent}dd)`,
               color: '#fff',
-              fontWeight: 500,
-              cursor: 'pointer'
+              fontWeight: 600,
+              fontSize: 13,
+              cursor: 'pointer',
+              boxShadow: `0 4px 12px ${accent}44`,
+              transition: 'all 0.15s ease'
             }}
           >
             Kaydet
           </button>
         </div>
       </div>
+
+      {/* Spacer bottom */}
+      <div style={{ flex: '1 1 0', minHeight: 4 }} />
     </div>
   );
 }
+
