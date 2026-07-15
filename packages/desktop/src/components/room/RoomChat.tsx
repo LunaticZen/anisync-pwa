@@ -83,7 +83,10 @@ function renderMessageText(text: string, isOnlyEmojiOrSticker: boolean) {
 }
 
 function renderReplyText(text: string) {
-  if (text.includes('[sticker:') || text.includes('[image:')) {
+  if (text.includes('[image:')) {
+    return <span style={{ fontStyle: 'italic', opacity: 0.8 }}>Resmi görmek için tıkla</span>;
+  }
+  if (text.includes('[sticker:')) {
     return <span style={{ fontStyle: 'italic', opacity: 0.8 }}>Çıkartmayı görmek için tıkla</span>;
   }
   return renderMessageText(text, false);
