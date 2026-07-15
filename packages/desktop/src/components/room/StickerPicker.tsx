@@ -23,6 +23,9 @@ export function StickerPicker({ onSelect, onClose, activeTheme }: StickerPickerP
   // Custom Sticker Cropper States
   const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  
+  // Context menu state for long-press
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; type: 'favorite' | 'custom'; url: string } | null>(null);
 
   // Load stickers from localStorage
   const loadStickers = () => {
@@ -259,27 +262,21 @@ export function StickerPicker({ onSelect, onClose, activeTheme }: StickerPickerP
                 <div
                   key={i}
                   className="sticker-item"
-                  onClick={() => onSelect(`[sticker:${url}]`)}
+                  onClick={() => { if (!contextMenu) onSelect(`[sticker:${url}]`); }}
                   onContextMenu={(e) => {
                     e.preventDefault();
-                    if (confirm('Bu çıkartmayı favorilerden çıkarmak istiyor musun?')) {
-                      const updated = favoriteStickers.filter(u => u !== url);
-                      setFavoriteStickers(updated);
-                      localStorage.setItem('anisync_favorite_stickers', JSON.stringify(updated));
-                      window.dispatchEvent(new Event('anisync_favorites_updated'));
-                    }
+                    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                    const containerRect = containerRef.current?.getBoundingClientRect();
+                    setContextMenu({ x: rect.left - (containerRect?.left || 0) + rect.width / 2, y: rect.top - (containerRect?.top || 0), type: 'favorite', url });
                   }}
                   onTouchStart={(e) => {
+                    const el = e.currentTarget;
                     const timer = setTimeout(() => {
-                      e.preventDefault();
-                      if (confirm('Bu çıkartmayı favorilerden çıkarmak istiyor musun?')) {
-                        const updated = favoriteStickers.filter(u => u !== url);
-                        setFavoriteStickers(updated);
-                        localStorage.setItem('anisync_favorite_stickers', JSON.stringify(updated));
-                        window.dispatchEvent(new Event('anisync_favorites_updated'));
-                      }
+                      const rect = el.getBoundingClientRect();
+                      const containerRect = containerRef.current?.getBoundingClientRect();
+                      setContextMenu({ x: rect.left - (containerRect?.left || 0) + rect.width / 2, y: rect.top - (containerRect?.top || 0), type: 'favorite', url });
                     }, 500);
-                    (e.currentTarget as any)._lp = timer;
+                    (el as any)._lp = timer;
                   }}
                   onTouchEnd={(e) => { clearTimeout((e.currentTarget as any)._lp); }}
                   onTouchMove={(e) => { clearTimeout((e.currentTarget as any)._lp); }}
@@ -340,25 +337,21 @@ export function StickerPicker({ onSelect, onClose, activeTheme }: StickerPickerP
               <div
                 key={i}
                 className="sticker-item"
-                onClick={() => onSelect(`[sticker:${url}]`)}
+                onClick={() => { if (!contextMenu) onSelect(`[sticker:${url}]`); }}
                 onContextMenu={(e) => {
                   e.preventDefault();
-                  if (confirm('Bu çıkartmayı silmek istiyor musun?')) {
-                    const updated = customStickers.filter(u => u !== url);
-                    setCustomStickers(updated);
-                    localStorage.setItem('anisync_custom_stickers', JSON.stringify(updated));
-                  }
+                  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                  const containerRect = containerRef.current?.getBoundingClientRect();
+                  setContextMenu({ x: rect.left - (containerRect?.left || 0) + rect.width / 2, y: rect.top - (containerRect?.top || 0), type: 'custom', url });
                 }}
                 onTouchStart={(e) => {
+                  const el = e.currentTarget;
                   const timer = setTimeout(() => {
-                    e.preventDefault();
-                    if (confirm('Bu çıkartmayı silmek istiyor musun?')) {
-                      const updated = customStickers.filter(u => u !== url);
-                      setCustomStickers(updated);
-                      localStorage.setItem('anisync_custom_stickers', JSON.stringify(updated));
-                    }
+                    const rect = el.getBoundingClientRect();
+                    const containerRect = containerRef.current?.getBoundingClientRect();
+                    setContextMenu({ x: rect.left - (containerRect?.left || 0) + rect.width / 2, y: rect.top - (containerRect?.top || 0), type: 'custom', url });
                   }, 500);
-                  (e.currentTarget as any)._lp = timer;
+                  (el as any)._lp = timer;
                 }}
                 onTouchEnd={(e) => { clearTimeout((e.currentTarget as any)._lp); }}
                 onTouchMove={(e) => { clearTimeout((e.currentTarget as any)._lp); }}
@@ -435,6 +428,64 @@ export function StickerPicker({ onSelect, onClose, activeTheme }: StickerPickerP
           }}
           activeTheme={activeTheme}
         />
+      )}
+
+      {/* Floating Context Menu */}
+      {contextMenu && (
+        <>
+          {/* Backdrop */}
+          <div 
+            onClick={() => setContextMenu(null)}
+            onTouchStart={() => setContextMenu(null)}
+            style={{ position: 'absolute', inset: 0, zIndex: 100 }}
+          />
+          {/* Menu */}
+          <div style={{
+            position: 'absolute',
+            left: contextMenu.x,
+            top: contextMenu.y - 8,
+            transform: 'translate(-50%, -100%)',
+            zIndex: 101,
+            background: activeTheme.isLight ? '#ffffff' : '#1e293b',
+            borderRadius: 12,
+            boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+            border: `1px solid ${activeTheme.isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)'}`,
+            overflow: 'hidden',
+            animation: 'fadeIn 0.15s ease-out',
+            minWidth: 160,
+          }}>
+            <button
+              onClick={() => {
+                if (contextMenu.type === 'favorite') {
+                  const updated = favoriteStickers.filter(u => u !== contextMenu.url);
+                  setFavoriteStickers(updated);
+                  localStorage.setItem('anisync_favorite_stickers', JSON.stringify(updated));
+                  window.dispatchEvent(new Event('anisync_favorites_updated'));
+                } else {
+                  const updated = customStickers.filter(u => u !== contextMenu.url);
+                  setCustomStickers(updated);
+                  localStorage.setItem('anisync_custom_stickers', JSON.stringify(updated));
+                }
+                setContextMenu(null);
+              }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                width: '100%', padding: '10px 14px',
+                background: 'none', border: 'none',
+                color: '#ef4444', fontSize: 13, fontWeight: 600,
+                cursor: 'pointer', textAlign: 'left',
+              }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = activeTheme.isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.08)'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'none'; }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+              </svg>
+              {contextMenu.type === 'favorite' ? 'Favorilerden Çıkar' : 'Çıkartmayı Sil'}
+            </button>
+          </div>
+        </>
       )}
     </div>
   );

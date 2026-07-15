@@ -324,7 +324,7 @@ function registerChatHandlers(socket: TypedSocket) {
     }
   });
 
-  (socket as any).on('chat:edit', (data: any) => {
+  socket.on('chat:edit', (data) => {
     if (!data.roomId || !data.messageId || !data.text) return;
     io!.to(data.roomId).emit('chat:edited', {
       messageId: data.messageId,

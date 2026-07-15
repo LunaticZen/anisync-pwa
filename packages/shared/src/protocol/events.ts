@@ -50,6 +50,7 @@ export interface ClientToServerEvents {
   'chat:typing': (data: { roomId: string; isTyping: boolean }) => void;
   'chat:reaction': (data: { roomId: string; messageId: string; emoji: string }) => void;
   'chat:delete': (data: { roomId: string; messageId: string }) => void;
+  'chat:edit': (data: { roomId: string; messageId: string; text: string }) => void;
 
   // ── Presence Events ──
   'presence:heartbeat': () => void;
