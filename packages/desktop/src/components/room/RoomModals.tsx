@@ -929,13 +929,11 @@ export function ThemePickerPopup({ roomId, onClose }: { roomId: string; onClose:
                       <div style={{
                         background: previewBg,
                         color: previewText,
-                        borderStyle: (bTheme as any).borderImageSource ? 'solid' : undefined,
-                        borderColor: (bTheme as any).borderImageSource ? 'transparent' : undefined,
+                        border: (bTheme as any).borderImageSource ? '20px solid transparent' : previewBorder,
                         borderWidth: (bTheme as any).borderImageSource 
                           ? ((bTheme as any).borderWidthMe || '20px 16px')
                           : undefined,
-                        border: (bTheme as any).borderImageSource ? undefined : previewBorder,
-                        borderImageSource: (bTheme as any).borderImageSource ? `url(${(bTheme as any).borderImageSource})` : undefined,
+                        borderImageSource: (bTheme as any).borderImageSource ? `url("${(bTheme as any).borderImageSource}")` : undefined,
                         borderImageSlice: (bTheme as any).borderImageSlice ? `${(bTheme as any).borderImageSlice} fill` : undefined,
                         borderImageRepeat: 'stretch',
                         padding: (bTheme as any).paddingMe || '6px 12px',

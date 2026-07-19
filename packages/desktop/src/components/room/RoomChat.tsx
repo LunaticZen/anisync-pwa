@@ -609,13 +609,11 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
                   : (isKeyboardOpen ? 12 : 13),
                 lineHeight: 1.4, wordBreak: 'break-word',
                 boxShadow: isOnlyEmojiOrSticker ? 'none' : (activeTheme.isImage && !isMe ? '0 2px 8px rgba(0,0,0,0.2)' : 'none'),
-                borderStyle: (bTheme as any).borderImageSource ? 'solid' : undefined,
-                borderColor: (bTheme as any).borderImageSource ? 'transparent' : undefined,
+                border: (bTheme as any).borderImageSource ? '20px solid transparent' : customBorder,
                 borderWidth: (bTheme as any).borderImageSource 
                   ? (isMe ? ((bTheme as any).borderWidthMe || '20px 16px') : ((bTheme as any).borderWidthOther || '20px 16px'))
                   : undefined,
-                border: (bTheme as any).borderImageSource ? undefined : customBorder,
-                borderImageSource: (bTheme as any).borderImageSource ? `url(${(bTheme as any).borderImageSource})` : undefined,
+                borderImageSource: (bTheme as any).borderImageSource ? `url("${(bTheme as any).borderImageSource}")` : undefined,
                 borderImageSlice: (bTheme as any).borderImageSlice ? `${(bTheme as any).borderImageSlice} fill` : undefined,
                 borderImageRepeat: 'stretch',
                 position: 'relative',
