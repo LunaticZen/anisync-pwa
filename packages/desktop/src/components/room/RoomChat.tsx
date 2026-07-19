@@ -596,6 +596,8 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
               style={{
                 background: customBubbleBg, color: customTextColor,
                 maxWidth: '100%', minWidth: 0,
+                boxSizing: 'border-box',
+                width: 'fit-content',
                 padding: isOnlyEmojiOrSticker 
                   ? 0 
                   : (isMe

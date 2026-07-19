@@ -937,7 +937,13 @@ export function ThemePickerPopup({ roomId, onClose }: { roomId: string; onClose:
                         borderRadius: (bTheme as any).borderImageSource ? undefined : '12px 12px 4px 12px',
                         fontSize: 11,
                         fontWeight: 600,
-                        maxWidth: '85%',
+                        boxSizing: 'border-box',
+                        width: 'fit-content',
+                        minWidth: (bTheme as any).borderImageSource ? 65 : undefined,
+                        minHeight: (bTheme as any).borderImageSource ? 40 : undefined,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
                         boxShadow: (bTheme as any).borderImageSource ? 'none' : '0 2px 4px rgba(0,0,0,0.1)',
                         position: 'relative'
                       }}>
