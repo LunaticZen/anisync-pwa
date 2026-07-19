@@ -27,3 +27,22 @@ Projeyi derleme (build) süreçleri Masaüstü (EXE) ve Web/Mobil (Render) olmak
 ## 3. Genel Kurallar
 - Mobil ve EXE olmak üzere iki ayrı hedef vardır, yapılan arayüz (CSS vb.) değişiklikleri her ikisini de etkiler.
 - İş akışını bozmamak adına yukarıdaki build/kopyalama süreçlerini otomatize edebilir (örneğin terminalden çalıştırabilirsiniz), ancak son onay ve push adımı her zaman kullanıcıdadır.
+
+## 4. Custom Mesaj Baloncuğu Ekleme (ÇOK ÖNEMLİ)
+Sohbet baloncuklarında CSS `border-image` 9-slice rendering kullanılıyor. Yeni tema eklerken şu adımları takip et:
+
+### Dosyalar
+- **Görseller:** `packages/desktop/public/bubbles/themes/<tema_id>/full.png` — transparan PNG, ~400-500px genişlik
+- **Ayarlar:** `packages/desktop/src/components/room/constants.tsx` → `BUBBLE_THEMES` dizisi
+- **Render:** `packages/desktop/src/components/room/RoomChat.tsx` ~L593-618
+
+### Slice Hesaplama Kuralı
+`slice: [top, right, bottom, left]` değerleri **kaynak görseldeki piksel cinsinden** kenar kalınlığı + 5px güvenlik marjı olarak hesaplanır. Kesim çizgisi **baloncuğun iç alanının düz renkli bölgesinden** geçmelidir. Aksi halde kenar antialiasing artefaktları (seam) oluşur.
+
+### border-image-repeat
+Her zaman `round stretch` kullan:
+- `round` → yatay: orta kısım tile olarak döşenir
+- `stretch` → dikey: uzun mesajlarda baloncuk serbestçe uzar
+
+### Detaylı Dokümantasyon
+Tam teknik detaylar için: `ANI_SYNC_PROJE_DOKUMANTASYONU.md` → "7. Custom Mesaj Baloncukları Sistemi" bölümü.

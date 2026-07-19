@@ -154,6 +154,177 @@ Bu döküman, AniSync'e eklenen "Resim Yükleme ve Tam Ekran (Lightbox) Özelli�
 **Tarih:** Haziran 2026
 
 
+## 7. Custom Mesaj Baloncukları Sistemi (v1.3.0+)
+
+### Genel Bakış
+Sohbet baloncuklarına TikTok tarzı özel görsel temalar eklendi. Her tema tek bir PNG görselinden (`full.png`) CSS `border-image` 9-slice rendering kullanılarak çizilir. Bu sayede baloncuğun **sol ve sağ kenarları asla esnemiyor**, sadece **orta kısım yatayda** ve **dikeyde** esniyor.
+
+### Dosya Yapısı
+```
+packages/desktop/public/bubbles/themes/
+├── frog/full.png          # Kurbağa baloncuğu (434x139)
+├── love/full.png          # Aşk baloncuğu (400x144)
+├── cat/full.png           # Kedi baloncuğu (395x146)
+├── pawprint/full.png      # Patiler baloncuğu (402x124)
+├── galaxy/full.png        # Galaksi baloncuğu (477x119)
+├── cloud/full.png         # Bulut baloncuğu (371x131)
+├── pixel/full.png         # Piksel baloncuğu (390x118)
+├── tape/full.png          # Not Kağıdı baloncuğu (401x121)
+├── wave/full.png          # Dalga baloncuğu (437x123)
+├── terminal/full.png      # Terminal baloncuğu (463x102)
+├── ribbon/full.png        # Kurdele baloncuğu (398x120)
+├── cheese/full.png        # Peynir baloncuğu (442x107)
+├── wood/full.png          # Tahta baloncuğu (408x125)
+└── letter/full.png        # Mektup baloncuğu (446x123)
+```
+
+### CSS border-image 9-Slice Nasıl Çalışır?
+Tek bir görsel, 9 bölgeye ayrılır (CSS `border-image-slice`):
+
+```
+┌─────┬───────────────────┬──────┐
+│ TL  │      TOP (TC)     │  TR  │  ← Köşeler ASLA esnemiyor
+├─────┼───────────────────┼──────┤
+│     │                   │      │
+│ ML  │   CENTER (MC)     │  MR  │  ← Orta kısım esniyor
+│     │                   │      │
+├─────┼───────────────────┼──────┤
+│ BL  │     BOTTOM (BC)   │  BR  │  ← Köşeler ASLA esnemiyor
+└─────┴───────────────────┴──────┘
+```
+
+- **Köşeler (TL, TR, BL, BR):** Hiç esnemiyor. Dekorasyonlar (kurbağa gözleri, kedi kulakları vb.) burada korunur.
+- **Kenarlar (TC, BC):** Sadece yatayda esner → `border-image-repeat: round` (tile olarak döşenir)
+- **Kenarlar (ML, MR):** Sadece dikeyde esner → `border-image-repeat: stretch`
+- **Ortası (MC):** Hem yatayda hem dikeyde esner → İçerik alanı
+
+### Slice Değerleri Nasıl Hesaplanır?
+`slice: [top, right, bottom, left]` → kaynak görseldeki piksel cinsinden kesim noktaları.
+
+**Kural:** Kesim çizgisi, baloncuğun **kenar çizgisinin (outline) 5px İÇ tarafından** geçmeli. Bu şekilde:
+- Kesim noktası tamamen **tek renkli iç alana** düşer
+- Kenar antialiasing artefaktları oluşmaz
+- Seam (kesim çizgisi) görünmez olur
+
+**Otomatik Hesaplama Yöntemi (Python):**
+```python
+from PIL import Image
+
+im = Image.open("full.png").convert("RGBA")
+w, h = im.size
+px = im.load()
+
+# Yatay tarama: sol kenardan sağa doğru, iç alanın başladığı x noktasını bul
+# İç alan = 5+ ardışık piksel aynı renk ve alpha > 220
+for y in range(h // 4, 3 * h // 4, 2):
+    for x in range(w // 2):
+        r, g, b, a = px[x, y]
+        if a > 220:
+            # Sonraki 4 piksel de benzer mi kontrol et
+            uniform = True
+            for dx in range(1, 5):
+                r2, g2, b2, a2 = px[x + dx, y]
+                if abs(r-r2) + abs(g-g2) + abs(b-b2) > 30 or a2 < 200:
+                    uniform = False; break
+            if uniform:
+                left_border = x  # Bu noktada iç alan başlıyor
+                break
+
+left_slice = left_border + 5  # 5px margin iç alana
+```
+Aynı mantık 4 yön için tekrarlanır: top, right, bottom, left.
+
+### Yeni Tema Ekleme Adımları
+
+#### 1. Görsel Hazırlığı
+- Baloncuk görseli **transparan arka planlı PNG** olmalı.
+- Yaklaşık 400-500px genişlik, 100-150px yükseklik ideal.
+- Dekorasyonlar (kulak, göz vb.) köşelerde olmalı.
+- İç kısım düz beyaz veya açık renk olmalı.
+
+#### 2. Görseli Yerleştir
+```bash
+mkdir -p packages/desktop/public/bubbles/themes/<tema_id>/
+cp <görsel>.png packages/desktop/public/bubbles/themes/<tema_id>/full.png
+```
+
+#### 3. Slice Değerlerini Hesapla
+Yukarıdaki Python scriptini çalıştır veya görseli inceleyerek:
+- Her yönden kenar çizgisinin kaç piksel kalınlığında olduğunu bul
+- Bu değere +5 ekle (güvenlik marjı)
+- Sonuç: `slice: [top, right, bottom, left]`
+
+#### 4. constants.tsx'e Ekle
+`packages/desktop/src/components/room/constants.tsx` dosyasında `BUBBLE_THEMES` dizisine:
+
+```typescript
+{
+  id: 'yeni_tema',
+  name: 'Tema Adı',
+  thumbnail: 'bubbles/themes/yeni_tema/full.png',
+  bgMe: 'transparent',
+  bgOther: 'transparent',
+  textMe: '#333333',        // Metin rengi (iç alanın rengine uygun)
+  textOther: '#333333',
+  sliceAssets: {
+    dir: 'bubbles/themes/yeni_tema',
+    width: 400,              // Görselin px genişliği
+    height: 120,             // Görselin px yüksekliği
+    slice: [20, 25, 15, 30], // [top, right, bottom, left] kaynak px
+    scale: 0.5,              // Render ölçeği (0.5 = yarı boyut)
+    padding: [4, 8, 6, 8],   // İçerik padding [top, right, bottom, left] CSS px
+  },
+},
+```
+
+#### 5. Build ve Deploy
+```bash
+npm run build:all
+rm -rf packages/render-server/public/*
+cp -r packages/desktop/dist/* packages/render-server/public/
+cp -r packages/desktop/public/bubbles packages/render-server/public/
+git add -A && git commit -m "feat: add <tema> bubble theme"
+```
+
+### Rendering Detayları (RoomChat.tsx)
+Render kodu `RoomChat.tsx` ~L593-618 satırlarında:
+
+```typescript
+const sc = isMobile ? s.scale : s.scale * 0.85;
+const bwTop = Math.round(s.slice[0] * sc);
+// ... diğer yönler
+
+el.style.borderImageRepeat = 'round stretch';
+// round  → yatay: orta kısım tile olarak döşenir (yatay esneme)
+// stretch → dikey: orta kısım serbestçe uzar (uzun mesajlar)
+
+el.style.borderImageOutset = '0.5px';
+// 0.5px outset → olası mikro-seam boşluklarını kapatır
+```
+
+**isMe kontrolü:** Gönderenin baloncuğu `transform: scaleX(-1)` ile yatay aynalama yapılarak karşı tarafa gösterilir. İçerideki metin tekrar `scaleX(-1)` ile düzeltilir.
+
+### Sprite Sheet'ten Çıkarma (Opsiyonel)
+Eğer görseller tek bir sprite sheet'te geliyorsa:
+1. PIL ile sprite'ı aç
+2. Satır/sütun pozisyonlarını belirle
+3. Her baloncuğu crop et
+4. Arka planı flood-fill ile transparan yap
+5. Gri avatar dairelerini tespit edip sil (flood fill ile gray cluster detection)
+6. Transparan kenarları trim et
+7. `full.png` olarak kaydet
+
+### Bilinen Sorunlar ve Çözümleri
+| Sorun | Neden | Çözüm |
+|-------|-------|-------|
+| Kesim çizgisi görünüyor | Slice kenar antialiasing üzerinden geçiyor | Slice'ı 5px daha içeri al |
+| Baloncuk dikeyde esnemez | `border-image-repeat: round` her iki eksende | `round stretch` kullan |
+| Kenar pürüzlü | Kötü arka plan kaldırma | Defringe + alpha smoothing uygula |
+| Gri leke görünüyor | Avatar circle kalıntısı | Gray cluster flood-fill ile sil |
+
+***
+**Sürüm:** v1.3.0+
+**Tarih:** Temmuz 2026
 
 ---
 
