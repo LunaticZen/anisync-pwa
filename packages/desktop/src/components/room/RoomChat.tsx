@@ -592,82 +592,55 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
             {/* Actual Message Bubble */}
             {bTheme.sliceAssets && !isOnlyEmojiOrSticker ? (() => {
               const s = bTheme.sliceAssets;
-              const sc = isMobile ? 0.55 : 0.4;
-              const capH = s.height * sc;
+              const sc = isMobile ? s.scale : s.scale * 0.85;
+              // border-image-slice: source image pixels
+              const sliceStr = `${s.slice[0]} ${s.slice[1]} ${s.slice[2]} ${s.slice[3]} fill`;
+              // border-image-width: rendered CSS pixels (scaled down from source)
+              const bwTop = Math.round(s.slice[0] * sc);
+              const bwRight = Math.round(s.slice[1] * sc);
+              const bwBottom = Math.round(s.slice[2] * sc);
+              const bwLeft = Math.round(s.slice[3] * sc);
+              const borderWidthStr = `${bwTop}px ${bwRight}px ${bwBottom}px ${bwLeft}px`;
+
               return (
-              /* ── Artwork Bubble (inline flex 3-slice) ── */
+              /* ── Artwork Bubble (CSS border-image 9-slice) ── */
               <div
                 onMouseDown={handleBubbleClickOrTouch}
                 onTouchStart={handleBubbleClickOrTouch}
                 style={{
-                  display: 'flex',
-                  alignItems: 'stretch',
+                  borderStyle: 'solid',
+                  borderWidth: borderWidthStr,
+                  borderColor: 'transparent',
+                  borderImageSource: `url(${s.dir}/full.png)`,
+                  borderImageSlice: sliceStr,
+                  borderImageWidth: borderWidthStr,
+                  borderImageRepeat: 'stretch',
+                  padding: `${s.padding[0]}px ${s.padding[1]}px ${s.padding[2]}px ${s.padding[3]}px`,
+                  color: customTextColor,
                   maxWidth: '100%',
                   minWidth: 0,
-                  overflow: 'hidden',
+                  fontSize: isMobile
+                    ? (isKeyboardOpen ? 14 : 15)
+                    : (isKeyboardOpen ? 12 : 13),
+                  lineHeight: 1.4,
+                  wordBreak: 'break-word',
+                  overflowWrap: 'break-word',
                   position: 'relative',
+                  background: 'transparent',
+                  // Flip for outgoing: tail moves from left to right
                   transform: isMe ? 'scaleX(-1)' : 'none',
                 }}
               >
-                {/* Left cap (becomes right after scaleX flip for isMe) */}
-                <img
-                  src={`${s.dir}/left.png`}
-                  alt=""
-                  draggable={false}
-                  style={{
-                    display: 'block',
-                    width: s.leftWidth * sc,
-                    minHeight: capH,
-                    objectFit: 'fill',
-                    flexShrink: 0,
-                    pointerEvents: 'none',
-                    userSelect: 'none',
-                  }}
-                />
-                {/* Center: stretched background + text content INSIDE */}
-                <div
-                  style={{
-                    flex: 1,
-                    minWidth: 0,
-                    overflow: 'hidden',
-                    backgroundImage: `url(${s.dir}/center.png)`,
-                    backgroundRepeat: 'no-repeat',
-                    backgroundSize: '100% 100%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    padding: isMobile ? '6px 8px' : '4px 6px',
-                    color: customTextColor,
-                    fontSize: isMobile
-                      ? (isKeyboardOpen ? 14 : 15)
-                      : (isKeyboardOpen ? 12 : 13),
-                    lineHeight: 1.4,
-                    wordBreak: 'break-word',
-                    overflowWrap: 'break-word',
-                    transform: isMe ? 'scaleX(-1)' : 'none',
-                  }}
-                >
-                  <span style={{ display: 'inline' }}>
-                    {renderMessageText(msg.text, false)}
-                    {msg.editedAt && (
-                      <span style={{ fontSize: 10, opacity: 0.5, marginLeft: 6, fontStyle: 'italic', whiteSpace: 'nowrap' }}>(düzenlendi)</span>
-                    )}
-                  </span>
-                </div>
-                {/* Right cap (becomes left after scaleX flip for isMe) */}
-                <img
-                  src={`${s.dir}/right.png`}
-                  alt=""
-                  draggable={false}
-                  style={{
-                    display: 'block',
-                    width: s.rightWidth * sc,
-                    minHeight: capH,
-                    objectFit: 'fill',
-                    flexShrink: 0,
-                    pointerEvents: 'none',
-                    userSelect: 'none',
-                  }}
-                />
+                {/* Un-flip text for outgoing messages */}
+                <span style={{
+                  display: 'block',
+                  transform: isMe ? 'scaleX(-1)' : 'none',
+                }}>
+                  {renderMessageText(msg.text, false)}
+                  {msg.editedAt && (
+                    <span style={{ fontSize: 10, opacity: 0.5, marginLeft: 6, fontStyle: 'italic', whiteSpace: 'nowrap' }}>(düzenlendi)</span>
+                  )}
+                </span>
               </div>
               );
             })() : (
