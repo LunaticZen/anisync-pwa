@@ -605,8 +605,6 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
                 onTouchStart={handleBubbleClickOrTouch}
                 ref={(el) => {
                   if (!el) return;
-                  // Set border-image properties directly on DOM to avoid React's
-                  // inline style limitations with 'fill' keyword in border-image-slice
                   const st = el.style;
                   st.borderStyle = 'solid';
                   st.borderWidth = `${bwTop}px ${bwRight}px ${bwBottom}px ${bwLeft}px`;
@@ -614,7 +612,10 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
                   st.borderImageSource = `url(${s.dir}/full.png)`;
                   st.borderImageSlice = `${s.slice[0]} ${s.slice[1]} ${s.slice[2]} ${s.slice[3]} fill`;
                   st.borderImageWidth = `${bwTop}px ${bwRight}px ${bwBottom}px ${bwLeft}px`;
-                  st.borderImageRepeat = 'stretch';
+                  st.borderImageRepeat = 'round';
+                  st.borderImageOutset = '0.5px';
+                  st.imageRendering = 'auto';
+                  st.setProperty('-webkit-image-rendering', '-webkit-optimize-contrast');
                 }}
                 style={{
                   padding: `${s.padding[0]}px ${s.padding[1]}px ${s.padding[2]}px ${s.padding[3]}px`,
