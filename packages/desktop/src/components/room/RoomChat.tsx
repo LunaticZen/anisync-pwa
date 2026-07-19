@@ -593,28 +593,30 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
             {bTheme.sliceAssets && !isOnlyEmojiOrSticker ? (() => {
               const s = bTheme.sliceAssets;
               const sc = isMobile ? s.scale : s.scale * 0.85;
-              // border-image-slice: source image pixels
-              const sliceStr = `${s.slice[0]} ${s.slice[1]} ${s.slice[2]} ${s.slice[3]} fill`;
-              // border-image-width: rendered CSS pixels (scaled down from source)
               const bwTop = Math.round(s.slice[0] * sc);
               const bwRight = Math.round(s.slice[1] * sc);
               const bwBottom = Math.round(s.slice[2] * sc);
               const bwLeft = Math.round(s.slice[3] * sc);
-              const borderWidthStr = `${bwTop}px ${bwRight}px ${bwBottom}px ${bwLeft}px`;
 
               return (
               /* ── Artwork Bubble (CSS border-image 9-slice) ── */
               <div
                 onMouseDown={handleBubbleClickOrTouch}
                 onTouchStart={handleBubbleClickOrTouch}
+                ref={(el) => {
+                  if (!el) return;
+                  // Set border-image properties directly on DOM to avoid React's
+                  // inline style limitations with 'fill' keyword in border-image-slice
+                  const st = el.style;
+                  st.borderStyle = 'solid';
+                  st.borderWidth = `${bwTop}px ${bwRight}px ${bwBottom}px ${bwLeft}px`;
+                  st.borderColor = 'transparent';
+                  st.borderImageSource = `url(${s.dir}/full.png)`;
+                  st.borderImageSlice = `${s.slice[0]} ${s.slice[1]} ${s.slice[2]} ${s.slice[3]} fill`;
+                  st.borderImageWidth = `${bwTop}px ${bwRight}px ${bwBottom}px ${bwLeft}px`;
+                  st.borderImageRepeat = 'stretch';
+                }}
                 style={{
-                  borderStyle: 'solid',
-                  borderWidth: borderWidthStr,
-                  borderColor: 'transparent',
-                  borderImageSource: `url(${s.dir}/full.png)`,
-                  borderImageSlice: sliceStr,
-                  borderImageWidth: borderWidthStr,
-                  borderImageRepeat: 'stretch',
                   padding: `${s.padding[0]}px ${s.padding[1]}px ${s.padding[2]}px ${s.padding[3]}px`,
                   color: customTextColor,
                   maxWidth: '100%',
@@ -627,11 +629,9 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
                   overflowWrap: 'break-word',
                   position: 'relative',
                   background: 'transparent',
-                  // Flip for outgoing: tail moves from left to right
                   transform: isMe ? 'scaleX(-1)' : 'none',
                 }}
               >
-                {/* Un-flip text for outgoing messages */}
                 <span style={{
                   display: 'block',
                   transform: isMe ? 'scaleX(-1)' : 'none',
