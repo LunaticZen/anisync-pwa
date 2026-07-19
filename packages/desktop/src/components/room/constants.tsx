@@ -441,7 +441,7 @@ export const BUBBLE_THEMES: BubbleTheme[] = [
     thumbnail: 'bubbles/themes/ribbon/full.png',
     bgMe: 'transparent', bgOther: 'transparent',
     textMe: '#d4507a', textOther: '#d4507a',
-    sliceAssets: { dir: 'bubbles/themes/ribbon', width: 462, height: 120, slice: [20, 92, 10, 18], scale: 0.5, padding: [4, 8, 6, 8] },
+    sliceAssets: { dir: 'bubbles/themes/ribbon', width: 398, height: 120, slice: [20, 28, 10, 18], scale: 0.5, padding: [4, 8, 6, 8] },
   },
   {
     id: 'cheese', name: 'Peynir',
@@ -458,18 +458,11 @@ export const BUBBLE_THEMES: BubbleTheme[] = [
     sliceAssets: { dir: 'bubbles/themes/wood', width: 408, height: 125, slice: [25, 26, 19, 32], scale: 0.5, padding: [4, 8, 6, 8] },
   },
   {
-    id: 'slime', name: 'Balçık',
-    thumbnail: 'bubbles/themes/slime/full.png',
-    bgMe: 'transparent', bgOther: 'transparent',
-    textMe: '#2d5016', textOther: '#2d5016',
-    sliceAssets: { dir: 'bubbles/themes/slime', width: 462, height: 123, slice: [34, 115, 6, 33], scale: 0.5, padding: [4, 8, 4, 8] },
-  },
-  {
     id: 'letter', name: 'Mektup',
     thumbnail: 'bubbles/themes/letter/full.png',
     bgMe: 'transparent', bgOther: 'transparent',
     textMe: '#1e293b', textOther: '#1e293b',
-    sliceAssets: { dir: 'bubbles/themes/letter', width: 446, height: 123, slice: [21, 24, 21, 82], scale: 0.5, padding: [4, 8, 4, 8] },
+    sliceAssets: { dir: 'bubbles/themes/letter', width: 446, height: 123, slice: [21, 90, 21, 82], scale: 0.5, padding: [4, 8, 4, 8] },
   },
   {
     id: 'heart_pepe', name: 'Kurumi',
