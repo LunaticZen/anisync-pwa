@@ -372,6 +372,27 @@ export const BUBBLE_THEMES: BubbleTheme[] = [
       position: 'top-left',
       style: { width: 28, height: 28, top: -14, left: -8 }
     }
+  },
+  {
+    id: 'unicorn',
+    name: 'Unicorn',
+    thumbnail: 'linear-gradient(135deg, #cfc5ff 50%, #ebd6ff 50%)',
+    bgMe: 'url(bubbles/unicorn_bubble.png) no-repeat center/cover',
+    bgOther: 'url(bubbles/unicorn_bubble.png) no-repeat center/cover',
+    textMe: '#1e293b',
+    textOther: '#1e293b',
+    borderMe: 'none',
+    borderOther: 'none',
+    decorMe: {
+      image: 'bubbles/unicorn_decor.png',
+      position: 'top-right',
+      style: { width: 90, height: 60, top: -42, right: 30 }
+    },
+    decorOther: {
+      image: 'bubbles/unicorn_decor.png',
+      position: 'top-left',
+      style: { width: 90, height: 60, top: -42, left: 30 }
+    }
   }
 ];
 
