@@ -297,3 +297,84 @@ export function avatarColor(name: string): string {
 
 // ── Layout Mode ──
 export type RoomMode = 'desktop' | 'mobile-portrait' | 'mobile-landscape';
+
+// ── Bubble Theme System ──
+export interface BubbleTheme {
+  id: string;
+  name: string;
+  thumbnail: string;
+  bgMe: string;
+  bgOther: string;
+  textMe: string;
+  textOther: string;
+  borderMe?: string;
+  borderOther?: string;
+  decorMe?: {
+    image: string;
+    position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+    style?: React.CSSProperties;
+  };
+  decorOther?: {
+    image: string;
+    position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+    style?: React.CSSProperties;
+  };
+}
+
+export const BUBBLE_THEMES: BubbleTheme[] = [
+  {
+    id: 'default',
+    name: 'Varsayılan',
+    thumbnail: 'linear-gradient(135deg, #3b82f6 50%, #64748b 50%)',
+    bgMe: 'DEFAULT_ACCENT',
+    bgOther: 'DEFAULT_OTHER',
+    textMe: 'white',
+    textOther: 'DEFAULT_OTHER_TEXT',
+  },
+  {
+    id: 'frog',
+    name: 'Kurbağa',
+    thumbnail: 'linear-gradient(135deg, #22c55e 50%, #a7f3d0 50%)',
+    bgMe: '#22c55e',
+    bgOther: '#e8f7ed',
+    textMe: 'white',
+    textOther: '#14532d',
+    borderMe: '1px solid #16a34a',
+    borderOther: '1px solid #a7f3d0',
+    decorMe: {
+      image: '/bubbles/test_frog.png',
+      position: 'top-right',
+      style: { width: 34, height: 34, top: -20, right: -6, mixBlendMode: 'multiply' }
+    },
+    decorOther: {
+      image: '/bubbles/test_frog.png',
+      position: 'top-left',
+      style: { width: 34, height: 34, top: -20, left: -6, mixBlendMode: 'multiply' }
+    }
+  },
+  {
+    id: 'heart_pepe',
+    name: 'Aşk Pepe',
+    thumbnail: 'linear-gradient(135deg, #ec4899 50%, #fbcfe8 50%)',
+    bgMe: '#ec4899',
+    bgOther: '#fdf2f8',
+    textMe: 'white',
+    textOther: '#9d174d',
+    borderMe: '1px solid #db2777',
+    borderOther: '1px solid #fbcfe8',
+    decorMe: {
+      image: 'https://i.ibb.co/s9JYz5sg/5773-kuromi-wave.png',
+      position: 'top-right',
+      style: { width: 28, height: 28, top: -14, right: -8 }
+    },
+    decorOther: {
+      image: 'https://i.ibb.co/s9JYz5sg/5773-kuromi-wave.png',
+      position: 'top-left',
+      style: { width: 28, height: 28, top: -14, left: -8 }
+    }
+  }
+];
+
+export function getBubbleTheme(id?: string): BubbleTheme {
+  return BUBBLE_THEMES.find(t => t.id === id) || BUBBLE_THEMES[0];
+}

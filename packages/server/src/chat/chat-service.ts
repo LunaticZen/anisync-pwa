@@ -64,6 +64,7 @@ export async function saveMessage(data: {
   userId: string;
   text: string;
   type?: string;
+  bubbleTheme?: string;
 }) {
   const db = getDb();
 
@@ -89,6 +90,7 @@ export async function saveMessage(data: {
       userId: data.userId,
       text: sanitized,
       type: data.type ?? 'text',
+      bubbleTheme: data.bubbleTheme || null,
     },
   });
 
@@ -100,10 +102,11 @@ export async function saveMessage(data: {
     displayName: user.displayName,
     avatarUrl: user.avatarUrl,
     text: message.text,
-    type: message.type,
-    reactions: [],
+    type: message.type as any,
+    reactions: JSON.parse(message.reactions as any),
     createdAt: message.createdAt.toISOString(),
     editedAt: null,
+    bubbleTheme: message.bubbleTheme || undefined,
   };
 }
 

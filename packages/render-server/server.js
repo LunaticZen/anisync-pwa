@@ -447,8 +447,18 @@ io.on('connection', (socket) => {
       reactions: [], createdAt: new Date().toISOString(), editedAt: null,
       timestamp: Date.now(),
       replyTo: data.replyTo || undefined,
+      bubbleTheme: data.bubbleTheme || undefined,
     };
     io.to(data.roomId).emit('chat:message', msg);
+  });
+
+  socket.on('chat:reaction', (data) => {
+    if (!data.roomId || !data.messageId || !data.emoji) return;
+    io.to(data.roomId).emit('chat:reaction', {
+      messageId: data.messageId,
+      emoji: data.emoji,
+      userId: userId,
+    });
   });
 
   socket.on('chat:typing', (data) => {

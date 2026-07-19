@@ -98,6 +98,7 @@ model Message {
   type      String    @default("text")
   reactions String    @default("[]")
   editedAt  DateTime?
+  bubbleTheme String?
   createdAt DateTime  @default(now())
 
   room      Room      @relation(fields: [roomId], references: [id], onDelete: Cascade)

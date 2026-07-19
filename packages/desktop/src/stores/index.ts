@@ -197,6 +197,7 @@ interface ChatState {
   setMessages: (messages: ChatMessage[]) => void;
   removeMessage: (messageId: string) => void;
   editMessage: (messageId: string, newText: string) => void;
+  toggleReaction: (messageId: string, emoji: string, userId: string) => void;
   setTyping: (indicator: TypingIndicator) => void;
   clearTyping: (userId: string) => void;
   setOpen: (open: boolean) => void;
@@ -222,6 +223,30 @@ export const useChatStore = create<ChatState>((set, get) => ({
   }),
   editMessage: (messageId, newText) => set({
     messages: get().messages.map(m => m.id === messageId ? { ...m, text: newText, editedAt: new Date().toISOString() } : m),
+  }),
+  toggleReaction: (messageId, emoji, userId) => set({
+    messages: get().messages.map(m => {
+      if (m.id !== messageId) return m;
+      const currentReactions = m.reactions || [];
+      const existing = currentReactions.find(r => r.emoji === emoji);
+      let updatedReactions;
+      if (existing) {
+        if (existing.users.includes(userId)) {
+          const newUsers = existing.users.filter(u => u !== userId);
+          if (newUsers.length === 0) {
+            updatedReactions = currentReactions.filter(r => r.emoji !== emoji);
+          } else {
+            updatedReactions = currentReactions.map(r => r.emoji === emoji ? { ...r, users: newUsers, count: newUsers.length } : r);
+          }
+        } else {
+          const newUsers = [...existing.users, userId];
+          updatedReactions = currentReactions.map(r => r.emoji === emoji ? { ...r, users: newUsers, count: newUsers.length } : r);
+        }
+      } else {
+        updatedReactions = [...currentReactions, { emoji, users: [userId], count: 1 }];
+      }
+      return { ...m, reactions: updatedReactions };
+    })
   }),
   setTyping: (indicator) => {
     // Clean stale typing indicators (>10s old) to prevent phantom "typing..." states

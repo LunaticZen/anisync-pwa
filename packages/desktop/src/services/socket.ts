@@ -274,6 +274,7 @@ export function connectSocket(username: string): TypedSocket {
   socket.on('chat:typing', (data) => useChatStore.getState().setTyping(data));
   socket.on('chat:deleted', (data) => useChatStore.getState().removeMessage(data.messageId));
   (socket as any).on('chat:edited', (data: any) => useChatStore.getState().editMessage(data.messageId, data.text));
+  socket.on('chat:reaction', (data) => useChatStore.getState().toggleReaction(data.messageId, data.emoji, data.userId));
 
   // ── Join Approval Events ──
   (socket as any).on('room:join-request', (data: any) => {

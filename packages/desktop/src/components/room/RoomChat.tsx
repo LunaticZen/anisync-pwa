@@ -6,7 +6,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useAuthStore, useChatStore, useRoomStore, useUIStore } from '../../stores';
 import { getSocket } from '../../services/socket';
-import { isMobile, avatarColor, getTheme, type RoomMode } from './constants';
+import { isMobile, avatarColor, getTheme, type RoomMode, getBubbleTheme } from './constants';
 import { EmojiPicker } from './EmojiPicker';
 import { StickerPicker } from './StickerPicker';
 import { MessageOverlayMenu, useOverlayMenu, type OverlayMenuAction } from './MessageOverlayMenu';
@@ -147,6 +147,19 @@ function ChatTicker({ tickerItems }: {
           0% { transform: translateX(100vw); }
           100% { transform: translateX(calc(-100% - 20px)); }
         }
+        @keyframes heartPopAdd {
+          0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+          15% { transform: translate(-50%, -50%) scale(1.3); opacity: 1; }
+          30% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+          70% { transform: translate(-50%, -40%) scale(1); opacity: 1; }
+          100% { transform: translate(-50%, -85%) scale(0.6); opacity: 0; }
+        }
+        @keyframes heartPopRemove {
+          0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+          20% { transform: translate(-50%, -50%) scale(1.1) rotate(-10deg); opacity: 1; }
+          40% { transform: translate(-50%, -50%) scale(1.1) rotate(10deg); opacity: 1; }
+          100% { transform: translate(-50%, 0%) scale(0.4); opacity: 0; }
+        }
       `}</style>
       {tickerItems.map(item => {
         // How many seconds have elapsed since this item was created
@@ -190,6 +203,50 @@ function ChatTicker({ tickerItems }: {
 function SwipableMessage({ msg, i, username, members, messages, activeTypers, isKeyboardOpen, activeTheme, effectiveIsLight, onReply, onOpenOverlay }: any) {
   const isMe = msg.userId === username;
   
+  const [heartAnimState, setHeartAnimState] = useState<'none' | 'add' | 'remove'>('none');
+  const lastTap = useRef<number>(0);
+  
+  useEffect(() => {
+    if (heartAnimState !== 'none') {
+      const timer = setTimeout(() => setHeartAnimState('none'), 800);
+      return () => clearTimeout(timer);
+    }
+  }, [heartAnimState]);
+
+  const handleDoubleTap = () => {
+    const heartReaction = msg.reactions?.find((r: any) => r.emoji === '❤️');
+    const hasHeart = heartReaction?.users.includes(username) || false;
+    
+    getSocket()?.emit('chat:reaction', {
+      roomId: msg.roomId || '',
+      messageId: msg.id,
+      emoji: '❤️'
+    });
+    
+    setHeartAnimState(hasHeart ? 'remove' : 'add');
+  };
+
+  const handleBubbleClickOrTouch = (e: React.MouseEvent | React.TouchEvent) => {
+    // Avoid double triggers from mouse vs touch events
+    if (e.type === 'touchstart') {
+      (e.currentTarget as any)._touched = true;
+    } else if (e.type === 'mousedown') {
+      if ((e.currentTarget as any)._touched) {
+        (e.currentTarget as any)._touched = false;
+        return;
+      }
+    }
+
+    const now = Date.now();
+    const DOUBLE_PRESS_DELAY = 300;
+    if (now - lastTap.current < DOUBLE_PRESS_DELAY) {
+      handleDoubleTap();
+      lastTap.current = 0;
+    } else {
+      lastTap.current = now;
+    }
+  };
+
   const bubbleRef = useRef<HTMLDivElement>(null);
   const iconRef = useRef<HTMLDivElement>(null);
   const startX = useRef<number>(0);
@@ -294,6 +351,26 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
   const isOnlyEmojiOrSticker = /^(\s*\[(emoji|sticker|image):[^\]]+\]\s*)+$/.test(msg.text);
   const bubbleBg = isOnlyEmojiOrSticker ? 'transparent' : (isMe ? activeTheme.accent : (effectiveIsLight ? '#f1f5f9' : (activeTheme.isImage ? 'rgba(0,0,0,0.5)' : '#334155')));
   const textColor = isMe ? 'white' : (effectiveIsLight ? '#0f172a' : '#f8fafc');
+
+  // Resolve bubble theme styles
+  const bTheme = getBubbleTheme(msg.bubbleTheme || 'default');
+  let customBubbleBg = bubbleBg;
+  let customTextColor = textColor;
+  let customBorder = isOnlyEmojiOrSticker ? 'none' : (isMe ? 'none' : `1px solid ${effectiveIsLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)'}`);
+
+  if (bTheme.id !== 'default' && !isOnlyEmojiOrSticker) {
+    customBubbleBg = isMe ? bTheme.bgMe : bTheme.bgOther;
+    if (customBubbleBg === 'DEFAULT_ACCENT') customBubbleBg = activeTheme.accent;
+    if (customBubbleBg === 'DEFAULT_OTHER') customBubbleBg = effectiveIsLight ? '#f1f5f9' : (activeTheme.isImage ? 'rgba(0,0,0,0.5)' : '#334155');
+
+    customTextColor = isMe ? bTheme.textMe : bTheme.textOther;
+    if (customTextColor === 'DEFAULT_OTHER_TEXT') customTextColor = effectiveIsLight ? '#0f172a' : '#f8fafc';
+
+    customBorder = isMe ? (bTheme.borderMe || 'none') : (bTheme.borderOther || 'none');
+  }
+
+  const decor = (!isOnlyEmojiOrSticker) ? (isMe ? bTheme.decorMe : bTheme.decorOther) : null;
+
   const marginT = isConsecutivePrev ? 2 : (isMobile ? 12 : (isKeyboardOpen ? 6 : 12));
   const avaSize = isMobile ? (isKeyboardOpen ? 28 : 34) : (isKeyboardOpen ? 20 : 28);
 
@@ -520,28 +597,133 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
             )}
 
             {/* Actual Message Bubble */}
-            <div style={{
-              background: bubbleBg, color: textColor,
-              maxWidth: '100%', minWidth: 0,
-              padding: isOnlyEmojiOrSticker 
-                ? 0 
-                : (isMobile 
-                    ? (isKeyboardOpen ? '8px 12px' : '10px 14px') 
-                    : (isKeyboardOpen ? '6px 10px' : '8px 12px')),
-              borderRadius: borderRadius, 
-              fontSize: isMobile 
-                ? (isKeyboardOpen ? 14 : 15) 
-                : (isKeyboardOpen ? 12 : 13),
-              lineHeight: 1.4, wordBreak: 'break-word',
-              boxShadow: isOnlyEmojiOrSticker ? 'none' : (activeTheme.isImage && !isMe ? '0 2px 8px rgba(0,0,0,0.2)' : 'none'),
-              border: isOnlyEmojiOrSticker ? 'none' : (isMe ? 'none' : `1px solid ${effectiveIsLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)'}`),
-              /* padding/font-size removed from transition to prevent layout thrashing */
-            }}>
+            <div 
+              onMouseDown={handleBubbleClickOrTouch}
+              onTouchStart={handleBubbleClickOrTouch}
+              style={{
+                background: customBubbleBg, color: customTextColor,
+                maxWidth: '100%', minWidth: 0,
+                padding: isOnlyEmojiOrSticker 
+                  ? 0 
+                  : (isMobile 
+                      ? (isKeyboardOpen ? '8px 12px' : '10px 14px') 
+                      : (isKeyboardOpen ? '6px 10px' : '8px 12px')),
+                borderRadius: borderRadius, 
+                fontSize: isMobile 
+                  ? (isKeyboardOpen ? 14 : 15) 
+                  : (isKeyboardOpen ? 12 : 13),
+                lineHeight: 1.4, wordBreak: 'break-word',
+                boxShadow: isOnlyEmojiOrSticker ? 'none' : (activeTheme.isImage && !isMe ? '0 2px 8px rgba(0,0,0,0.2)' : 'none'),
+                border: customBorder,
+                position: 'relative',
+                transition: 'background 0.2s ease, border-color 0.2s ease',
+              }}
+            >
               {renderMessageText(msg.text, isOnlyEmojiOrSticker)}
               {msg.editedAt && !isOnlyEmojiOrSticker && (
                 <span style={{ fontSize: 10, opacity: 0.5, marginLeft: 6, fontStyle: 'italic', whiteSpace: 'nowrap' }}>(düzenlendi)</span>
               )}
+
+              {/* Bubble Custom Decor */}
+              {decor && (
+                <img
+                  src={decor.image}
+                  alt=""
+                  style={{
+                    position: 'absolute',
+                    pointerEvents: 'none',
+                    userSelect: 'none',
+                    zIndex: 5,
+                    ...decor.style
+                  }}
+                />
+              )}
+
+              {/* Double Tap Heart Popups */}
+              {heartAnimState === 'add' && (
+                <div style={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  zIndex: 10,
+                  pointerEvents: 'none',
+                  fontSize: 40,
+                  filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.25))',
+                  animation: 'heartPopAdd 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards',
+                }}>
+                  ❤️
+                </div>
+              )}
+              {heartAnimState === 'remove' && (
+                <div style={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  zIndex: 10,
+                  pointerEvents: 'none',
+                  fontSize: 40,
+                  filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.25))',
+                  animation: 'heartPopRemove 0.8s cubic-bezier(0.6, -0.28, 0.735, 0.045) forwards',
+                }}>
+                  💔
+                </div>
+              )}
             </div>
+
+            {/* Reactions Pill List */}
+            {msg.reactions && msg.reactions.length > 0 && (
+              <div style={{
+                display: 'flex',
+                gap: 4,
+                marginTop: -6,
+                marginBottom: 2,
+                zIndex: 3,
+                alignSelf: isMe ? 'flex-end' : 'flex-start',
+                position: 'relative'
+              }}>
+                {msg.reactions.map((r: any, idx: number) => {
+                  const userReacted = r.users.includes(username);
+                  return (
+                    <div
+                      key={idx}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        getSocket()?.emit('chat:reaction', {
+                          roomId: msg.roomId || '',
+                          messageId: msg.id,
+                          emoji: r.emoji
+                        });
+                      }}
+                      style={{
+                        background: userReacted 
+                          ? (effectiveIsLight ? 'rgba(59, 130, 246, 0.15)' : 'rgba(59, 130, 246, 0.25)')
+                          : (effectiveIsLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.08)'),
+                        border: `1px solid ${userReacted ? '#3b82f6' : (effectiveIsLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)')}`,
+                        borderRadius: 12,
+                        padding: '2px 6px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 3,
+                        fontSize: 10,
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                        color: userReacted ? '#3b82f6' : (effectiveIsLight ? '#475569' : '#94a3b8'),
+                        transition: 'all 0.2s ease',
+                        userSelect: 'none',
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.08)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+                    >
+                      <span>{r.emoji}</span>
+                      {r.count > 1 && <span>{r.count}</span>}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -845,10 +1027,12 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
       setEditingMsg(null);
     } else {
       // Normal send
+      const savedBubbleTheme = localStorage.getItem('anisync_bubble_theme') || 'default';
       getSocket()?.emit('chat:message', { 
         roomId, 
         text: cleanText,
-        replyTo: replyToMsg ? { id: replyToMsg.id, username: replyToMsg.displayName ?? replyToMsg.username, text: replyToMsg.text } : undefined
+        replyTo: replyToMsg ? { id: replyToMsg.id, username: replyToMsg.displayName ?? replyToMsg.username, text: replyToMsg.text } : undefined,
+        bubbleTheme: savedBubbleTheme
       });
       setReplyToMsg(null);
     }

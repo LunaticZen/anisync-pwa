@@ -294,6 +294,7 @@ function registerChatHandlers(socket: TypedSocket) {
       userId: socket.data.userId,
       text: data.text,
       type: data.type,
+      bubbleTheme: data.bubbleTheme,
     });
     if (message) {
       io!.to(data.roomId).emit('chat:message', message as any);

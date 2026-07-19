@@ -248,6 +248,7 @@ export interface ChatMessage {
     username: string;
     text: string;
   };
+  bubbleTheme?: string;
 }
 
 export type MessageType = 'text' | 'system' | 'gif' | 'emoji';
@@ -266,6 +267,7 @@ export interface SendMessageRequest {
     username: string;
     text: string;
   };
+  bubbleTheme?: string;
 }
 
 export interface TypingIndicator {
