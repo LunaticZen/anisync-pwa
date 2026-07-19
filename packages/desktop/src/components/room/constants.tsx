@@ -339,20 +339,20 @@ export const BUBBLE_THEMES: BubbleTheme[] = [
     bgOther: 'none',
     textMe: 'white',
     textOther: 'white',
-    borderMe: '24px solid transparent',
-    borderOther: '24px solid transparent',
+    borderMe: '8px solid transparent',
+    borderOther: '8px solid transparent',
     borderImageSource: 'bubbles/frog_bg.png',
     borderImageSlice: 26,
     borderImageWidth: 26,
     decorMe: {
       image: 'bubbles/frog_decor.png',
       position: 'top-right',
-      style: { width: '100%', height: 26, top: -20, left: 0 }
+      style: { width: 250, height: 26, top: -20 }
     },
     decorOther: {
       image: 'bubbles/frog_decor.png',
       position: 'top-left',
-      style: { width: '100%', height: 26, top: -20, left: 0 }
+      style: { width: 250, height: 26, top: -20 }
     }
   },
   {
@@ -384,20 +384,20 @@ export const BUBBLE_THEMES: BubbleTheme[] = [
     bgOther: 'none',
     textMe: '#db2777',
     textOther: '#db2777',
-    borderMe: '24px solid transparent',
-    borderOther: '24px solid transparent',
+    borderMe: '8px solid transparent',
+    borderOther: '8px solid transparent',
     borderImageSource: 'bubbles/heart_bg.png',
     borderImageSlice: 26,
     borderImageWidth: 26,
     decorMe: {
       image: 'bubbles/heart_decor.png',
       position: 'top-right',
-      style: { width: '100%', height: 75, top: -10, left: 0 }
+      style: { width: 280, height: 75, top: -10 }
     },
     decorOther: {
       image: 'bubbles/heart_decor.png',
       position: 'top-left',
-      style: { width: '100%', height: 75, top: -10, left: 0 }
+      style: { width: 280, height: 75, top: -10 }
     }
   },
   {
@@ -408,20 +408,20 @@ export const BUBBLE_THEMES: BubbleTheme[] = [
     bgOther: 'none',
     textMe: 'white',
     textOther: 'white',
-    borderMe: '22px solid transparent',
-    borderOther: '22px solid transparent',
+    borderMe: '8px solid transparent',
+    borderOther: '8px solid transparent',
     borderImageSource: 'bubbles/cat_bg.png',
     borderImageSlice: 24,
     borderImageWidth: 24,
     decorMe: {
       image: 'bubbles/cat_decor.png',
       position: 'top-right',
-      style: { width: '100%', height: 32, top: -22, left: 0 }
+      style: { width: 250, height: 32, top: -22 }
     },
     decorOther: {
       image: 'bubbles/cat_decor.png',
       position: 'top-left',
-      style: { width: '100%', height: 32, top: -22, left: 0 }
+      style: { width: 250, height: 32, top: -22 }
     }
   },
   {
@@ -432,20 +432,20 @@ export const BUBBLE_THEMES: BubbleTheme[] = [
     bgOther: 'none',
     textMe: '#4b382a',
     textOther: '#4b382a',
-    borderMe: '24px solid transparent',
-    borderOther: '24px solid transparent',
+    borderMe: '8px solid transparent',
+    borderOther: '8px solid transparent',
     borderImageSource: 'bubbles/dog_bg.png',
     borderImageSlice: 26,
     borderImageWidth: 26,
     decorMe: {
       image: 'bubbles/dog_decor.png',
       position: 'top-right',
-      style: { width: '100%', height: 32, top: -24, left: 0 }
+      style: { width: 260, height: 32, top: -24 }
     },
     decorOther: {
       image: 'bubbles/dog_decor.png',
       position: 'top-left',
-      style: { width: '100%', height: 32, top: -24, left: 0 }
+      style: { width: 260, height: 32, top: -24 }
     }
   },
   {
@@ -456,8 +456,8 @@ export const BUBBLE_THEMES: BubbleTheme[] = [
     bgOther: 'none',
     textMe: 'white',
     textOther: 'white',
-    borderMe: '24px solid transparent',
-    borderOther: '24px solid transparent',
+    borderMe: '8px solid transparent',
+    borderOther: '8px solid transparent',
     borderImageSource: 'bubbles/space_bg.png',
     borderImageSlice: 26,
     borderImageWidth: 26,
@@ -480,8 +480,8 @@ export const BUBBLE_THEMES: BubbleTheme[] = [
     bgOther: 'none',
     textMe: '#1e3a8a',
     textOther: '#1e3a8a',
-    borderMe: '24px solid transparent',
-    borderOther: '24px solid transparent',
+    borderMe: '8px solid transparent',
+    borderOther: '8px solid transparent',
     borderImageSource: 'bubbles/cloud_bg.png',
     borderImageSlice: 26,
     borderImageWidth: 26,
@@ -504,8 +504,8 @@ export const BUBBLE_THEMES: BubbleTheme[] = [
     bgOther: 'none',
     textMe: 'black',
     textOther: 'black',
-    borderMe: '24px solid transparent',
-    borderOther: '24px solid transparent',
+    borderMe: '8px solid transparent',
+    borderOther: '8px solid transparent',
     borderImageSource: 'bubbles/pixel_bg.png',
     borderImageSlice: 26,
     borderImageWidth: 26,
@@ -528,8 +528,8 @@ export const BUBBLE_THEMES: BubbleTheme[] = [
     bgOther: 'none',
     textMe: '#7c2d12',
     textOther: '#7c2d12',
-    borderMe: '24px solid transparent',
-    borderOther: '24px solid transparent',
+    borderMe: '8px solid transparent',
+    borderOther: '8px solid transparent',
     borderImageSource: 'bubbles/tape_bg.png',
     borderImageSlice: 26,
     borderImageWidth: 26,
@@ -552,8 +552,8 @@ export const BUBBLE_THEMES: BubbleTheme[] = [
     bgOther: 'none',
     textMe: 'white',
     textOther: 'white',
-    borderMe: '24px solid transparent',
-    borderOther: '24px solid transparent',
+    borderMe: '8px solid transparent',
+    borderOther: '8px solid transparent',
     borderImageSource: 'bubbles/wave_bg.png',
     borderImageSlice: 26,
     borderImageWidth: 26,
@@ -576,8 +576,8 @@ export const BUBBLE_THEMES: BubbleTheme[] = [
     bgOther: 'none',
     textMe: '#10b981',
     textOther: '#10b981',
-    borderMe: '24px solid transparent',
-    borderOther: '24px solid transparent',
+    borderMe: '8px solid transparent',
+    borderOther: '8px solid transparent',
     borderImageSource: 'bubbles/hacker_bg.png',
     borderImageSlice: 26,
     borderImageWidth: 26,
@@ -600,8 +600,8 @@ export const BUBBLE_THEMES: BubbleTheme[] = [
     bgOther: 'none',
     textMe: '#db2777',
     textOther: '#db2777',
-    borderMe: '24px solid transparent',
-    borderOther: '24px solid transparent',
+    borderMe: '8px solid transparent',
+    borderOther: '8px solid transparent',
     borderImageSource: 'bubbles/pinkbow_bg.png',
     borderImageSlice: 26,
     borderImageWidth: 26,
@@ -624,8 +624,8 @@ export const BUBBLE_THEMES: BubbleTheme[] = [
     bgOther: 'none',
     textMe: '#78350f',
     textOther: '#78350f',
-    borderMe: '24px solid transparent',
-    borderOther: '24px solid transparent',
+    borderMe: '8px solid transparent',
+    borderOther: '8px solid transparent',
     borderImageSource: 'bubbles/cheese_bg.png',
     borderImageSlice: 26,
     borderImageWidth: 26,
@@ -648,8 +648,8 @@ export const BUBBLE_THEMES: BubbleTheme[] = [
     bgOther: 'none',
     textMe: 'white',
     textOther: 'white',
-    borderMe: '24px solid transparent',
-    borderOther: '24px solid transparent',
+    borderMe: '8px solid transparent',
+    borderOther: '8px solid transparent',
     borderImageSource: 'bubbles/wood_bg.png',
     borderImageSlice: 26,
     borderImageWidth: 26,
@@ -672,20 +672,20 @@ export const BUBBLE_THEMES: BubbleTheme[] = [
     bgOther: 'none',
     textMe: '#1e3a0a',
     textOther: '#1e3a0a',
-    borderMe: '24px solid transparent',
-    borderOther: '24px solid transparent',
+    borderMe: '8px solid transparent',
+    borderOther: '8px solid transparent',
     borderImageSource: 'bubbles/slime_bg.png',
     borderImageSlice: 26,
     borderImageWidth: 26,
     decorMe: {
       image: 'bubbles/slime_decor.png',
       position: 'bottom-right',
-      style: { width: '100%', height: 24, bottom: -19, left: 0 }
+      style: { width: 260, height: 24, bottom: -19 }
     },
     decorOther: {
       image: 'bubbles/slime_decor.png',
       position: 'bottom-left',
-      style: { width: '100%', height: 24, bottom: -19, left: 0 }
+      style: { width: 260, height: 24, bottom: -19 }
     }
   },
   {
@@ -696,8 +696,8 @@ export const BUBBLE_THEMES: BubbleTheme[] = [
     bgOther: 'none',
     textMe: '#1e293b',
     textOther: '#1e293b',
-    borderMe: '24px solid transparent',
-    borderOther: '24px solid transparent',
+    borderMe: '8px solid transparent',
+    borderOther: '8px solid transparent',
     borderImageSource: 'bubbles/airmail_bg.png',
     borderImageSlice: 26,
     borderImageWidth: 26,

@@ -631,6 +631,8 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
                     pointerEvents: 'none',
                     userSelect: 'none',
                     zIndex: 5,
+                    left: (decor.style.left === undefined && decor.style.right === undefined) ? '50%' : undefined,
+                    transform: (decor.style.left === undefined && decor.style.right === undefined) ? 'translateX(-50%)' : undefined,
                     ...decor.style
                   }}
                 />
