@@ -612,7 +612,7 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
                   st.borderImageSource = `url(${s.dir}/full.png)`;
                   st.borderImageSlice = `${s.slice[0]} ${s.slice[1]} ${s.slice[2]} ${s.slice[3]} fill`;
                   st.borderImageWidth = `${bwTop}px ${bwRight}px ${bwBottom}px ${bwLeft}px`;
-                  st.borderImageRepeat = 'round';
+                  st.borderImageRepeat = 'round stretch';
                   st.borderImageOutset = '0.5px';
                   st.imageRendering = 'auto';
                   st.setProperty('-webkit-image-rendering', '-webkit-optimize-contrast');
