@@ -598,9 +598,9 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
                 maxWidth: '100%', minWidth: 0,
                 padding: isOnlyEmojiOrSticker 
                   ? 0 
-                  : (isMobile 
-                      ? (isKeyboardOpen ? '8px 12px' : '10px 14px') 
-                      : (isKeyboardOpen ? '6px 10px' : '8px 12px')),
+                  : (isMe
+                      ? ((bTheme as any).paddingMe || (isMobile ? (isKeyboardOpen ? '8px 12px' : '10px 14px') : (isKeyboardOpen ? '6px 10px' : '8px 12px')))
+                      : ((bTheme as any).paddingOther || (isMobile ? (isKeyboardOpen ? '8px 12px' : '10px 14px') : (isKeyboardOpen ? '6px 10px' : '8px 12px')))),
                 borderRadius: borderRadius, 
                 fontSize: isMobile 
                   ? (isKeyboardOpen ? 14 : 15) 
@@ -610,7 +610,6 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
                 border: customBorder,
                 borderImageSource: (bTheme as any).borderImageSource ? `url(${(bTheme as any).borderImageSource})` : undefined,
                 borderImageSlice: (bTheme as any).borderImageSlice ? `${(bTheme as any).borderImageSlice} fill` : undefined,
-                borderImageWidth: (bTheme as any).borderImageWidth ? `${(bTheme as any).borderImageWidth}px` : undefined,
                 borderImageRepeat: 'stretch',
                 position: 'relative',
                 transition: 'background 0.2s ease, border-color 0.2s ease',

@@ -930,12 +930,15 @@ export function ThemePickerPopup({ roomId, onClose }: { roomId: string; onClose:
                         background: previewBg,
                         color: previewText,
                         border: previewBorder,
-                        padding: '6px 12px',
-                        borderRadius: '12px 12px 4px 12px',
+                        borderImageSource: (bTheme as any).borderImageSource ? `url(${(bTheme as any).borderImageSource})` : undefined,
+                        borderImageSlice: (bTheme as any).borderImageSlice ? `${(bTheme as any).borderImageSlice} fill` : undefined,
+                        borderImageRepeat: 'stretch',
+                        padding: (bTheme as any).paddingMe || '6px 12px',
+                        borderRadius: (bTheme as any).borderImageSource ? undefined : '12px 12px 4px 12px',
                         fontSize: 11,
                         fontWeight: 600,
                         maxWidth: '85%',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                        boxShadow: (bTheme as any).borderImageSource ? 'none' : '0 2px 4px rgba(0,0,0,0.1)',
                         position: 'relative'
                       }}>
                         Aa
@@ -945,14 +948,15 @@ export function ThemePickerPopup({ roomId, onClose }: { roomId: string; onClose:
                             alt=""
                             style={{
                               position: 'absolute',
+                              left: (bTheme.decorMe.style?.left === undefined && bTheme.decorMe.style?.right === undefined) ? '50%' : undefined,
+                              transform: (bTheme.decorMe.style?.left === undefined && bTheme.decorMe.style?.right === undefined) ? 'translateX(-50%)' : undefined,
                               ...bTheme.decorMe.style,
-                              width: ((bTheme.decorMe.style?.width as number) || 24) * 0.75,
-                              height: ((bTheme.decorMe.style?.height as number) || 24) * 0.75,
-                              top: ((bTheme.decorMe.style?.top as number) || 0) * 0.75,
-                              right: ((bTheme.decorMe.style?.right as number) || 0) * 0.75,
-                              left: ((bTheme.decorMe.style?.left as number) || 0) * 0.75,
-                              bottom: ((bTheme.decorMe.style?.bottom as number) || 0) * 0.75,
-                            }}
+                              width: typeof bTheme.decorMe.style?.width === 'number' ? bTheme.decorMe.style.width * 0.75 : bTheme.decorMe.style?.width,
+                              height: typeof bTheme.decorMe.style?.height === 'number' ? bTheme.decorMe.style.height * 0.75 : bTheme.decorMe.style?.height,
+                              top: typeof bTheme.decorMe.style?.top === 'number' ? bTheme.decorMe.style.top * 0.75 : bTheme.decorMe.style?.top,
+                              right: typeof bTheme.decorMe.style?.right === 'number' ? bTheme.decorMe.style.right * 0.75 : bTheme.decorMe.style?.right,
+                              bottom: typeof bTheme.decorMe.style?.bottom === 'number' ? bTheme.decorMe.style.bottom * 0.75 : bTheme.decorMe.style?.bottom,
+                            } as any}
                           />
                         )}
                       </div>
