@@ -334,26 +334,22 @@ export const BUBBLE_THEMES: BubbleTheme[] = [
   {
     id: 'frog',
     name: 'Kurbağa',
-    thumbnail: 'linear-gradient(135deg, #009444 50%, #009444 50%)',
-    bgMe: 'none',
-    bgOther: 'none',
+    thumbnail: 'linear-gradient(135deg, #22c55e 50%, #a7f3d0 50%)',
+    bgMe: '#22c55e',
+    bgOther: '#22c55e',
     textMe: 'white',
     textOther: 'white',
-    borderWidthMe: '20px 16px',
-    borderWidthOther: '20px 16px',
-    paddingMe: '0px 8px',
-    paddingOther: '0px 8px',
-    borderImageSource: 'bubbles/frog_bg.png',
-    borderImageSlice: 26,
+    borderMe: '1px solid #16a34a',
+    borderOther: '1px solid #16a34a',
     decorMe: {
-      image: 'bubbles/frog_decor.png',
-      position: 'top-center',
-      style: { width: 250, height: 26, top: -20 }
+      image: 'bubbles/test_frog.png',
+      position: 'top-right',
+      style: { width: 34, height: 34, top: -20, right: -6 }
     },
     decorOther: {
-      image: 'bubbles/frog_decor.png',
-      position: 'top-center',
-      style: { width: 250, height: 26, top: -20 }
+      image: 'bubbles/test_frog.png',
+      position: 'top-left',
+      style: { width: 34, height: 34, top: -20, left: -6 }
     }
   },
   {
@@ -378,351 +374,33 @@ export const BUBBLE_THEMES: BubbleTheme[] = [
     }
   },
   {
-    id: 'heart',
-    name: 'Aşk Kalbi',
-    thumbnail: 'linear-gradient(135deg, #fbcfe8 50%, #fbcfe8 50%)',
-    bgMe: 'none',
-    bgOther: 'none',
-    textMe: '#db2777',
-    textOther: '#db2777',
-    borderWidthMe: '20px 16px',
-    borderWidthOther: '20px 16px',
-    paddingMe: '0px 8px',
-    paddingOther: '0px 8px',
-    borderImageSource: 'bubbles/heart_bg.png',
-    borderImageSlice: 26,
-    decorMe: {
-      image: 'bubbles/heart_decor.png',
-      position: 'top-center',
-      style: { width: 280, height: 75, top: -10 }
-    },
-    decorOther: {
-      image: 'bubbles/heart_decor.png',
-      position: 'top-center',
-      style: { width: 280, height: 75, top: -10 }
-    }
-  },
-  {
-    id: 'cat',
-    name: 'Kedi',
-    thumbnail: 'linear-gradient(135deg, #1a1a1a 50%, #1a1a1a 50%)',
-    bgMe: 'none',
-    bgOther: 'none',
-    textMe: 'white',
-    textOther: 'white',
-    borderWidthMe: '18px 16px',
-    borderWidthOther: '18px 16px',
-    paddingMe: '0px 8px',
-    paddingOther: '0px 8px',
-    borderImageSource: 'bubbles/cat_bg.png',
-    borderImageSlice: 24,
-    decorMe: {
-      image: 'bubbles/cat_decor.png',
-      position: 'top-center',
-      style: { width: 250, height: 32, top: -22 }
-    },
-    decorOther: {
-      image: 'bubbles/cat_decor.png',
-      position: 'top-center',
-      style: { width: 250, height: 32, top: -22 }
-    }
-  },
-  {
-    id: 'dog',
-    name: 'Köpek',
-    thumbnail: 'linear-gradient(135deg, #feedd4 50%, #feedd4 50%)',
-    bgMe: 'none',
-    bgOther: 'none',
-    textMe: '#4b382a',
-    textOther: '#4b382a',
-    borderWidthMe: '20px 16px',
-    borderWidthOther: '20px 16px',
-    paddingMe: '0px 8px',
-    paddingOther: '0px 8px',
-    borderImageSource: 'bubbles/dog_bg.png',
-    borderImageSlice: 26,
-    decorMe: {
-      image: 'bubbles/dog_decor.png',
-      position: 'top-center',
-      style: { width: 260, height: 32, top: -24 }
-    },
-    decorOther: {
-      image: 'bubbles/dog_decor.png',
-      position: 'top-center',
-      style: { width: 260, height: 32, top: -24 }
-    }
-  },
-  {
-    id: 'space',
-    name: 'Uzay',
-    thumbnail: 'linear-gradient(135deg, #1e1b4b 50%, #1e1b4b 50%)',
-    bgMe: 'none',
-    bgOther: 'none',
-    textMe: 'white',
-    textOther: 'white',
-    borderWidthMe: '20px 16px',
-    borderWidthOther: '20px 16px',
-    paddingMe: '0px 8px',
-    paddingOther: '0px 8px',
-    borderImageSource: 'bubbles/space_bg.png',
-    borderImageSlice: 26,
-    decorMe: {
-      image: 'bubbles/space_decor.png',
-      position: 'bottom-right',
-      style: { width: 65, height: 32, bottom: -12, right: 10 }
-    },
-    decorOther: {
-      image: 'bubbles/space_decor.png',
-      position: 'bottom-left',
-      style: { width: 65, height: 32, bottom: -12, left: 10 }
-    }
-  },
-  {
-    id: 'cloud',
-    name: 'Bulut',
-    thumbnail: 'linear-gradient(135deg, #e0f2fe 50%, #e0f2fe 50%)',
-    bgMe: 'none',
-    bgOther: 'none',
-    textMe: '#1e3a8a',
-    textOther: '#1e3a8a',
-    borderWidthMe: '20px 16px',
-    borderWidthOther: '20px 16px',
-    paddingMe: '0px 8px',
-    paddingOther: '0px 8px',
-    borderImageSource: 'bubbles/cloud_bg.png',
-    borderImageSlice: 26,
-    decorMe: {
-      image: 'bubbles/cloud_decor.png',
-      position: 'bottom-right',
-      style: { width: 34, height: 26, bottom: -10, right: 12 }
-    },
-    decorOther: {
-      image: 'bubbles/cloud_decor.png',
-      position: 'bottom-left',
-      style: { width: 34, height: 26, bottom: -10, left: 12 }
-    }
-  },
-  {
-    id: 'pixel',
-    name: 'Pixel',
-    thumbnail: 'linear-gradient(135deg, #ffffff 50%, #000000 50%)',
-    bgMe: 'none',
-    bgOther: 'none',
-    textMe: 'black',
-    textOther: 'black',
-    borderWidthMe: '20px 16px',
-    borderWidthOther: '20px 16px',
-    paddingMe: '0px 8px',
-    paddingOther: '0px 8px',
-    borderImageSource: 'bubbles/pixel_bg.png',
-    borderImageSlice: 26,
-    decorMe: {
-      image: 'bubbles/pixel_decor.png',
-      position: 'bottom-right',
-      style: { width: 32, height: 28, bottom: -8, right: 12 }
-    },
-    decorOther: {
-      image: 'bubbles/pixel_decor.png',
-      position: 'bottom-left',
-      style: { width: 32, height: 28, bottom: -8, left: 12 }
-    }
-  },
-  {
-    id: 'tape',
-    name: 'Bantlı Kağıt',
-    thumbnail: 'linear-gradient(135deg, #fef08a 50%, #fef08a 50%)',
-    bgMe: 'none',
-    bgOther: 'none',
-    textMe: '#7c2d12',
-    textOther: '#7c2d12',
-    borderWidthMe: '20px 16px',
-    borderWidthOther: '20px 16px',
-    paddingMe: '0px 8px',
-    paddingOther: '0px 8px',
-    borderImageSource: 'bubbles/tape_bg.png',
-    borderImageSlice: 26,
-    decorMe: {
-      image: 'bubbles/tape_decor.png',
-      position: 'top-left',
-      style: { width: 60, height: 32, top: -14, left: 10 }
-    },
-    decorOther: {
-      image: 'bubbles/tape_decor.png',
-      position: 'top-left',
-      style: { width: 60, height: 32, top: -14, left: 10 }
-    }
-  },
-  {
-    id: 'wave',
-    name: 'Dalga',
-    thumbnail: 'linear-gradient(135deg, #3b82f6 50%, #3b82f6 50%)',
-    bgMe: 'none',
-    bgOther: 'none',
-    textMe: 'white',
-    textOther: 'white',
-    borderWidthMe: '20px 16px',
-    borderWidthOther: '20px 16px',
-    paddingMe: '0px 8px',
-    paddingOther: '0px 8px',
-    borderImageSource: 'bubbles/wave_bg.png',
-    borderImageSlice: 26,
-    decorMe: {
-      image: 'bubbles/wave_decor.png',
-      position: 'top-right',
-      style: { width: 60, height: 28, top: -20, right: 12 }
-    },
-    decorOther: {
-      image: 'bubbles/wave_decor.png',
-      position: 'top-left',
-      style: { width: 60, height: 28, top: -20, left: 12 }
-    }
-  },
-  {
-    id: 'hacker',
-    name: 'Hacker',
-    thumbnail: 'linear-gradient(135deg, #052e16 50%, #052e16 50%)',
-    bgMe: 'none',
-    bgOther: 'none',
-    textMe: '#10b981',
-    textOther: '#10b981',
-    borderWidthMe: '20px 16px',
-    borderWidthOther: '20px 16px',
-    paddingMe: '0px 8px',
-    paddingOther: '0px 8px',
-    borderImageSource: 'bubbles/hacker_bg.png',
-    borderImageSlice: 26,
-    decorMe: {
-      image: 'bubbles/hacker_decor.png',
-      position: 'bottom-right',
-      style: { width: 26, height: 28, bottom: -8, right: 12 }
-    },
-    decorOther: {
-      image: 'bubbles/hacker_decor.png',
-      position: 'bottom-left',
-      style: { width: 26, height: 28, bottom: -8, left: 12 }
-    }
-  },
-  {
-    id: 'pinkbow',
-    name: 'Kurdele',
-    thumbnail: 'linear-gradient(135deg, #fbcfe8 50%, #fbcfe8 50%)',
-    bgMe: 'none',
-    bgOther: 'none',
-    textMe: '#db2777',
-    textOther: '#db2777',
-    borderWidthMe: '20px 16px',
-    borderWidthOther: '20px 16px',
-    paddingMe: '0px 8px',
-    paddingOther: '0px 8px',
-    borderImageSource: 'bubbles/pinkbow_bg.png',
-    borderImageSlice: 26,
-    decorMe: {
-      image: 'bubbles/pinkbow_decor.png',
-      position: 'top-right',
-      style: { width: 60, height: 28, top: -20, right: 12 }
-    },
-    decorOther: {
-      image: 'bubbles/pinkbow_decor.png',
-      position: 'top-left',
-      style: { width: 60, height: 28, top: -20, left: 12 }
-    }
-  },
-  {
     id: 'cheese',
     name: 'Peynir',
-    thumbnail: 'linear-gradient(135deg, #fdeb84 50%, #fdeb84 50%)',
-    bgMe: 'none',
-    bgOther: 'none',
+    thumbnail: 'linear-gradient(135deg, #fdc844 50%, #fdbf38 50%)',
+    bgMe: 'radial-gradient(circle at 12% 30%, rgba(217, 119, 6, 0.18) 7px, transparent 8px), radial-gradient(circle at 88% 65%, rgba(217, 119, 6, 0.18) 10px, transparent 11px), radial-gradient(circle at 45% 15%, rgba(217, 119, 6, 0.18) 5px, transparent 6px), radial-gradient(circle at 72% 20%, rgba(217, 119, 6, 0.18) 7px, transparent 8px), radial-gradient(circle at 25% 75%, rgba(217, 119, 6, 0.18) 6px, transparent 7px), #fdc844',
+    bgOther: 'radial-gradient(circle at 12% 30%, rgba(217, 119, 6, 0.18) 7px, transparent 8px), radial-gradient(circle at 88% 65%, rgba(217, 119, 6, 0.18) 10px, transparent 11px), radial-gradient(circle at 45% 15%, rgba(217, 119, 6, 0.18) 5px, transparent 6px), radial-gradient(circle at 72% 20%, rgba(217, 119, 6, 0.18) 7px, transparent 8px), radial-gradient(circle at 25% 75%, rgba(217, 119, 6, 0.18) 6px, transparent 7px), #fdc844',
     textMe: '#78350f',
     textOther: '#78350f',
-    borderWidthMe: '20px 16px',
-    borderWidthOther: '20px 16px',
-    paddingMe: '0px 8px',
-    paddingOther: '0px 8px',
-    borderImageSource: 'bubbles/cheese_bg.png',
-    borderImageSlice: 26,
-    decorMe: {
-      image: 'bubbles/cheese_decor.png',
-      position: 'bottom-right',
-      style: { width: 34, height: 26, bottom: -10, right: 12 }
-    },
-    decorOther: {
-      image: 'bubbles/cheese_decor.png',
-      position: 'bottom-left',
-      style: { width: 34, height: 26, bottom: -10, left: 12 }
-    }
+    borderMe: '2px solid #ca8a04',
+    borderOther: '2px solid #ca8a04'
   },
   {
-    id: 'wood',
-    name: 'Ahşap',
-    thumbnail: 'linear-gradient(135deg, #78350f 50%, #78350f 50%)',
-    bgMe: 'none',
-    bgOther: 'none',
-    textMe: 'white',
-    textOther: 'white',
-    borderWidthMe: '20px 16px',
-    borderWidthOther: '20px 16px',
-    paddingMe: '0px 8px',
-    paddingOther: '0px 8px',
-    borderImageSource: 'bubbles/wood_bg.png',
-    borderImageSlice: 26,
-    decorMe: {
-      image: 'bubbles/wood_decor.png',
-      position: 'top-right',
-      style: { width: 60, height: 25, top: -19, right: 12 }
-    },
-    decorOther: {
-      image: 'bubbles/wood_decor.png',
-      position: 'top-left',
-      style: { width: 60, height: 25, top: -19, left: 12 }
-    }
-  },
-  {
-    id: 'slime',
-    name: 'Slime',
-    thumbnail: 'linear-gradient(135deg, #81e64c 50%, #81e64c 50%)',
-    bgMe: 'none',
-    bgOther: 'none',
-    textMe: '#1e3a0a',
-    textOther: '#1e3a0a',
-    borderWidthMe: '20px 16px',
-    borderWidthOther: '20px 16px',
-    paddingMe: '0px 8px',
-    paddingOther: '0px 8px',
-    borderImageSource: 'bubbles/slime_bg.png',
-    borderImageSlice: 26,
-    decorMe: {
-      image: 'bubbles/slime_decor.png',
-      position: 'bottom-center',
-      style: { width: 260, height: 24, bottom: -19 }
-    },
-    decorOther: {
-      image: 'bubbles/slime_decor.png',
-      position: 'bottom-center',
-      style: { width: 260, height: 24, bottom: -19 }
-    }
-  },
-  {
-    id: 'airmail',
+    id: 'letter',
     name: 'Mektup',
     thumbnail: 'linear-gradient(135deg, #ef4444 50%, #3b82f6 50%)',
-    bgMe: 'none',
-    bgOther: 'none',
+    bgMe: 'linear-gradient(#ffffff, #ffffff) padding-box, repeating-linear-gradient(-45deg, #ef4444 0, #ef4444 8px, #ffffff 8px, #ffffff 16px, #3b82f6 16px, #3b82f6 24px, #ffffff 24px, #ffffff 32px) border-box',
+    bgOther: 'linear-gradient(#ffffff, #ffffff) padding-box, repeating-linear-gradient(-45deg, #ef4444 0, #ef4444 8px, #ffffff 8px, #ffffff 16px, #3b82f6 16px, #3b82f6 24px, #ffffff 24px, #ffffff 32px) border-box',
     textMe: '#1e293b',
     textOther: '#1e293b',
-    borderWidthMe: '20px 16px',
-    borderWidthOther: '20px 16px',
-    paddingMe: '0px 8px',
-    paddingOther: '0px 8px',
-    borderImageSource: 'bubbles/airmail_bg.png',
-    borderImageSlice: 26,
+    borderMe: '4px solid transparent',
+    borderOther: '4px solid transparent',
     decorMe: {
-      image: 'bubbles/airmail_decor.png',
+      image: 'bubbles/letter_stamp.png',
       position: 'bottom-right',
       style: { width: 50, height: 38, bottom: -12, right: 14 }
     },
     decorOther: {
-      image: 'bubbles/airmail_decor.png',
+      image: 'bubbles/letter_stamp.png',
       position: 'bottom-left',
       style: { width: 50, height: 38, bottom: -12, left: 14 }
     }

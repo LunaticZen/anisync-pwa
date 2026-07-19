@@ -929,72 +929,32 @@ export function ThemePickerPopup({ roomId, onClose }: { roomId: string; onClose:
                       <div style={{
                         background: previewBg,
                         color: previewText,
-                        border: (bTheme as any).borderImageSource ? '20px solid transparent' : previewBorder,
-                        borderWidth: (bTheme as any).borderImageSource 
-                          ? ((bTheme as any).borderWidthMe || '20px 16px')
-                          : undefined,
-                        borderImageSource: (bTheme as any).borderImageSource ? `url("${(bTheme as any).borderImageSource}")` : undefined,
-                        borderImageSlice: (bTheme as any).borderImageSlice ? `${(bTheme as any).borderImageSlice} fill` : undefined,
-                        borderImageRepeat: 'stretch',
-                        padding: (bTheme as any).paddingMe || '6px 12px',
-                        borderRadius: (bTheme as any).borderImageSource ? undefined : '12px 12px 4px 12px',
+                        border: previewBorder,
+                        padding: '6px 12px',
+                        borderRadius: '12px 12px 4px 12px',
                         fontSize: 11,
                         fontWeight: 600,
-                        boxSizing: 'border-box',
-                        width: 'fit-content',
-                        minWidth: (bTheme as any).borderImageSource ? 65 : undefined,
-                        minHeight: (bTheme as any).borderImageSource ? 40 : undefined,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        boxShadow: (bTheme as any).borderImageSource ? 'none' : '0 2px 4px rgba(0,0,0,0.1)',
+                        maxWidth: '85%',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
                         position: 'relative'
                       }}>
                         Aa
-                        {bTheme.decorMe && (() => {
-                          const decor = bTheme.decorMe;
-                          const isCentered = decor.position === 'top-center' || decor.position === 'bottom-center' || (decor.style.left === undefined && decor.style.right === undefined);
-                          
-                          const w = typeof decor.style.width === 'number' ? decor.style.width * 0.75 : 0;
-                          const h = typeof decor.style.height === 'number' ? decor.style.height * 0.75 : 0;
-                          const t = typeof decor.style.top === 'number' ? decor.style.top * 0.75 : undefined;
-                          const b = typeof decor.style.bottom === 'number' ? decor.style.bottom * 0.75 : undefined;
-                          const l = typeof decor.style.left === 'number' ? decor.style.left * 0.75 : undefined;
-                          const r = typeof decor.style.right === 'number' ? decor.style.right * 0.75 : undefined;
-
-                          return (
-                            <div
-                              style={{
-                                position: 'absolute',
-                                pointerEvents: 'none',
-                                userSelect: 'none',
-                                zIndex: 5,
-                                ...(isCentered ? {
-                                  left: 0,
-                                  right: 0,
-                                  top: t,
-                                  bottom: b,
-                                  height: h,
-                                  backgroundImage: `url(${decor.image})`,
-                                  backgroundPosition: 'center center',
-                                  backgroundRepeat: 'no-repeat',
-                                  backgroundSize: `${w}px ${h}px`,
-                                } : {
-                                  left: l,
-                                  right: r,
-                                  top: t,
-                                  bottom: b,
-                                  width: typeof decor.style.width === 'number' ? w : decor.style.width,
-                                  height: typeof decor.style.height === 'number' ? h : decor.style.height,
-                                  backgroundImage: `url(${decor.image})`,
-                                  backgroundPosition: 'center center',
-                                  backgroundRepeat: 'no-repeat',
-                                  backgroundSize: 'contain',
-                                })
-                              }}
-                            />
-                          );
-                        })()}
+                        {bTheme.decorMe && (
+                          <img
+                            src={bTheme.decorMe.image}
+                            alt=""
+                            style={{
+                              position: 'absolute',
+                              ...bTheme.decorMe.style,
+                              width: ((bTheme.decorMe.style?.width as number) || 24) * 0.75,
+                              height: ((bTheme.decorMe.style?.height as number) || 24) * 0.75,
+                              top: ((bTheme.decorMe.style?.top as number) || 0) * 0.75,
+                              right: ((bTheme.decorMe.style?.right as number) || 0) * 0.75,
+                              left: ((bTheme.decorMe.style?.left as number) || 0) * 0.75,
+                              bottom: ((bTheme.decorMe.style?.bottom as number) || 0) * 0.75,
+                            }}
+                          />
+                        )}
                       </div>
                     </div>
 
