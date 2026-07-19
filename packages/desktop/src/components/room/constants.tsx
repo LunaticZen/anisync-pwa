@@ -365,127 +365,111 @@ export const BUBBLE_THEMES: BubbleTheme[] = [
 
   // ── Artwork Themes (CSS border-image 9-slice) ──
   // Slice values: [top, right, bottom, left] in source image px
-  // Each value = distance inward from that edge to protect decorative elements
+  // Only the CENTER stretches. Left/right edges NEVER stretch.
   {
     id: 'frog', name: 'Kurbağa',
     thumbnail: 'bubbles/themes/frog/full.png',
     bgMe: 'transparent', bgOther: 'transparent',
     textMe: '#ffffff', textOther: '#ffffff',
-    // Left=98: frog eye. Right=58: tail bumps. Top=20: nostrils. Bottom=24: shadow.
-    sliceAssets: { dir: 'bubbles/themes/frog', width: 420, height: 138, slice: [20, 58, 24, 98], scale: 0.45, padding: [4, 8, 6, 8] },
+    sliceAssets: { dir: 'bubbles/themes/frog', width: 478, height: 153, slice: [24, 55, 28, 100], scale: 0.45, padding: [4, 8, 6, 8] },
   },
   {
     id: 'love', name: 'Aşk',
     thumbnail: 'bubbles/themes/love/full.png',
     bgMe: 'transparent', bgOther: 'transparent',
     textMe: '#5c3a4a', textOther: '#5c3a4a',
-    // Left=58: rounded edge. Right=56: heart top-right. Bottom=30: hearts bottom-left.
-    sliceAssets: { dir: 'bubbles/themes/love', width: 440, height: 130, slice: [20, 56, 30, 58], scale: 0.45, padding: [4, 8, 6, 8] },
+    sliceAssets: { dir: 'bubbles/themes/love', width: 409, height: 151, slice: [20, 55, 32, 55], scale: 0.45, padding: [4, 8, 6, 8] },
   },
   {
     id: 'cat', name: 'Kedi',
     thumbnail: 'bubbles/themes/cat/full.png',
     bgMe: 'transparent', bgOther: 'transparent',
     textMe: '#ffffff', textOther: '#ffffff',
-    // Left=250: left ear+eye+nose. Right=220: right ear+eye. Top=90: entire face. Bottom=28: shadow.
-    // Large L/R slices because decorative face is centered.
-    sliceAssets: { dir: 'bubbles/themes/cat', width: 510, height: 162, slice: [90, 220, 28, 250], scale: 0.40, padding: [4, 6, 6, 6] },
+    sliceAssets: { dir: 'bubbles/themes/cat', width: 419, height: 147, slice: [80, 165, 22, 175], scale: 0.40, padding: [4, 6, 6, 6] },
   },
   {
     id: 'pawprint', name: 'Patiler',
     thumbnail: 'bubbles/themes/pawprint/full.png',
     bgMe: 'transparent', bgOther: 'transparent',
     textMe: '#5c4033', textOther: '#5c4033',
-    // Left=88: left paw decorations. Right=96: right paw decorations.
-    sliceAssets: { dir: 'bubbles/themes/pawprint', width: 380, height: 150, slice: [24, 96, 24, 88], scale: 0.45, padding: [6, 8, 6, 8] },
+    sliceAssets: { dir: 'bubbles/themes/pawprint', width: 431, height: 131, slice: [22, 95, 22, 90], scale: 0.45, padding: [6, 8, 6, 8] },
   },
   {
     id: 'galaxy', name: 'Galaksi',
     thumbnail: 'bubbles/themes/galaxy/full.png',
     bgMe: 'transparent', bgOther: 'transparent',
     textMe: '#ffffff', textOther: '#ffffff',
-    // Left=72: tail+stars. Right=72: corner. Symmetric decorations.
-    sliceAssets: { dir: 'bubbles/themes/galaxy', width: 450, height: 140, slice: [26, 72, 30, 72], scale: 0.45, padding: [4, 8, 6, 8] },
+    sliceAssets: { dir: 'bubbles/themes/galaxy', width: 446, height: 134, slice: [22, 80, 30, 65], scale: 0.45, padding: [4, 8, 6, 8] },
   },
   {
     id: 'cloud', name: 'Bulut',
     thumbnail: 'bubbles/themes/cloud/full.png',
     bgMe: 'transparent', bgOther: 'transparent',
     textMe: '#4a6fa5', textOther: '#4a6fa5',
-    // Left=108: robot character+cloud bumps. Right=78: cloud icon. Top/Bottom=cloud scallops.
-    sliceAssets: { dir: 'bubbles/themes/cloud', width: 530, height: 148, slice: [42, 78, 38, 108], scale: 0.45, padding: [6, 8, 6, 8] },
+    sliceAssets: { dir: 'bubbles/themes/cloud', width: 422, height: 148, slice: [45, 80, 42, 90], scale: 0.45, padding: [6, 8, 6, 8] },
   },
   {
     id: 'pixel', name: 'Piksel',
     thumbnail: 'bubbles/themes/pixel/full.png',
     bgMe: 'transparent', bgOther: 'transparent',
     textMe: '#1a1a2e', textOther: '#1a1a2e',
-    // Left=60: pixel border. Right=110: pixel piggy. Bottom=30: pixel tail.
-    sliceAssets: { dir: 'bubbles/themes/pixel', width: 430, height: 128, slice: [24, 110, 30, 60], scale: 0.45, padding: [4, 8, 6, 8] },
+    sliceAssets: { dir: 'bubbles/themes/pixel', width: 414, height: 138, slice: [22, 105, 28, 55], scale: 0.45, padding: [4, 8, 6, 8] },
   },
   {
     id: 'tape', name: 'Not Kağıdı',
     thumbnail: 'bubbles/themes/tape/full.png',
     bgMe: 'transparent', bgOther: 'transparent',
     textMe: '#5c4033', textOther: '#5c4033',
-    // Left=86: tape decoration. Right=46: clean edge.
-    sliceAssets: { dir: 'bubbles/themes/tape', width: 440, height: 130, slice: [18, 46, 18, 86], scale: 0.45, padding: [4, 8, 4, 8] },
+    sliceAssets: { dir: 'bubbles/themes/tape', width: 406, height: 130, slice: [18, 45, 18, 80], scale: 0.45, padding: [4, 8, 4, 8] },
   },
   {
     id: 'wave', name: 'Dalga',
     thumbnail: 'bubbles/themes/wave/full.png',
     bgMe: 'transparent', bgOther: 'transparent',
     textMe: '#ffffff', textOther: '#ffffff',
-    // Left=86: wave splash+tail. Right=108: wave/foam.
-    sliceAssets: { dir: 'bubbles/themes/wave', width: 510, height: 155, slice: [24, 108, 28, 86], scale: 0.45, padding: [4, 8, 6, 8] },
+    sliceAssets: { dir: 'bubbles/themes/wave', width: 429, height: 137, slice: [22, 100, 24, 60], scale: 0.45, padding: [4, 8, 6, 8] },
   },
   {
     id: 'terminal', name: 'Terminal',
     thumbnail: 'bubbles/themes/terminal/full.png',
     bgMe: 'transparent', bgOther: 'transparent',
     textMe: '#00ff41', textOther: '#00ff41',
-    // Left=60: "> " prompt. Right=58: cursor block.
-    sliceAssets: { dir: 'bubbles/themes/terminal', width: 420, height: 120, slice: [24, 58, 24, 60], scale: 0.45, padding: [4, 8, 4, 8] },
+    sliceAssets: { dir: 'bubbles/themes/terminal', width: 514, height: 164, slice: [28, 70, 35, 75], scale: 0.40, padding: [4, 8, 4, 8] },
   },
   {
     id: 'ribbon', name: 'Kurdele',
     thumbnail: 'bubbles/themes/ribbon/full.png',
     bgMe: 'transparent', bgOther: 'transparent',
     textMe: '#d4507a', textOther: '#d4507a',
-    // Left=72: dashed border+tail. Right=108: pink bow.
-    sliceAssets: { dir: 'bubbles/themes/ribbon', width: 470, height: 145, slice: [24, 108, 26, 72], scale: 0.45, padding: [4, 8, 6, 8] },
+    sliceAssets: { dir: 'bubbles/themes/ribbon', width: 420, height: 136, slice: [22, 100, 24, 65], scale: 0.45, padding: [4, 8, 6, 8] },
   },
   {
     id: 'cheese', name: 'Peynir',
     thumbnail: 'bubbles/themes/cheese/full.png',
     bgMe: 'transparent', bgOther: 'transparent',
     textMe: '#78350f', textOther: '#78350f',
-    // Left=78: cheese edge+tail. Right=118: bite marks+holes+mouse.
-    sliceAssets: { dir: 'bubbles/themes/cheese', width: 510, height: 140, slice: [22, 118, 26, 78], scale: 0.45, padding: [4, 8, 6, 8] },
+    sliceAssets: { dir: 'bubbles/themes/cheese', width: 435, height: 121, slice: [20, 115, 24, 70], scale: 0.45, padding: [4, 8, 6, 8] },
   },
   {
     id: 'wood', name: 'Tahta',
     thumbnail: 'bubbles/themes/wood/full.png',
     bgMe: 'transparent', bgOther: 'transparent',
     textMe: '#ffffff', textOther: '#ffffff',
-    // Left=70: wood edge. Right=84: leaf decoration top-right.
-    sliceAssets: { dir: 'bubbles/themes/wood', width: 430, height: 145, slice: [26, 84, 30, 70], scale: 0.45, padding: [4, 8, 6, 8] },
+    sliceAssets: { dir: 'bubbles/themes/wood', width: 446, height: 139, slice: [24, 80, 28, 70], scale: 0.45, padding: [4, 8, 6, 8] },
   },
   {
     id: 'slime', name: 'Balçık',
     thumbnail: 'bubbles/themes/slime/full.png',
     bgMe: 'transparent', bgOther: 'transparent',
     textMe: '#2d5016', textOther: '#2d5016',
-    // Left=100: slime hole+tail. Right=88: emoji face. Bottom=48: dripping slime drops.
-    sliceAssets: { dir: 'bubbles/themes/slime', width: 460, height: 155, slice: [22, 88, 48, 100], scale: 0.45, padding: [4, 8, 4, 8] },
+    sliceAssets: { dir: 'bubbles/themes/slime', width: 421, height: 143, slice: [20, 80, 45, 90], scale: 0.45, padding: [4, 8, 4, 8] },
   },
   {
     id: 'letter', name: 'Mektup',
     thumbnail: 'bubbles/themes/letter/full.png',
     bgMe: 'transparent', bgOther: 'transparent',
     textMe: '#1e293b', textOther: '#1e293b',
-    // Left=82: air mail stripes. Right=98: heart wax seal+stripes.
-    sliceAssets: { dir: 'bubbles/themes/letter', width: 510, height: 142, slice: [24, 98, 24, 82], scale: 0.45, padding: [4, 8, 4, 8] },
+    sliceAssets: { dir: 'bubbles/themes/letter', width: 441, height: 131, slice: [22, 90, 22, 75], scale: 0.45, padding: [4, 8, 4, 8] },
   },
   {
     id: 'heart_pepe', name: 'Kurumi',
