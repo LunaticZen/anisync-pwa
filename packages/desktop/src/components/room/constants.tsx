@@ -299,11 +299,26 @@ export function avatarColor(name: string): string {
 export type RoomMode = 'desktop' | 'mobile-portrait' | 'mobile-landscape';
 
 // ── Bubble Theme System ──
+export interface BubbleSliceAssets {
+  /** Directory under public/bubbles/themes/ containing left.png, center.png, right.png */
+  dir: string;
+  /** Original full-bubble height in px (used for aspect-ratio scaling) */
+  height: number;
+  /** Left cap width in px (from the original artwork) */
+  leftWidth: number;
+  /** Right cap width in px (from the original artwork) */
+  rightWidth: number;
+  /** Text padding inside the bubble: [top, right, bottom, left] in px */
+  padding: [number, number, number, number];
+}
+
 export interface BubbleTheme {
   id: string;
   name: string;
   thumbnail: string;
+  /** CSS background for "me" side (used only for non-artwork themes) */
   bgMe: string;
+  /** CSS background for "other" side (used only for non-artwork themes) */
   bgOther: string;
   textMe: string;
   textOther: string;
@@ -319,9 +334,12 @@ export interface BubbleTheme {
     position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
     style?: React.CSSProperties;
   };
+  /** If present, this theme uses 3-slice artwork rendering instead of CSS backgrounds */
+  sliceAssets?: BubbleSliceAssets;
 }
 
 export const BUBBLE_THEMES: BubbleTheme[] = [
+  // ── CSS-based themes ──
   {
     id: 'default',
     name: 'Varsayılan',
@@ -331,26 +349,187 @@ export const BUBBLE_THEMES: BubbleTheme[] = [
     textMe: 'white',
     textOther: 'DEFAULT_OTHER_TEXT',
   },
+
+  // ── 3-Slice Artwork Themes ──
   {
     id: 'frog',
     name: 'Kurbağa',
-    thumbnail: 'linear-gradient(135deg, #22c55e 50%, #a7f3d0 50%)',
-    bgMe: '#22c55e',
-    bgOther: '#22c55e',
-    textMe: 'white',
-    textOther: 'white',
-    borderMe: '1px solid #16a34a',
-    borderOther: '1px solid #16a34a',
-    decorMe: {
-      image: 'bubbles/test_frog.png',
-      position: 'top-right',
-      style: { width: 34, height: 34, top: -20, right: -6 }
+    thumbnail: 'bubbles/themes/frog/full.png',
+    bgMe: 'transparent', bgOther: 'transparent',
+    textMe: '#ffffff', textOther: '#ffffff',
+    sliceAssets: {
+      dir: 'bubbles/themes/frog',
+      height: 138, leftWidth: 100, rightWidth: 60,
+      padding: [38, 16, 20, 28],
     },
-    decorOther: {
-      image: 'bubbles/test_frog.png',
-      position: 'top-left',
-      style: { width: 34, height: 34, top: -20, left: -6 }
-    }
+  },
+  {
+    id: 'love',
+    name: 'Aşk',
+    thumbnail: 'bubbles/themes/love/full.png',
+    bgMe: 'transparent', bgOther: 'transparent',
+    textMe: '#5c3a4a', textOther: '#5c3a4a',
+    sliceAssets: {
+      dir: 'bubbles/themes/love',
+      height: 130, leftWidth: 60, rightWidth: 60,
+      padding: [28, 20, 28, 20],
+    },
+  },
+  {
+    id: 'cat',
+    name: 'Kedi',
+    thumbnail: 'bubbles/themes/cat/full.png',
+    bgMe: 'transparent', bgOther: 'transparent',
+    textMe: '#ffffff', textOther: '#ffffff',
+    sliceAssets: {
+      dir: 'bubbles/themes/cat',
+      height: 162, leftWidth: 80, rightWidth: 80,
+      padding: [65, 28, 22, 28],
+    },
+  },
+  {
+    id: 'pawprint',
+    name: 'Patiler',
+    thumbnail: 'bubbles/themes/pawprint/full.png',
+    bgMe: 'transparent', bgOther: 'transparent',
+    textMe: '#5c4033', textOther: '#5c4033',
+    sliceAssets: {
+      dir: 'bubbles/themes/pawprint',
+      height: 150, leftWidth: 80, rightWidth: 100,
+      padding: [30, 24, 40, 30],
+    },
+  },
+  {
+    id: 'galaxy',
+    name: 'Galaksi',
+    thumbnail: 'bubbles/themes/galaxy/full.png',
+    bgMe: 'transparent', bgOther: 'transparent',
+    textMe: '#ffffff', textOther: '#ffffff',
+    sliceAssets: {
+      dir: 'bubbles/themes/galaxy',
+      height: 140, leftWidth: 60, rightWidth: 80,
+      padding: [22, 24, 38, 22],
+    },
+  },
+  {
+    id: 'cloud',
+    name: 'Bulut',
+    thumbnail: 'bubbles/themes/cloud/full.png',
+    bgMe: 'transparent', bgOther: 'transparent',
+    textMe: '#4a6fa5', textOther: '#4a6fa5',
+    sliceAssets: {
+      dir: 'bubbles/themes/cloud',
+      height: 148, leftWidth: 70, rightWidth: 70,
+      padding: [30, 24, 40, 28],
+    },
+  },
+  {
+    id: 'pixel',
+    name: 'Piksel',
+    thumbnail: 'bubbles/themes/pixel/full.png',
+    bgMe: 'transparent', bgOther: 'transparent',
+    textMe: '#1a1a2e', textOther: '#1a1a2e',
+    sliceAssets: {
+      dir: 'bubbles/themes/pixel',
+      height: 128, leftWidth: 60, rightWidth: 100,
+      padding: [28, 24, 34, 22],
+    },
+  },
+  {
+    id: 'tape',
+    name: 'Not Kağıdı',
+    thumbnail: 'bubbles/themes/tape/full.png',
+    bgMe: 'transparent', bgOther: 'transparent',
+    textMe: '#5c4033', textOther: '#5c4033',
+    sliceAssets: {
+      dir: 'bubbles/themes/tape',
+      height: 130, leftWidth: 60, rightWidth: 100,
+      padding: [26, 24, 28, 22],
+    },
+  },
+  {
+    id: 'wave',
+    name: 'Dalga',
+    thumbnail: 'bubbles/themes/wave/full.png',
+    bgMe: 'transparent', bgOther: 'transparent',
+    textMe: '#ffffff', textOther: '#ffffff',
+    sliceAssets: {
+      dir: 'bubbles/themes/wave',
+      height: 155, leftWidth: 70, rightWidth: 80,
+      padding: [28, 24, 42, 28],
+    },
+  },
+  {
+    id: 'terminal',
+    name: 'Terminal',
+    thumbnail: 'bubbles/themes/terminal/full.png',
+    bgMe: 'transparent', bgOther: 'transparent',
+    textMe: '#00ff41', textOther: '#00ff41',
+    sliceAssets: {
+      dir: 'bubbles/themes/terminal',
+      height: 120, leftWidth: 60, rightWidth: 60,
+      padding: [24, 20, 24, 20],
+    },
+  },
+  {
+    id: 'ribbon',
+    name: 'Kurdele',
+    thumbnail: 'bubbles/themes/ribbon/full.png',
+    bgMe: 'transparent', bgOther: 'transparent',
+    textMe: '#d4507a', textOther: '#d4507a',
+    sliceAssets: {
+      dir: 'bubbles/themes/ribbon',
+      height: 145, leftWidth: 70, rightWidth: 100,
+      padding: [28, 24, 34, 24],
+    },
+  },
+  {
+    id: 'cheese',
+    name: 'Peynir',
+    thumbnail: 'bubbles/themes/cheese/full.png',
+    bgMe: 'transparent', bgOther: 'transparent',
+    textMe: '#78350f', textOther: '#78350f',
+    sliceAssets: {
+      dir: 'bubbles/themes/cheese',
+      height: 140, leftWidth: 60, rightWidth: 100,
+      padding: [28, 24, 30, 22],
+    },
+  },
+  {
+    id: 'wood',
+    name: 'Tahta',
+    thumbnail: 'bubbles/themes/wood/full.png',
+    bgMe: 'transparent', bgOther: 'transparent',
+    textMe: '#ffffff', textOther: '#ffffff',
+    sliceAssets: {
+      dir: 'bubbles/themes/wood',
+      height: 145, leftWidth: 100, rightWidth: 80,
+      padding: [30, 24, 30, 36],
+    },
+  },
+  {
+    id: 'slime',
+    name: 'Balçık',
+    thumbnail: 'bubbles/themes/slime/full.png',
+    bgMe: 'transparent', bgOther: 'transparent',
+    textMe: '#2d5016', textOther: '#2d5016',
+    sliceAssets: {
+      dir: 'bubbles/themes/slime',
+      height: 155, leftWidth: 80, rightWidth: 100,
+      padding: [22, 24, 48, 28],
+    },
+  },
+  {
+    id: 'letter',
+    name: 'Mektup',
+    thumbnail: 'bubbles/themes/letter/full.png',
+    bgMe: 'transparent', bgOther: 'transparent',
+    textMe: '#1e293b', textOther: '#1e293b',
+    sliceAssets: {
+      dir: 'bubbles/themes/letter',
+      height: 142, leftWidth: 60, rightWidth: 80,
+      padding: [28, 24, 30, 22],
+    },
   },
   {
     id: 'heart_pepe',
@@ -373,38 +552,6 @@ export const BUBBLE_THEMES: BubbleTheme[] = [
       style: { width: 28, height: 28, top: -14, left: -8 }
     }
   },
-  {
-    id: 'cheese',
-    name: 'Peynir',
-    thumbnail: 'linear-gradient(135deg, #fdc844 50%, #fdbf38 50%)',
-    bgMe: 'radial-gradient(circle at 12% 30%, rgba(217, 119, 6, 0.18) 7px, transparent 8px), radial-gradient(circle at 88% 65%, rgba(217, 119, 6, 0.18) 10px, transparent 11px), radial-gradient(circle at 45% 15%, rgba(217, 119, 6, 0.18) 5px, transparent 6px), radial-gradient(circle at 72% 20%, rgba(217, 119, 6, 0.18) 7px, transparent 8px), radial-gradient(circle at 25% 75%, rgba(217, 119, 6, 0.18) 6px, transparent 7px), #fdc844',
-    bgOther: 'radial-gradient(circle at 12% 30%, rgba(217, 119, 6, 0.18) 7px, transparent 8px), radial-gradient(circle at 88% 65%, rgba(217, 119, 6, 0.18) 10px, transparent 11px), radial-gradient(circle at 45% 15%, rgba(217, 119, 6, 0.18) 5px, transparent 6px), radial-gradient(circle at 72% 20%, rgba(217, 119, 6, 0.18) 7px, transparent 8px), radial-gradient(circle at 25% 75%, rgba(217, 119, 6, 0.18) 6px, transparent 7px), #fdc844',
-    textMe: '#78350f',
-    textOther: '#78350f',
-    borderMe: '2px solid #ca8a04',
-    borderOther: '2px solid #ca8a04'
-  },
-  {
-    id: 'letter',
-    name: 'Mektup',
-    thumbnail: 'linear-gradient(135deg, #ef4444 50%, #3b82f6 50%)',
-    bgMe: 'linear-gradient(#ffffff, #ffffff) padding-box, repeating-linear-gradient(-45deg, #ef4444 0, #ef4444 8px, #ffffff 8px, #ffffff 16px, #3b82f6 16px, #3b82f6 24px, #ffffff 24px, #ffffff 32px) border-box',
-    bgOther: 'linear-gradient(#ffffff, #ffffff) padding-box, repeating-linear-gradient(-45deg, #ef4444 0, #ef4444 8px, #ffffff 8px, #ffffff 16px, #3b82f6 16px, #3b82f6 24px, #ffffff 24px, #ffffff 32px) border-box',
-    textMe: '#1e293b',
-    textOther: '#1e293b',
-    borderMe: '4px solid transparent',
-    borderOther: '4px solid transparent',
-    decorMe: {
-      image: 'bubbles/letter_stamp.png',
-      position: 'bottom-right',
-      style: { width: 50, height: 38, bottom: -12, right: 14 }
-    },
-    decorOther: {
-      image: 'bubbles/letter_stamp.png',
-      position: 'bottom-left',
-      style: { width: 50, height: 38, bottom: -12, left: 14 }
-    }
-  }
 ];
 
 export function getBubbleTheme(id?: string): BubbleTheme {

@@ -926,36 +926,53 @@ export function ThemePickerPopup({ roomId, onClose }: { roomId: string; onClose:
                       alignItems: 'center',
                       justifyContent: 'center',
                     }}>
-                      <div style={{
-                        background: previewBg,
-                        color: previewText,
-                        border: previewBorder,
-                        padding: '6px 12px',
-                        borderRadius: '12px 12px 4px 12px',
-                        fontSize: 11,
-                        fontWeight: 600,
-                        maxWidth: '85%',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                        position: 'relative'
-                      }}>
-                        Aa
-                        {bTheme.decorMe && (
-                          <img
-                            src={bTheme.decorMe.image}
-                            alt=""
-                            style={{
-                              position: 'absolute',
-                              ...bTheme.decorMe.style,
-                              width: ((bTheme.decorMe.style?.width as number) || 24) * 0.75,
-                              height: ((bTheme.decorMe.style?.height as number) || 24) * 0.75,
-                              top: ((bTheme.decorMe.style?.top as number) || 0) * 0.75,
-                              right: ((bTheme.decorMe.style?.right as number) || 0) * 0.75,
-                              left: ((bTheme.decorMe.style?.left as number) || 0) * 0.75,
-                              bottom: ((bTheme.decorMe.style?.bottom as number) || 0) * 0.75,
-                            }}
-                          />
-                        )}
-                      </div>
+                      {bTheme.sliceAssets ? (
+                        /* Artwork thumbnail for 3-slice themes */
+                        <img
+                          src={`${bTheme.sliceAssets.dir}/full.png`}
+                          alt={bTheme.name}
+                          draggable={false}
+                          style={{
+                            maxWidth: '100%',
+                            maxHeight: 52,
+                            objectFit: 'contain',
+                            borderRadius: 4,
+                            filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.15))',
+                          }}
+                        />
+                      ) : (
+                        /* CSS preview for non-artwork themes */
+                        <div style={{
+                          background: previewBg,
+                          color: previewText,
+                          border: previewBorder,
+                          padding: '6px 12px',
+                          borderRadius: '12px 12px 4px 12px',
+                          fontSize: 11,
+                          fontWeight: 600,
+                          maxWidth: '85%',
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                          position: 'relative'
+                        }}>
+                          Aa
+                          {bTheme.decorMe && (
+                            <img
+                              src={bTheme.decorMe.image}
+                              alt=""
+                              style={{
+                                position: 'absolute',
+                                ...bTheme.decorMe.style,
+                                width: ((bTheme.decorMe.style?.width as number) || 24) * 0.75,
+                                height: ((bTheme.decorMe.style?.height as number) || 24) * 0.75,
+                                top: ((bTheme.decorMe.style?.top as number) || 0) * 0.75,
+                                right: ((bTheme.decorMe.style?.right as number) || 0) * 0.75,
+                                left: ((bTheme.decorMe.style?.left as number) || 0) * 0.75,
+                                bottom: ((bTheme.decorMe.style?.bottom as number) || 0) * 0.75,
+                              }}
+                            />
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     <span style={{ fontSize: 12, fontWeight: 700, opacity: 0.9 }}>

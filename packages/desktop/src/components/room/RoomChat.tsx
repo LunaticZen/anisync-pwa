@@ -590,49 +590,139 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
             )}
 
             {/* Actual Message Bubble */}
-            <div 
-              onMouseDown={handleBubbleClickOrTouch}
-              onTouchStart={handleBubbleClickOrTouch}
-              style={{
-                background: customBubbleBg, color: customTextColor,
-                maxWidth: '100%', minWidth: 0,
-                padding: isOnlyEmojiOrSticker 
-                  ? 0 
-                  : (isMobile 
-                      ? (isKeyboardOpen ? '8px 12px' : '10px 14px') 
-                      : (isKeyboardOpen ? '6px 10px' : '8px 12px')),
-                borderRadius: borderRadius, 
-                fontSize: isMobile 
-                  ? (isKeyboardOpen ? 14 : 15) 
-                  : (isKeyboardOpen ? 12 : 13),
-                lineHeight: 1.4, wordBreak: 'break-word',
-                boxShadow: isOnlyEmojiOrSticker ? 'none' : (activeTheme.isImage && !isMe ? '0 2px 8px rgba(0,0,0,0.2)' : 'none'),
-                border: customBorder,
-                position: 'relative',
-                transition: 'background 0.2s ease, border-color 0.2s ease',
-              }}
-            >
-              {renderMessageText(msg.text, isOnlyEmojiOrSticker)}
-              {msg.editedAt && !isOnlyEmojiOrSticker && (
-                <span style={{ fontSize: 10, opacity: 0.5, marginLeft: 6, fontStyle: 'italic', whiteSpace: 'nowrap' }}>(düzenlendi)</span>
-              )}
-
-              {/* Bubble Custom Decor */}
-              {decor && (
-                <img
-                  src={decor.image}
-                  alt=""
+            {bTheme.sliceAssets && !isOnlyEmojiOrSticker ? (
+              /* ── 3-Slice Artwork Bubble ── */
+              <div
+                onMouseDown={handleBubbleClickOrTouch}
+                onTouchStart={handleBubbleClickOrTouch}
+                style={{
+                  position: 'relative',
+                  maxWidth: '100%',
+                  minWidth: 0,
+                  cursor: isMobile ? 'default' : 'pointer',
+                }}
+              >
+                {/* 3-slice image layer (behind text) */}
+                <div
                   style={{
+                    display: 'flex',
+                    flexDirection: 'row',
+                    alignItems: 'stretch',
                     position: 'absolute',
+                    inset: 0,
                     pointerEvents: 'none',
-                    userSelect: 'none',
-                    zIndex: 5,
-                    ...decor.style
+                    zIndex: 0,
                   }}
-                />
-              )}
+                >
+                  {/* Left cap */}
+                  <img
+                    src={`${bTheme.sliceAssets.dir}/left.png`}
+                    alt=""
+                    draggable={false}
+                    style={{
+                      display: 'block',
+                      width: bTheme.sliceAssets.leftWidth * 0.5,
+                      height: '100%',
+                      objectFit: 'fill',
+                      flexShrink: 0,
+                      pointerEvents: 'none',
+                    }}
+                  />
+                  {/* Center tile */}
+                  <div
+                    style={{
+                      flex: 1,
+                      backgroundImage: `url(${bTheme.sliceAssets.dir}/center.png)`,
+                      backgroundRepeat: 'repeat-x',
+                      backgroundSize: 'auto 100%',
+                    }}
+                  />
+                  {/* Right cap */}
+                  <img
+                    src={`${bTheme.sliceAssets.dir}/right.png`}
+                    alt=""
+                    draggable={false}
+                    style={{
+                      display: 'block',
+                      width: bTheme.sliceAssets.rightWidth * 0.5,
+                      height: '100%',
+                      objectFit: 'fill',
+                      flexShrink: 0,
+                      pointerEvents: 'none',
+                    }}
+                  />
+                </div>
 
-            </div>
+                {/* Text content layer (on top) */}
+                <div
+                  style={{
+                    position: 'relative',
+                    zIndex: 1,
+                    color: customTextColor,
+                    padding: `${bTheme.sliceAssets.padding[0] * 0.5}px ${bTheme.sliceAssets.padding[1] * 0.5}px ${bTheme.sliceAssets.padding[2] * 0.5}px ${bTheme.sliceAssets.padding[3] * 0.5}px`,
+                    fontSize: isMobile
+                      ? (isKeyboardOpen ? 14 : 15)
+                      : (isKeyboardOpen ? 12 : 13),
+                    lineHeight: 1.4,
+                    wordBreak: 'break-word',
+                    minHeight: bTheme.sliceAssets.height * 0.5 - bTheme.sliceAssets.padding[0] * 0.5 - bTheme.sliceAssets.padding[2] * 0.5,
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                >
+                  <span>
+                    {renderMessageText(msg.text, false)}
+                    {msg.editedAt && (
+                      <span style={{ fontSize: 10, opacity: 0.5, marginLeft: 6, fontStyle: 'italic', whiteSpace: 'nowrap' }}>(düzenlendi)</span>
+                    )}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              /* ── Standard CSS Bubble ── */
+              <div 
+                onMouseDown={handleBubbleClickOrTouch}
+                onTouchStart={handleBubbleClickOrTouch}
+                style={{
+                  background: customBubbleBg, color: customTextColor,
+                  maxWidth: '100%', minWidth: 0,
+                  padding: isOnlyEmojiOrSticker 
+                    ? 0 
+                    : (isMobile 
+                        ? (isKeyboardOpen ? '8px 12px' : '10px 14px') 
+                        : (isKeyboardOpen ? '6px 10px' : '8px 12px')),
+                  borderRadius: borderRadius, 
+                  fontSize: isMobile 
+                    ? (isKeyboardOpen ? 14 : 15) 
+                    : (isKeyboardOpen ? 12 : 13),
+                  lineHeight: 1.4, wordBreak: 'break-word',
+                  boxShadow: isOnlyEmojiOrSticker ? 'none' : (activeTheme.isImage && !isMe ? '0 2px 8px rgba(0,0,0,0.2)' : 'none'),
+                  border: customBorder,
+                  position: 'relative',
+                  transition: 'background 0.2s ease, border-color 0.2s ease',
+                }}
+              >
+                {renderMessageText(msg.text, isOnlyEmojiOrSticker)}
+                {msg.editedAt && !isOnlyEmojiOrSticker && (
+                  <span style={{ fontSize: 10, opacity: 0.5, marginLeft: 6, fontStyle: 'italic', whiteSpace: 'nowrap' }}>(düzenlendi)</span>
+                )}
+
+                {/* Bubble Custom Decor */}
+                {decor && (
+                  <img
+                    src={decor.image}
+                    alt=""
+                    style={{
+                      position: 'absolute',
+                      pointerEvents: 'none',
+                      userSelect: 'none',
+                      zIndex: 5,
+                      ...decor.style
+                    }}
+                  />
+                )}
+              </div>
+            )}
 
             {/* Reactions Pill List (Instagram Style) */}
             {msg.reactions && msg.reactions.length > 0 && (
