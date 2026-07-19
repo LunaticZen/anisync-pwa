@@ -608,6 +608,10 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
                 lineHeight: 1.4, wordBreak: 'break-word',
                 boxShadow: isOnlyEmojiOrSticker ? 'none' : (activeTheme.isImage && !isMe ? '0 2px 8px rgba(0,0,0,0.2)' : 'none'),
                 border: customBorder,
+                borderImageSource: (bTheme as any).borderImageSource ? `url(${(bTheme as any).borderImageSource})` : undefined,
+                borderImageSlice: (bTheme as any).borderImageSlice ? `${(bTheme as any).borderImageSlice} fill` : undefined,
+                borderImageWidth: (bTheme as any).borderImageWidth ? `${(bTheme as any).borderImageWidth}px` : undefined,
+                borderImageRepeat: 'stretch',
                 position: 'relative',
                 transition: 'background 0.2s ease, border-color 0.2s ease',
               }}
