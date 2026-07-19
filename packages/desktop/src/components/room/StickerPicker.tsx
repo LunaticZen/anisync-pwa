@@ -16,6 +16,12 @@ const IMGBB_API_KEY = "7bf7ab7443109937733eb7b2287d42ad";
 export function StickerPicker({ onSelect, onClose, activeTheme }: StickerPickerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isClosing, setIsClosing] = useState(false);
+
+  const handleClose = () => {
+    setIsClosing(true);
+    setTimeout(onClose, 200);
+  };
   
   const [customStickers, setCustomStickers] = useState<string[]>([]);
   const [favoriteStickers, setFavoriteStickers] = useState<string[]>([]);
@@ -58,7 +64,7 @@ export function StickerPicker({ onSelect, onClose, activeTheme }: StickerPickerP
         !containerRef.current.contains(e.target as Node) &&
         !(e.target as HTMLElement).closest('.crop-modal-container')
       ) {
-        onClose();
+        handleClose();
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
@@ -146,7 +152,7 @@ export function StickerPicker({ onSelect, onClose, activeTheme }: StickerPickerP
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
-        animation: 'modernMenuPop 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+        animation: isClosing ? 'modernMenuPopClose 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards' : 'modernMenuPop 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards',
         transformOrigin: 'bottom right',
         zIndex: 100
       }}

@@ -15,6 +15,12 @@ export function MemberPopup({ members, onClose, pendingRequests, hostId }: { mem
   const roomTheme = useRoomStore(s => s.theme);
   const activeTheme = getTheme(roomTheme);
 
+  const [isClosing, setIsClosing] = useState(false);
+  const handleClose = () => {
+    setIsClosing(true);
+    setTimeout(onClose, 200);
+  };
+
   const handleApprove = (req: any) => {
     const socket = getSocket();
     (socket as any)?.emit('room:approve-join', { roomId: req.roomId, userId: req.userId });
@@ -28,7 +34,7 @@ export function MemberPopup({ members, onClose, pendingRequests, hostId }: { mem
 
   return (
     <>
-      <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 998 }} />
+      <div onClick={handleClose} style={{ position: 'fixed', inset: 0, zIndex: 998 }} />
       <div style={{
         position: 'absolute', top: 48, right: 8, zIndex: 999,
         background: activeTheme.isLight ? activeTheme.menuBg : (activeTheme.isImage ? activeTheme.menuBg : '#1a1a3e'),
@@ -38,7 +44,7 @@ export function MemberPopup({ members, onClose, pendingRequests, hostId }: { mem
         boxShadow: activeTheme.isLight ? '0 12px 40px rgba(0,0,0,0.15)' : '0 12px 40px rgba(0,0,0,0.5)',
         maxHeight: '50vh', overflowY: 'auto',
         color: activeTheme.textColor,
-        animation: 'modernMenuPop 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+        animation: isClosing ? 'modernMenuPopClose 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards' : 'modernMenuPop 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards',
         transformOrigin: 'top right',
       }}>
         {/* Pending requests for host */}
@@ -203,11 +209,27 @@ export function MemberList({ members, hostId, pendingRequests }: { members: any[
 
 // ─── Leave Confirm Modal ──────────────────────────────────
 export function LeaveConfirmModal({ roomName, onConfirm, onCancel }: { roomName: string; onConfirm: () => void; onCancel: () => void }) {
+  const [isClosing, setIsClosing] = useState(false);
+  const handleClose = () => {
+    setIsClosing(true);
+    setTimeout(onCancel, 200);
+  };
+  const handleConfirm = () => {
+    setIsClosing(true);
+    setTimeout(onConfirm, 200);
+  };
   return (
-    <div className="modal-overlay" onClick={onCancel}>
+    <div 
+      className="modal-overlay" 
+      onClick={handleClose}
+      style={{
+        background: isClosing ? 'rgba(0,0,0,0)' : 'rgba(0,0,0,0.6)',
+        transition: 'background 0.2s ease',
+      }}
+    >
       <div className="modal" onClick={e => e.stopPropagation()} style={{ 
         maxWidth: 340, textAlign: 'center',
-        animation: 'modernMenuPop 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards'
+        animation: isClosing ? 'modernMenuPopClose 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards' : 'modernMenuPop 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards'
       }}>
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16, color: '#ef4444' }}><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg></div>
         <h3 style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>Odadan Ayrıl</h3>
@@ -215,8 +237,8 @@ export function LeaveConfirmModal({ roomName, onConfirm, onCancel }: { roomName:
           <strong>{roomName}</strong> odasından ayrılmak istediğine emin misin?
         </p>
         <div style={{ display: 'flex', gap: 12 }}>
-          <button className="btn btn--ghost" style={{ flex: 1, border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-secondary)' }} onClick={onCancel}>Vazgeç</button>
-          <button className="btn btn--primary" style={{ flex: 1, background: '#ef4444', boxShadow: '0 2px 8px rgba(239,68,68,0.3)' }} onClick={onConfirm}>Ayrıl</button>
+          <button className="btn btn--ghost" style={{ flex: 1, border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-secondary)' }} onClick={handleClose}>Vazgeç</button>
+          <button className="btn btn--primary" style={{ flex: 1, background: '#ef4444', boxShadow: '0 2px 8px rgba(239,68,68,0.3)' }} onClick={handleConfirm}>Ayrıl</button>
         </div>
       </div>
     </div>
@@ -228,6 +250,12 @@ export function RoomProfileModal({ onClose }: { onClose: () => void }) {
   const { avatar, setAvatar, username } = useAuthStore();
   const [preview, setPreview] = useState(avatar);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [isClosing, setIsClosing] = useState(false);
+
+  const handleClose = () => {
+    setIsClosing(true);
+    setTimeout(onClose, 200);
+  };
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -251,7 +279,7 @@ export function RoomProfileModal({ onClose }: { onClose: () => void }) {
   const handleSave = () => {
     setAvatar(preview);
     const s = getSocket(); if (s) (s as any).emit('user:update-avatar', { avatar: preview });
-    onClose();
+    handleClose();
   };
   const handleClear = () => {
     setPreview(''); setAvatar('');
@@ -259,8 +287,17 @@ export function RoomProfileModal({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()} style={{ animation: 'modernMenuPop 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards' }}>
+    <div 
+      className="modal-overlay" 
+      onClick={handleClose}
+      style={{
+        background: isClosing ? 'rgba(0,0,0,0)' : 'rgba(0,0,0,0.6)',
+        transition: 'background 0.2s ease',
+      }}
+    >
+      <div className="modal" onClick={e => e.stopPropagation()} style={{ 
+        animation: isClosing ? 'modernMenuPopClose 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards' : 'modernMenuPop 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards' 
+      }}>
         <h2 className="modal__title">Profil Fotoğrafı</h2>
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
           <div onClick={() => fileRef.current?.click()} style={{
@@ -291,7 +328,7 @@ export function RoomProfileModal({ onClose }: { onClose: () => void }) {
             Kaldır
           </button>
           <div style={{ flex: 1 }} />
-          <button className="btn btn--secondary" onClick={onClose}>Vazgeç</button>
+          <button className="btn btn--secondary" onClick={handleClose}>Vazgeç</button>
           <button className="btn btn--primary" onClick={handleSave}>Kaydet</button>
         </div>
       </div>
@@ -448,6 +485,12 @@ export function ThemePickerPopup({ roomId, onClose }: { roomId: string; onClose:
   const [currentView, setCurrentView] = useState<'root' | 'wallpapers' | 'bubbles'>('root');
   const [activeCategory, setActiveCategory] = useState<string>('colors');
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [isClosing, setIsClosing] = useState(false);
+
+  const handleClose = () => {
+    setIsClosing(true);
+    setTimeout(onClose, 200);
+  };
   
   // Custom bubble theme state
   const [selectedBubbleTheme, setSelectedBubbleTheme] = useState<string>(() => {
@@ -459,14 +502,14 @@ export function ThemePickerPopup({ roomId, onClose }: { roomId: string; onClose:
     if (socket) {
       (socket as any).emit('room:set-theme', { roomId, themeId });
     }
-    onClose();
+    handleClose();
   };
 
   const handleSelectBubble = (themeId: string) => {
     setSelectedBubbleTheme(themeId);
     localStorage.setItem('anisync_bubble_theme', themeId);
     window.dispatchEvent(new Event('anisync_bubble_theme_changed'));
-    onClose();
+    handleClose();
   };
 
   const categories = [
@@ -480,12 +523,17 @@ export function ThemePickerPopup({ roomId, onClose }: { roomId: string; onClose:
   const resolvedTheme = getTheme(currentTheme);
 
   return (
-    <div onClick={onClose} style={{
-      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-      background: 'rgba(0,0,0,0.6)', zIndex: 1000,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      backdropFilter: 'none',
-    }}>
+    <div 
+      onClick={handleClose} 
+      style={{
+        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+        background: isClosing ? 'rgba(0,0,0,0)' : 'rgba(0,0,0,0.6)',
+        zIndex: 1000,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        backdropFilter: 'none',
+        transition: 'background 0.2s ease',
+      }}
+    >
       <div onClick={e => e.stopPropagation()} style={{
         background: resolvedTheme.isImage
           ? (resolvedTheme.isLight ? resolvedTheme.menuBg : resolvedTheme.menuBg)
@@ -502,7 +550,7 @@ export function ThemePickerPopup({ roomId, onClose }: { roomId: string; onClose:
         flexDirection: isMobile ? 'column' : 'row',
         overflow: 'hidden',
         color: resolvedTheme.isLight ? '#1e293b' : '#e2e8f0',
-        animation: 'modernMenuPop 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+        animation: isClosing ? 'modernMenuPopClose 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards' : 'modernMenuPop 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards',
       }}>
         <style>{`
           .theme-cat-bar::-webkit-scrollbar { display: none; }

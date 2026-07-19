@@ -12,12 +12,18 @@ interface EmojiPickerProps {
 export function EmojiPicker({ onSelect, onClose, isLight, isImage, isKeyboardOpen }: EmojiPickerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [search, setSearch] = useState('');
+  const [isClosing, setIsClosing] = useState(false);
+
+  const handleClose = () => {
+    setIsClosing(true);
+    setTimeout(onClose, 200);
+  };
 
   // Close when clicking outside
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        onClose();
+        handleClose();
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
@@ -68,7 +74,7 @@ export function EmojiPicker({ onSelect, onClose, isLight, isImage, isKeyboardOpe
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
-          animation: 'modernMenuPop 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+          animation: isClosing ? 'modernMenuPopClose 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards' : 'modernMenuPop 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards',
           transformOrigin: 'bottom center',
         }}
       >

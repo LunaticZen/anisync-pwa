@@ -344,17 +344,17 @@ export const BUBBLE_THEMES: BubbleTheme[] = [
     decorMe: {
       image: '/bubbles/test_frog.png',
       position: 'top-right',
-      style: { width: 34, height: 34, top: -20, right: -6, mixBlendMode: 'multiply' }
+      style: { width: 34, height: 34, top: -20, right: -6 }
     },
     decorOther: {
       image: '/bubbles/test_frog.png',
       position: 'top-left',
-      style: { width: 34, height: 34, top: -20, left: -6, mixBlendMode: 'multiply' }
+      style: { width: 34, height: 34, top: -20, left: -6 }
     }
   },
   {
     id: 'heart_pepe',
-    name: 'Aşk Pepe',
+    name: 'Kurumi',
     thumbnail: 'linear-gradient(135deg, #ec4899 50%, #fbcfe8 50%)',
     bgMe: '#ec4899',
     bgOther: '#fdf2f8',

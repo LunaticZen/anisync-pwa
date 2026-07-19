@@ -147,18 +147,10 @@ function ChatTicker({ tickerItems }: {
           0% { transform: translateX(100vw); }
           100% { transform: translateX(calc(-100% - 20px)); }
         }
-        @keyframes heartPopAdd {
-          0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
-          15% { transform: translate(-50%, -50%) scale(1.3); opacity: 1; }
-          30% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-          70% { transform: translate(-50%, -40%) scale(1); opacity: 1; }
-          100% { transform: translate(-50%, -85%) scale(0.6); opacity: 0; }
-        }
-        @keyframes heartPopRemove {
-          0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-          20% { transform: translate(-50%, -50%) scale(1.1) rotate(-10deg); opacity: 1; }
-          40% { transform: translate(-50%, -50%) scale(1.1) rotate(10deg); opacity: 1; }
-          100% { transform: translate(-50%, 0%) scale(0.4); opacity: 0; }
+        @keyframes reactionAppear {
+          0% { transform: scale(0.3); opacity: 0; }
+          70% { transform: scale(1.15); opacity: 1; }
+          100% { transform: scale(1); opacity: 1; }
         }
       `}</style>
       {tickerItems.map(item => {
@@ -496,6 +488,7 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
               userSelect: 'none',
               WebkitUserSelect: 'none',
               WebkitTouchCallout: 'none',
+              marginBottom: (msg.reactions && msg.reactions.length > 0) ? 10 : 0,
             } as any}
           >
             {/* Desktop Reply Button on Hover */}
@@ -639,50 +632,21 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
                 />
               )}
 
-              {/* Double Tap Heart Popups */}
-              {heartAnimState === 'add' && (
-                <div style={{
-                  position: 'absolute',
-                  top: '50%',
-                  left: '50%',
-                  transform: 'translate(-50%, -50%)',
-                  zIndex: 10,
-                  pointerEvents: 'none',
-                  fontSize: 40,
-                  filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.25))',
-                  animation: 'heartPopAdd 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards',
-                }}>
-                  ❤️
-                </div>
-              )}
-              {heartAnimState === 'remove' && (
-                <div style={{
-                  position: 'absolute',
-                  top: '50%',
-                  left: '50%',
-                  transform: 'translate(-50%, -50%)',
-                  zIndex: 10,
-                  pointerEvents: 'none',
-                  fontSize: 40,
-                  filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.25))',
-                  animation: 'heartPopRemove 0.8s cubic-bezier(0.6, -0.28, 0.735, 0.045) forwards',
-                }}>
-                  💔
-                </div>
-              )}
             </div>
 
-            {/* Reactions Pill List */}
+            {/* Reactions Pill List (Instagram Style) */}
             {msg.reactions && msg.reactions.length > 0 && (
-              <div style={{
-                display: 'flex',
-                gap: 4,
-                marginTop: -6,
-                marginBottom: 2,
-                zIndex: 3,
-                alignSelf: isMe ? 'flex-end' : 'flex-start',
-                position: 'relative'
-              }}>
+              <div 
+                style={{
+                  position: 'absolute',
+                  bottom: -10,
+                  [isMe ? 'right' : 'left']: 14,
+                  display: 'flex',
+                  gap: 4,
+                  zIndex: 10,
+                  animation: 'reactionAppear 0.28s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards',
+                }}
+              >
                 {msg.reactions.map((r: any, idx: number) => {
                   const userReacted = r.users.includes(username);
                   return (
@@ -697,28 +661,26 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
                         });
                       }}
                       style={{
-                        background: userReacted 
-                          ? (effectiveIsLight ? 'rgba(59, 130, 246, 0.15)' : 'rgba(59, 130, 246, 0.25)')
-                          : (effectiveIsLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.08)'),
-                        border: `1px solid ${userReacted ? '#3b82f6' : (effectiveIsLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)')}`,
-                        borderRadius: 12,
-                        padding: '2px 6px',
+                        background: effectiveIsLight ? '#e8e9eb' : '#2d3748',
+                        border: `1.5px solid ${effectiveIsLight ? '#ffffff' : '#1a202c'}`,
+                        borderRadius: 18,
+                        padding: '3px 6px',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: 3,
-                        fontSize: 10,
-                        fontWeight: 700,
+                        justifyContent: 'center',
+                        fontSize: 13,
                         cursor: 'pointer',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-                        color: userReacted ? '#3b82f6' : (effectiveIsLight ? '#475569' : '#94a3b8'),
-                        transition: 'all 0.2s ease',
+                        boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+                        transition: 'transform 0.15s ease',
                         userSelect: 'none',
+                        height: 20,
+                        minWidth: 20,
                       }}
-                      onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.08)'; }}
+                      onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.1)'; }}
                       onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
                     >
-                      <span>{r.emoji}</span>
-                      {r.count > 1 && <span>{r.count}</span>}
+                      <span style={{ transform: 'scale(0.9)', display: 'inline-block' }}>{r.emoji}</span>
+                      {r.count > 1 && <span style={{ fontSize: 9, fontWeight: 700, marginLeft: 2, color: effectiveIsLight ? '#475569' : '#cbd5e1' }}>{r.count}</span>}
                     </div>
                   );
                 })}
