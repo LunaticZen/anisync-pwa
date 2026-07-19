@@ -374,24 +374,35 @@ export const BUBBLE_THEMES: BubbleTheme[] = [
     }
   },
   {
-    id: 'unicorn',
-    name: 'Unicorn',
-    thumbnail: 'linear-gradient(135deg, #cfc5ff 50%, #ebd6ff 50%)',
-    bgMe: 'url(bubbles/unicorn_bubble.png) no-repeat center/cover',
-    bgOther: 'url(bubbles/unicorn_bubble.png) no-repeat center/cover',
+    id: 'cheese',
+    name: 'Peynir',
+    thumbnail: 'linear-gradient(135deg, #fdc844 50%, #fdbf38 50%)',
+    bgMe: 'radial-gradient(circle at 12% 30%, rgba(217, 119, 6, 0.18) 7px, transparent 8px), radial-gradient(circle at 88% 65%, rgba(217, 119, 6, 0.18) 10px, transparent 11px), radial-gradient(circle at 45% 15%, rgba(217, 119, 6, 0.18) 5px, transparent 6px), radial-gradient(circle at 72% 20%, rgba(217, 119, 6, 0.18) 7px, transparent 8px), radial-gradient(circle at 25% 75%, rgba(217, 119, 6, 0.18) 6px, transparent 7px), #fdc844',
+    bgOther: 'radial-gradient(circle at 12% 30%, rgba(217, 119, 6, 0.18) 7px, transparent 8px), radial-gradient(circle at 88% 65%, rgba(217, 119, 6, 0.18) 10px, transparent 11px), radial-gradient(circle at 45% 15%, rgba(217, 119, 6, 0.18) 5px, transparent 6px), radial-gradient(circle at 72% 20%, rgba(217, 119, 6, 0.18) 7px, transparent 8px), radial-gradient(circle at 25% 75%, rgba(217, 119, 6, 0.18) 6px, transparent 7px), #fdc844',
+    textMe: '#78350f',
+    textOther: '#78350f',
+    borderMe: '2px solid #ca8a04',
+    borderOther: '2px solid #ca8a04'
+  },
+  {
+    id: 'letter',
+    name: 'Mektup',
+    thumbnail: 'linear-gradient(135deg, #ef4444 50%, #3b82f6 50%)',
+    bgMe: 'linear-gradient(#ffffff, #ffffff) padding-box, repeating-linear-gradient(-45deg, #ef4444 0, #ef4444 8px, #ffffff 8px, #ffffff 16px, #3b82f6 16px, #3b82f6 24px, #ffffff 24px, #ffffff 32px) border-box',
+    bgOther: 'linear-gradient(#ffffff, #ffffff) padding-box, repeating-linear-gradient(-45deg, #ef4444 0, #ef4444 8px, #ffffff 8px, #ffffff 16px, #3b82f6 16px, #3b82f6 24px, #ffffff 24px, #ffffff 32px) border-box',
     textMe: '#1e293b',
     textOther: '#1e293b',
-    borderMe: 'none',
-    borderOther: 'none',
+    borderMe: '4px solid transparent',
+    borderOther: '4px solid transparent',
     decorMe: {
-      image: 'bubbles/unicorn_decor.png',
-      position: 'top-right',
-      style: { width: 90, height: 60, top: -42, right: 30 }
+      image: 'bubbles/letter_stamp.png',
+      position: 'bottom-right',
+      style: { width: 50, height: 38, bottom: -12, right: 14 }
     },
     decorOther: {
-      image: 'bubbles/unicorn_decor.png',
-      position: 'top-left',
-      style: { width: 90, height: 60, top: -42, left: 30 }
+      image: 'bubbles/letter_stamp.png',
+      position: 'bottom-left',
+      style: { width: 50, height: 38, bottom: -12, left: 14 }
     }
   }
 ];
