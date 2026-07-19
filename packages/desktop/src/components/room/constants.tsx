@@ -336,18 +336,18 @@ export const BUBBLE_THEMES: BubbleTheme[] = [
     name: 'Kurbağa',
     thumbnail: 'linear-gradient(135deg, #22c55e 50%, #a7f3d0 50%)',
     bgMe: '#22c55e',
-    bgOther: '#e8f7ed',
+    bgOther: '#22c55e',
     textMe: 'white',
-    textOther: '#14532d',
+    textOther: 'white',
     borderMe: '1px solid #16a34a',
-    borderOther: '1px solid #a7f3d0',
+    borderOther: '1px solid #16a34a',
     decorMe: {
-      image: '/bubbles/test_frog.png',
+      image: 'bubbles/test_frog.png',
       position: 'top-right',
       style: { width: 34, height: 34, top: -20, right: -6 }
     },
     decorOther: {
-      image: '/bubbles/test_frog.png',
+      image: 'bubbles/test_frog.png',
       position: 'top-left',
       style: { width: 34, height: 34, top: -20, left: -6 }
     }
@@ -357,11 +357,11 @@ export const BUBBLE_THEMES: BubbleTheme[] = [
     name: 'Kurumi',
     thumbnail: 'linear-gradient(135deg, #ec4899 50%, #fbcfe8 50%)',
     bgMe: '#ec4899',
-    bgOther: '#fdf2f8',
+    bgOther: '#ec4899',
     textMe: 'white',
-    textOther: '#9d174d',
+    textOther: 'white',
     borderMe: '1px solid #db2777',
-    borderOther: '1px solid #fbcfe8',
+    borderOther: '1px solid #db2777',
     decorMe: {
       image: 'https://i.ibb.co/s9JYz5sg/5773-kuromi-wave.png',
       position: 'top-right',
