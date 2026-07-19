@@ -592,7 +592,8 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
             {/* Actual Message Bubble */}
             {bTheme.sliceAssets && !isOnlyEmojiOrSticker ? (() => {
               const s = bTheme.sliceAssets;
-              const sc = s.scale;
+              const sc = isMobile ? 0.55 : 0.4;
+              const capH = s.height * sc;
               return (
               /* ── Artwork Bubble (inline flex 3-slice) ── */
               <div
@@ -603,10 +604,11 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
                   alignItems: 'stretch',
                   maxWidth: '100%',
                   minWidth: 0,
+                  overflow: 'hidden',
                   position: 'relative',
                 }}
               >
-                {/* Left cap */}
+                {/* Left cap - fixed width, stretches vertically */}
                 <img
                   src={`${s.dir}/left.png`}
                   alt=""
@@ -614,41 +616,42 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
                   style={{
                     display: 'block',
                     width: s.leftWidth * sc,
-                    height: s.height * sc,
+                    minHeight: capH,
                     objectFit: 'fill',
                     flexShrink: 0,
                     pointerEvents: 'none',
                     userSelect: 'none',
                   }}
                 />
-                {/* Center: tiled background + text content */}
+                {/* Center: tiled background + text content INSIDE */}
                 <div
                   style={{
                     flex: 1,
                     minWidth: 0,
+                    overflow: 'hidden',
                     backgroundImage: `url(${s.dir}/center.png)`,
                     backgroundRepeat: 'repeat-x',
-                    backgroundSize: `auto ${s.height * sc}px`,
-                    backgroundPosition: 'left top',
+                    backgroundSize: `auto 100%`,
                     display: 'flex',
                     alignItems: 'center',
-                    padding: `${s.padding[0]}px ${s.padding[1]}px ${s.padding[2]}px ${s.padding[3]}px`,
+                    padding: isMobile ? '6px 8px' : '4px 6px',
                     color: customTextColor,
                     fontSize: isMobile
                       ? (isKeyboardOpen ? 14 : 15)
                       : (isKeyboardOpen ? 12 : 13),
                     lineHeight: 1.4,
                     wordBreak: 'break-word',
+                    overflowWrap: 'break-word',
                   }}
                 >
-                  <span>
+                  <span style={{ display: 'inline' }}>
                     {renderMessageText(msg.text, false)}
                     {msg.editedAt && (
                       <span style={{ fontSize: 10, opacity: 0.5, marginLeft: 6, fontStyle: 'italic', whiteSpace: 'nowrap' }}>(düzenlendi)</span>
                     )}
                   </span>
                 </div>
-                {/* Right cap */}
+                {/* Right cap - fixed width, stretches vertically */}
                 <img
                   src={`${s.dir}/right.png`}
                   alt=""
@@ -656,7 +659,7 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
                   style={{
                     display: 'block',
                     width: s.rightWidth * sc,
-                    height: s.height * sc,
+                    minHeight: capH,
                     objectFit: 'fill',
                     flexShrink: 0,
                     pointerEvents: 'none',
