@@ -609,7 +609,12 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
                   : (isKeyboardOpen ? 12 : 13),
                 lineHeight: 1.4, wordBreak: 'break-word',
                 boxShadow: isOnlyEmojiOrSticker ? 'none' : (activeTheme.isImage && !isMe ? '0 2px 8px rgba(0,0,0,0.2)' : 'none'),
-                border: customBorder,
+                borderStyle: (bTheme as any).borderImageSource ? 'solid' : undefined,
+                borderColor: (bTheme as any).borderImageSource ? 'transparent' : undefined,
+                borderWidth: (bTheme as any).borderImageSource 
+                  ? (isMe ? ((bTheme as any).borderWidthMe || '20px 16px') : ((bTheme as any).borderWidthOther || '20px 16px'))
+                  : undefined,
+                border: (bTheme as any).borderImageSource ? undefined : customBorder,
                 borderImageSource: (bTheme as any).borderImageSource ? `url(${(bTheme as any).borderImageSource})` : undefined,
                 borderImageSlice: (bTheme as any).borderImageSlice ? `${(bTheme as any).borderImageSlice} fill` : undefined,
                 borderImageRepeat: 'stretch',
@@ -623,21 +628,41 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
               )}
 
               {/* Bubble Custom Decor */}
-              {decor && (
-                <img
-                  src={decor.image}
-                  alt=""
-                  style={{
-                    position: 'absolute',
-                    pointerEvents: 'none',
-                    userSelect: 'none',
-                    zIndex: 5,
-                    left: (decor.style.left === undefined && decor.style.right === undefined) ? '50%' : undefined,
-                    transform: (decor.style.left === undefined && decor.style.right === undefined) ? 'translateX(-50%)' : undefined,
-                    ...decor.style
-                  }}
-                />
-              )}
+              {decor && (() => {
+                const isCentered = decor.position === 'top-center' || decor.position === 'bottom-center' || (decor.style.left === undefined && decor.style.right === undefined);
+                return (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      pointerEvents: 'none',
+                      userSelect: 'none',
+                      zIndex: 5,
+                      ...(isCentered ? {
+                        left: 0,
+                        right: 0,
+                        top: decor.style.top,
+                        bottom: decor.style.bottom,
+                        height: decor.style.height,
+                        backgroundImage: `url(${decor.image})`,
+                        backgroundPosition: 'center center',
+                        backgroundRepeat: 'no-repeat',
+                        backgroundSize: `${decor.style.width}px ${decor.style.height}px`,
+                      } : {
+                        left: decor.style.left,
+                        right: decor.style.right,
+                        top: decor.style.top,
+                        bottom: decor.style.bottom,
+                        width: decor.style.width,
+                        height: decor.style.height,
+                        backgroundImage: `url(${decor.image})`,
+                        backgroundPosition: 'center center',
+                        backgroundRepeat: 'no-repeat',
+                        backgroundSize: 'contain',
+                      })
+                    }}
+                  />
+                );
+              })()}
 
             </div>
 

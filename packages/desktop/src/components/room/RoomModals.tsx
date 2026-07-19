@@ -929,7 +929,12 @@ export function ThemePickerPopup({ roomId, onClose }: { roomId: string; onClose:
                       <div style={{
                         background: previewBg,
                         color: previewText,
-                        border: previewBorder,
+                        borderStyle: (bTheme as any).borderImageSource ? 'solid' : undefined,
+                        borderColor: (bTheme as any).borderImageSource ? 'transparent' : undefined,
+                        borderWidth: (bTheme as any).borderImageSource 
+                          ? ((bTheme as any).borderWidthMe || '20px 16px')
+                          : undefined,
+                        border: (bTheme as any).borderImageSource ? undefined : previewBorder,
                         borderImageSource: (bTheme as any).borderImageSource ? `url(${(bTheme as any).borderImageSource})` : undefined,
                         borderImageSlice: (bTheme as any).borderImageSlice ? `${(bTheme as any).borderImageSlice} fill` : undefined,
                         borderImageRepeat: 'stretch',
@@ -948,23 +953,50 @@ export function ThemePickerPopup({ roomId, onClose }: { roomId: string; onClose:
                         position: 'relative'
                       }}>
                         Aa
-                        {bTheme.decorMe && (
-                          <img
-                            src={bTheme.decorMe.image}
-                            alt=""
-                            style={{
-                              position: 'absolute',
-                              left: (bTheme.decorMe.style?.left === undefined && bTheme.decorMe.style?.right === undefined) ? '50%' : undefined,
-                              transform: (bTheme.decorMe.style?.left === undefined && bTheme.decorMe.style?.right === undefined) ? 'translateX(-50%)' : undefined,
-                              ...bTheme.decorMe.style,
-                              width: typeof bTheme.decorMe.style?.width === 'number' ? bTheme.decorMe.style.width * 0.75 : bTheme.decorMe.style?.width,
-                              height: typeof bTheme.decorMe.style?.height === 'number' ? bTheme.decorMe.style.height * 0.75 : bTheme.decorMe.style?.height,
-                              top: typeof bTheme.decorMe.style?.top === 'number' ? bTheme.decorMe.style.top * 0.75 : bTheme.decorMe.style?.top,
-                              right: typeof bTheme.decorMe.style?.right === 'number' ? bTheme.decorMe.style.right * 0.75 : bTheme.decorMe.style?.right,
-                              bottom: typeof bTheme.decorMe.style?.bottom === 'number' ? bTheme.decorMe.style.bottom * 0.75 : bTheme.decorMe.style?.bottom,
-                            } as any}
-                          />
-                        )}
+                        {bTheme.decorMe && (() => {
+                          const decor = bTheme.decorMe;
+                          const isCentered = decor.position === 'top-center' || decor.position === 'bottom-center' || (decor.style.left === undefined && decor.style.right === undefined);
+                          
+                          const w = typeof decor.style.width === 'number' ? decor.style.width * 0.75 : 0;
+                          const h = typeof decor.style.height === 'number' ? decor.style.height * 0.75 : 0;
+                          const t = typeof decor.style.top === 'number' ? decor.style.top * 0.75 : undefined;
+                          const b = typeof decor.style.bottom === 'number' ? decor.style.bottom * 0.75 : undefined;
+                          const l = typeof decor.style.left === 'number' ? decor.style.left * 0.75 : undefined;
+                          const r = typeof decor.style.right === 'number' ? decor.style.right * 0.75 : undefined;
+
+                          return (
+                            <div
+                              style={{
+                                position: 'absolute',
+                                pointerEvents: 'none',
+                                userSelect: 'none',
+                                zIndex: 5,
+                                ...(isCentered ? {
+                                  left: 0,
+                                  right: 0,
+                                  top: t,
+                                  bottom: b,
+                                  height: h,
+                                  backgroundImage: `url(${decor.image})`,
+                                  backgroundPosition: 'center center',
+                                  backgroundRepeat: 'no-repeat',
+                                  backgroundSize: `${w}px ${h}px`,
+                                } : {
+                                  left: l,
+                                  right: r,
+                                  top: t,
+                                  bottom: b,
+                                  width: typeof decor.style.width === 'number' ? w : decor.style.width,
+                                  height: typeof decor.style.height === 'number' ? h : decor.style.height,
+                                  backgroundImage: `url(${decor.image})`,
+                                  backgroundPosition: 'center center',
+                                  backgroundRepeat: 'no-repeat',
+                                  backgroundSize: 'contain',
+                                })
+                              }}
+                            />
+                          );
+                        })()}
                       </div>
                     </div>
 
