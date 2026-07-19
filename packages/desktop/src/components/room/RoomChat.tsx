@@ -591,23 +591,24 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
 
             {/* Actual Message Bubble */}
             <div 
+              className={activeTheme.nineSliceClass || ''}
               onMouseDown={handleBubbleClickOrTouch}
               onTouchStart={handleBubbleClickOrTouch}
               style={{
                 background: customBubbleBg, color: customTextColor,
                 maxWidth: '100%', minWidth: 0,
-                padding: isOnlyEmojiOrSticker 
+                padding: activeTheme.nineSliceClass ? undefined : (isOnlyEmojiOrSticker 
                   ? 0 
                   : (isMobile 
                       ? (isKeyboardOpen ? '8px 12px' : '10px 14px') 
-                      : (isKeyboardOpen ? '6px 10px' : '8px 12px')),
-                borderRadius: borderRadius, 
+                      : (isKeyboardOpen ? '6px 10px' : '8px 12px'))),
+                borderRadius: activeTheme.nineSliceClass ? undefined : borderRadius, 
                 fontSize: isMobile 
                   ? (isKeyboardOpen ? 14 : 15) 
                   : (isKeyboardOpen ? 12 : 13),
                 lineHeight: 1.4, wordBreak: 'break-word',
                 boxShadow: isOnlyEmojiOrSticker ? 'none' : (activeTheme.isImage && !isMe ? '0 2px 8px rgba(0,0,0,0.2)' : 'none'),
-                border: customBorder,
+                border: activeTheme.nineSliceClass ? undefined : customBorder,
                 position: 'relative',
                 transition: 'background 0.2s ease, border-color 0.2s ease',
               }}

@@ -303,6 +303,7 @@ export interface BubbleTheme {
   id: string;
   name: string;
   thumbnail: string;
+  nineSliceClass?: string;
   bgMe: string;
   bgOther: string;
   textMe: string;
@@ -404,6 +405,51 @@ export const BUBBLE_THEMES: BubbleTheme[] = [
       position: 'bottom-left',
       style: { width: 50, height: 38, bottom: -12, left: 14 }
     }
+  },
+  {
+    id: 'frog_9slice',
+    name: '9-Slice Frog',
+    thumbnail: 'url(bubbles/frog.png) center/cover',
+    nineSliceClass: 'bubble-frog',
+    bgMe: 'transparent', bgOther: 'transparent',
+    textMe: 'white', textOther: 'white',
+    borderMe: 'none', borderOther: 'none'
+  },
+  {
+    id: 'cat_9slice',
+    name: '9-Slice Cat',
+    thumbnail: 'url(bubbles/cat.png) center/cover',
+    nineSliceClass: 'bubble-cat',
+    bgMe: 'transparent', bgOther: 'transparent',
+    textMe: 'white', textOther: 'white',
+    borderMe: 'none', borderOther: 'none'
+  },
+  {
+    id: 'cloud_9slice',
+    name: '9-Slice Cloud',
+    thumbnail: 'url(bubbles/cloud.png) center/cover',
+    nineSliceClass: 'bubble-cloud',
+    bgMe: 'transparent', bgOther: 'transparent',
+    textMe: '#3b82f6', textOther: '#3b82f6',
+    borderMe: 'none', borderOther: 'none'
+  },
+  {
+    id: 'slime_9slice',
+    name: '9-Slice Slime',
+    thumbnail: 'url(bubbles/slime.png) center/cover',
+    nineSliceClass: 'bubble-slime',
+    bgMe: 'transparent', bgOther: 'transparent',
+    textMe: '#166534', textOther: '#166534',
+    borderMe: 'none', borderOther: 'none'
+  },
+  {
+    id: 'wood_9slice',
+    name: '9-Slice Wood',
+    thumbnail: 'url(bubbles/wood.png) center/cover',
+    nineSliceClass: 'bubble-wood',
+    bgMe: 'transparent', bgOther: 'transparent',
+    textMe: 'white', textOther: 'white',
+    borderMe: 'none', borderOther: 'none'
   }
 ];
 
