@@ -590,36 +590,82 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
             )}
 
             {/* Actual Message Bubble */}
-            {bTheme.sliceAssets && !isOnlyEmojiOrSticker ? (
-              /* ── Artwork Bubble (CSS border-image 9-slice) ── */
+            {bTheme.sliceAssets && !isOnlyEmojiOrSticker ? (() => {
+              const s = bTheme.sliceAssets;
+              const sc = s.scale;
+              return (
+              /* ── Artwork Bubble (inline flex 3-slice) ── */
               <div
                 onMouseDown={handleBubbleClickOrTouch}
                 onTouchStart={handleBubbleClickOrTouch}
                 style={{
-                  borderStyle: 'solid',
-                  borderImageSource: `url(${bTheme.sliceAssets.dir}/full.png)`,
-                  borderImageSlice: `${bTheme.sliceAssets.slice[0]} ${bTheme.sliceAssets.slice[1]} ${bTheme.sliceAssets.slice[2]} ${bTheme.sliceAssets.slice[3]} fill`,
-                  borderImageWidth: `${bTheme.sliceAssets.borderWidth[0]}px ${bTheme.sliceAssets.borderWidth[1]}px ${bTheme.sliceAssets.borderWidth[2]}px ${bTheme.sliceAssets.borderWidth[3]}px`,
-                  borderImageRepeat: 'stretch',
-                  padding: `${bTheme.sliceAssets.padding[0]}px ${bTheme.sliceAssets.padding[1]}px ${bTheme.sliceAssets.padding[2]}px ${bTheme.sliceAssets.padding[3]}px`,
-                  color: customTextColor,
+                  display: 'flex',
+                  alignItems: 'stretch',
                   maxWidth: '100%',
                   minWidth: 0,
-                  fontSize: isMobile
-                    ? (isKeyboardOpen ? 14 : 15)
-                    : (isKeyboardOpen ? 12 : 13),
-                  lineHeight: 1.4,
-                  wordBreak: 'break-word',
                   position: 'relative',
-                  background: 'transparent',
                 }}
               >
-                {renderMessageText(msg.text, false)}
-                {msg.editedAt && (
-                  <span style={{ fontSize: 10, opacity: 0.5, marginLeft: 6, fontStyle: 'italic', whiteSpace: 'nowrap' }}>(düzenlendi)</span>
-                )}
+                {/* Left cap */}
+                <img
+                  src={`${s.dir}/left.png`}
+                  alt=""
+                  draggable={false}
+                  style={{
+                    display: 'block',
+                    width: s.leftWidth * sc,
+                    height: s.height * sc,
+                    objectFit: 'fill',
+                    flexShrink: 0,
+                    pointerEvents: 'none',
+                    userSelect: 'none',
+                  }}
+                />
+                {/* Center: tiled background + text content */}
+                <div
+                  style={{
+                    flex: 1,
+                    minWidth: 0,
+                    backgroundImage: `url(${s.dir}/center.png)`,
+                    backgroundRepeat: 'repeat-x',
+                    backgroundSize: `auto ${s.height * sc}px`,
+                    backgroundPosition: 'left top',
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: `${s.padding[0]}px ${s.padding[1]}px ${s.padding[2]}px ${s.padding[3]}px`,
+                    color: customTextColor,
+                    fontSize: isMobile
+                      ? (isKeyboardOpen ? 14 : 15)
+                      : (isKeyboardOpen ? 12 : 13),
+                    lineHeight: 1.4,
+                    wordBreak: 'break-word',
+                  }}
+                >
+                  <span>
+                    {renderMessageText(msg.text, false)}
+                    {msg.editedAt && (
+                      <span style={{ fontSize: 10, opacity: 0.5, marginLeft: 6, fontStyle: 'italic', whiteSpace: 'nowrap' }}>(düzenlendi)</span>
+                    )}
+                  </span>
+                </div>
+                {/* Right cap */}
+                <img
+                  src={`${s.dir}/right.png`}
+                  alt=""
+                  draggable={false}
+                  style={{
+                    display: 'block',
+                    width: s.rightWidth * sc,
+                    height: s.height * sc,
+                    objectFit: 'fill',
+                    flexShrink: 0,
+                    pointerEvents: 'none',
+                    userSelect: 'none',
+                  }}
+                />
               </div>
-            ) : (
+              );
+            })() : (
               /* ── Standard CSS Bubble ── */
               <div 
                 onMouseDown={handleBubbleClickOrTouch}
