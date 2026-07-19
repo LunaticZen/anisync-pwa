@@ -300,15 +300,20 @@ export type RoomMode = 'desktop' | 'mobile-portrait' | 'mobile-landscape';
 
 // ── Bubble Theme System ──
 export interface BubbleSliceAssets {
-  /** Directory under public/bubbles/themes/ containing left.png, center.png, right.png */
+  /** Directory under public/bubbles/themes/ containing full.png */
   dir: string;
-  /** Original full-bubble height in px (used for aspect-ratio scaling) */
-  height: number;
-  /** Left cap width in px (from the original artwork) */
-  leftWidth: number;
-  /** Right cap width in px (from the original artwork) */
-  rightWidth: number;
-  /** Text padding inside the bubble: [top, right, bottom, left] in px */
+  /**
+   * border-image-slice values: [top, right, bottom, left] in SOURCE IMAGE pixels.
+   * These define how far from each edge the decorative border extends.
+   * Everything inside this boundary is the stretchable center.
+   */
+  slice: [number, number, number, number];
+  /**
+   * border-width: [top, right, bottom, left] in RENDERED CSS pixels.
+   * Controls how large the border areas render on screen.
+   */
+  borderWidth: [number, number, number, number];
+  /** Text padding inside the bubble: [top, right, bottom, left] in CSS px */
   padding: [number, number, number, number];
 }
 
@@ -350,7 +355,7 @@ export const BUBBLE_THEMES: BubbleTheme[] = [
     textOther: 'DEFAULT_OTHER_TEXT',
   },
 
-  // ── 3-Slice Artwork Themes ──
+  // ── Artwork Themes (border-image 9-slice) ──
   {
     id: 'frog',
     name: 'Kurbağa',
@@ -359,8 +364,9 @@ export const BUBBLE_THEMES: BubbleTheme[] = [
     textMe: '#ffffff', textOther: '#ffffff',
     sliceAssets: {
       dir: 'bubbles/themes/frog',
-      height: 138, leftWidth: 100, rightWidth: 60,
-      padding: [38, 16, 20, 28],
+      slice: [55, 50, 30, 90],
+      borderWidth: [28, 25, 15, 45],
+      padding: [4, 4, 4, 8],
     },
   },
   {
@@ -371,8 +377,9 @@ export const BUBBLE_THEMES: BubbleTheme[] = [
     textMe: '#5c3a4a', textOther: '#5c3a4a',
     sliceAssets: {
       dir: 'bubbles/themes/love',
-      height: 130, leftWidth: 60, rightWidth: 60,
-      padding: [28, 20, 28, 20],
+      slice: [45, 50, 40, 50],
+      borderWidth: [23, 25, 20, 25],
+      padding: [6, 4, 6, 4],
     },
   },
   {
@@ -383,8 +390,9 @@ export const BUBBLE_THEMES: BubbleTheme[] = [
     textMe: '#ffffff', textOther: '#ffffff',
     sliceAssets: {
       dir: 'bubbles/themes/cat',
-      height: 162, leftWidth: 80, rightWidth: 80,
-      padding: [65, 28, 22, 28],
+      slice: [85, 70, 28, 70],
+      borderWidth: [43, 35, 14, 35],
+      padding: [4, 6, 4, 6],
     },
   },
   {
@@ -395,8 +403,9 @@ export const BUBBLE_THEMES: BubbleTheme[] = [
     textMe: '#5c4033', textOther: '#5c4033',
     sliceAssets: {
       dir: 'bubbles/themes/pawprint',
-      height: 150, leftWidth: 80, rightWidth: 100,
-      padding: [30, 24, 40, 30],
+      slice: [45, 90, 55, 70],
+      borderWidth: [23, 45, 28, 35],
+      padding: [4, 6, 8, 8],
     },
   },
   {
@@ -407,8 +416,9 @@ export const BUBBLE_THEMES: BubbleTheme[] = [
     textMe: '#ffffff', textOther: '#ffffff',
     sliceAssets: {
       dir: 'bubbles/themes/galaxy',
-      height: 140, leftWidth: 60, rightWidth: 80,
-      padding: [22, 24, 38, 22],
+      slice: [35, 70, 45, 50],
+      borderWidth: [18, 35, 23, 25],
+      padding: [4, 4, 8, 4],
     },
   },
   {
@@ -419,8 +429,9 @@ export const BUBBLE_THEMES: BubbleTheme[] = [
     textMe: '#4a6fa5', textOther: '#4a6fa5',
     sliceAssets: {
       dir: 'bubbles/themes/cloud',
-      height: 148, leftWidth: 70, rightWidth: 70,
-      padding: [30, 24, 40, 28],
+      slice: [50, 60, 55, 60],
+      borderWidth: [25, 30, 28, 30],
+      padding: [4, 4, 8, 4],
     },
   },
   {
@@ -431,8 +442,9 @@ export const BUBBLE_THEMES: BubbleTheme[] = [
     textMe: '#1a1a2e', textOther: '#1a1a2e',
     sliceAssets: {
       dir: 'bubbles/themes/pixel',
-      height: 128, leftWidth: 60, rightWidth: 100,
-      padding: [28, 24, 34, 22],
+      slice: [35, 90, 40, 50],
+      borderWidth: [18, 45, 20, 25],
+      padding: [6, 6, 8, 6],
     },
   },
   {
@@ -443,8 +455,9 @@ export const BUBBLE_THEMES: BubbleTheme[] = [
     textMe: '#5c4033', textOther: '#5c4033',
     sliceAssets: {
       dir: 'bubbles/themes/tape',
-      height: 130, leftWidth: 60, rightWidth: 100,
-      padding: [26, 24, 28, 22],
+      slice: [40, 90, 35, 50],
+      borderWidth: [20, 45, 18, 25],
+      padding: [4, 6, 4, 4],
     },
   },
   {
@@ -455,8 +468,9 @@ export const BUBBLE_THEMES: BubbleTheme[] = [
     textMe: '#ffffff', textOther: '#ffffff',
     sliceAssets: {
       dir: 'bubbles/themes/wave',
-      height: 155, leftWidth: 70, rightWidth: 80,
-      padding: [28, 24, 42, 28],
+      slice: [40, 70, 55, 60],
+      borderWidth: [20, 35, 28, 30],
+      padding: [4, 4, 10, 6],
     },
   },
   {
@@ -467,8 +481,9 @@ export const BUBBLE_THEMES: BubbleTheme[] = [
     textMe: '#00ff41', textOther: '#00ff41',
     sliceAssets: {
       dir: 'bubbles/themes/terminal',
-      height: 120, leftWidth: 60, rightWidth: 60,
-      padding: [24, 20, 24, 20],
+      slice: [35, 50, 35, 50],
+      borderWidth: [18, 25, 18, 25],
+      padding: [4, 4, 4, 4],
     },
   },
   {
@@ -479,8 +494,9 @@ export const BUBBLE_THEMES: BubbleTheme[] = [
     textMe: '#d4507a', textOther: '#d4507a',
     sliceAssets: {
       dir: 'bubbles/themes/ribbon',
-      height: 145, leftWidth: 70, rightWidth: 100,
-      padding: [28, 24, 34, 24],
+      slice: [40, 90, 45, 60],
+      borderWidth: [20, 45, 23, 30],
+      padding: [4, 6, 6, 4],
     },
   },
   {
@@ -491,8 +507,9 @@ export const BUBBLE_THEMES: BubbleTheme[] = [
     textMe: '#78350f', textOther: '#78350f',
     sliceAssets: {
       dir: 'bubbles/themes/cheese',
-      height: 140, leftWidth: 60, rightWidth: 100,
-      padding: [28, 24, 30, 22],
+      slice: [35, 90, 35, 50],
+      borderWidth: [18, 45, 18, 25],
+      padding: [4, 6, 4, 4],
     },
   },
   {
@@ -503,8 +520,9 @@ export const BUBBLE_THEMES: BubbleTheme[] = [
     textMe: '#ffffff', textOther: '#ffffff',
     sliceAssets: {
       dir: 'bubbles/themes/wood',
-      height: 145, leftWidth: 100, rightWidth: 80,
-      padding: [30, 24, 30, 36],
+      slice: [40, 70, 40, 90],
+      borderWidth: [20, 35, 20, 45],
+      padding: [4, 4, 4, 10],
     },
   },
   {
@@ -515,8 +533,9 @@ export const BUBBLE_THEMES: BubbleTheme[] = [
     textMe: '#2d5016', textOther: '#2d5016',
     sliceAssets: {
       dir: 'bubbles/themes/slime',
-      height: 155, leftWidth: 80, rightWidth: 100,
-      padding: [22, 24, 48, 28],
+      slice: [30, 90, 60, 70],
+      borderWidth: [15, 45, 30, 35],
+      padding: [4, 6, 12, 6],
     },
   },
   {
@@ -527,8 +546,9 @@ export const BUBBLE_THEMES: BubbleTheme[] = [
     textMe: '#1e293b', textOther: '#1e293b',
     sliceAssets: {
       dir: 'bubbles/themes/letter',
-      height: 142, leftWidth: 60, rightWidth: 80,
-      padding: [28, 24, 30, 22],
+      slice: [35, 70, 35, 50],
+      borderWidth: [18, 35, 18, 25],
+      padding: [4, 6, 4, 4],
     },
   },
   {

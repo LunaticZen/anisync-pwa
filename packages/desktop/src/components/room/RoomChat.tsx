@@ -591,92 +591,33 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
 
             {/* Actual Message Bubble */}
             {bTheme.sliceAssets && !isOnlyEmojiOrSticker ? (
-              /* ── 3-Slice Artwork Bubble ── */
+              /* ── Artwork Bubble (CSS border-image 9-slice) ── */
               <div
                 onMouseDown={handleBubbleClickOrTouch}
                 onTouchStart={handleBubbleClickOrTouch}
                 style={{
-                  position: 'relative',
+                  borderStyle: 'solid',
+                  borderImageSource: `url(${bTheme.sliceAssets.dir}/full.png)`,
+                  borderImageSlice: `${bTheme.sliceAssets.slice[0]} ${bTheme.sliceAssets.slice[1]} ${bTheme.sliceAssets.slice[2]} ${bTheme.sliceAssets.slice[3]} fill`,
+                  borderImageWidth: `${bTheme.sliceAssets.borderWidth[0]}px ${bTheme.sliceAssets.borderWidth[1]}px ${bTheme.sliceAssets.borderWidth[2]}px ${bTheme.sliceAssets.borderWidth[3]}px`,
+                  borderImageRepeat: 'stretch',
+                  padding: `${bTheme.sliceAssets.padding[0]}px ${bTheme.sliceAssets.padding[1]}px ${bTheme.sliceAssets.padding[2]}px ${bTheme.sliceAssets.padding[3]}px`,
+                  color: customTextColor,
                   maxWidth: '100%',
                   minWidth: 0,
-                  cursor: isMobile ? 'default' : 'pointer',
+                  fontSize: isMobile
+                    ? (isKeyboardOpen ? 14 : 15)
+                    : (isKeyboardOpen ? 12 : 13),
+                  lineHeight: 1.4,
+                  wordBreak: 'break-word',
+                  position: 'relative',
+                  background: 'transparent',
                 }}
               >
-                {/* 3-slice image layer (behind text) */}
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'row',
-                    alignItems: 'stretch',
-                    position: 'absolute',
-                    inset: 0,
-                    pointerEvents: 'none',
-                    zIndex: 0,
-                  }}
-                >
-                  {/* Left cap */}
-                  <img
-                    src={`${bTheme.sliceAssets.dir}/left.png`}
-                    alt=""
-                    draggable={false}
-                    style={{
-                      display: 'block',
-                      width: bTheme.sliceAssets.leftWidth * 0.5,
-                      height: '100%',
-                      objectFit: 'fill',
-                      flexShrink: 0,
-                      pointerEvents: 'none',
-                    }}
-                  />
-                  {/* Center tile */}
-                  <div
-                    style={{
-                      flex: 1,
-                      backgroundImage: `url(${bTheme.sliceAssets.dir}/center.png)`,
-                      backgroundRepeat: 'repeat-x',
-                      backgroundSize: 'auto 100%',
-                    }}
-                  />
-                  {/* Right cap */}
-                  <img
-                    src={`${bTheme.sliceAssets.dir}/right.png`}
-                    alt=""
-                    draggable={false}
-                    style={{
-                      display: 'block',
-                      width: bTheme.sliceAssets.rightWidth * 0.5,
-                      height: '100%',
-                      objectFit: 'fill',
-                      flexShrink: 0,
-                      pointerEvents: 'none',
-                    }}
-                  />
-                </div>
-
-                {/* Text content layer (on top) */}
-                <div
-                  style={{
-                    position: 'relative',
-                    zIndex: 1,
-                    color: customTextColor,
-                    padding: `${bTheme.sliceAssets.padding[0] * 0.5}px ${bTheme.sliceAssets.padding[1] * 0.5}px ${bTheme.sliceAssets.padding[2] * 0.5}px ${bTheme.sliceAssets.padding[3] * 0.5}px`,
-                    fontSize: isMobile
-                      ? (isKeyboardOpen ? 14 : 15)
-                      : (isKeyboardOpen ? 12 : 13),
-                    lineHeight: 1.4,
-                    wordBreak: 'break-word',
-                    minHeight: bTheme.sliceAssets.height * 0.5 - bTheme.sliceAssets.padding[0] * 0.5 - bTheme.sliceAssets.padding[2] * 0.5,
-                    display: 'flex',
-                    alignItems: 'center',
-                  }}
-                >
-                  <span>
-                    {renderMessageText(msg.text, false)}
-                    {msg.editedAt && (
-                      <span style={{ fontSize: 10, opacity: 0.5, marginLeft: 6, fontStyle: 'italic', whiteSpace: 'nowrap' }}>(düzenlendi)</span>
-                    )}
-                  </span>
-                </div>
+                {renderMessageText(msg.text, false)}
+                {msg.editedAt && (
+                  <span style={{ fontSize: 10, opacity: 0.5, marginLeft: 6, fontStyle: 'italic', whiteSpace: 'nowrap' }}>(düzenlendi)</span>
+                )}
               </div>
             ) : (
               /* ── Standard CSS Bubble ── */
