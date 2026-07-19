@@ -606,9 +606,10 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
                   minWidth: 0,
                   overflow: 'hidden',
                   position: 'relative',
+                  transform: isMe ? 'scaleX(-1)' : 'none',
                 }}
               >
-                {/* Left cap - fixed width, stretches vertically */}
+                {/* Left cap (becomes right after scaleX flip for isMe) */}
                 <img
                   src={`${s.dir}/left.png`}
                   alt=""
@@ -623,15 +624,15 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
                     userSelect: 'none',
                   }}
                 />
-                {/* Center: tiled background + text content INSIDE */}
+                {/* Center: stretched background + text content INSIDE */}
                 <div
                   style={{
                     flex: 1,
                     minWidth: 0,
                     overflow: 'hidden',
                     backgroundImage: `url(${s.dir}/center.png)`,
-                    backgroundRepeat: 'repeat-x',
-                    backgroundSize: `auto 100%`,
+                    backgroundRepeat: 'no-repeat',
+                    backgroundSize: '100% 100%',
                     display: 'flex',
                     alignItems: 'center',
                     padding: isMobile ? '6px 8px' : '4px 6px',
@@ -642,6 +643,7 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
                     lineHeight: 1.4,
                     wordBreak: 'break-word',
                     overflowWrap: 'break-word',
+                    transform: isMe ? 'scaleX(-1)' : 'none',
                   }}
                 >
                   <span style={{ display: 'inline' }}>
@@ -651,7 +653,7 @@ function SwipableMessage({ msg, i, username, members, messages, activeTypers, is
                     )}
                   </span>
                 </div>
-                {/* Right cap - fixed width, stretches vertically */}
+                {/* Right cap (becomes left after scaleX flip for isMe) */}
                 <img
                   src={`${s.dir}/right.png`}
                   alt=""
