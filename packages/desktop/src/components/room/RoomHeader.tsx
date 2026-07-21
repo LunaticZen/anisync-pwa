@@ -271,11 +271,14 @@ export function RoomHeader({
 
   // ── Render: "Anime Aç" Button (desktop only, when no URL) ──
   const renderAnimeButton = () => {
-    if (!isDesktop || currentUrl) return null;
+    // Show only if user is Host (or if there's no URL yet, anyone can see it if we want, but let's restrict to Host if room is active)
+    const isHost = currentRoom?.hostId === myUsername;
+    if (!isHost) return null;
+    
     return (
-      <button className="btn btn--secondary btn--sm" onClick={onShowUrlInput}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3" /></svg>
-        Anime Aç
+      <button className="btn btn--secondary btn--sm" onClick={onShowUrlInput} style={{ padding: '0 8px', display: 'flex', alignItems: 'center', gap: 6 }}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
+        {!isPortraitMode && <span>Link Gir</span>}
       </button>
     );
   };
@@ -323,6 +326,7 @@ export function RoomHeader({
         {renderBack()}
         {renderAvatar()}
         {renderRoomInfo()}
+        {renderAnimeButton()}
         {renderMembers()}
         {renderLogButton()}
         {renderTheme()}
@@ -348,6 +352,7 @@ export function RoomHeader({
         {renderAvatar()}
         {renderRoomInfo()}
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+          {renderAnimeButton()}
           {renderLogButton()}
           {renderTheme()}
           <ThemeToggleBtn size={16} color={activeTheme.accent} style={{ padding: 6 }} />

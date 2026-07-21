@@ -207,7 +207,16 @@ export function MemberList({ members, hostId, pendingRequests }: { members: any[
         const name = m.displayName ?? m.username ?? '?';
         const memberAvatar = m.avatar || null;
         return (
-          <div key={m.userId} className="member" style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '8px 0' }}>
+          <div key={m.userId} className="member" style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '8px 0' }}
+            onContextMenu={(e) => {
+              if (isHost && m.userId !== hostId) {
+                e.preventDefault();
+                if (window.confirm(`${name} adlı kullanıcıyı Host yapmak istediğine emin misin?`)) {
+                  handleTransferHost(m.userId);
+                }
+              }
+            }}
+          >
             {memberAvatar ? (
               <img src={memberAvatar} alt="" style={{ width: 42, height: 42, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, boxShadow: '0 0 20px rgba(91,124,255,0.25)' }} />
             ) : (
@@ -220,11 +229,6 @@ export function MemberList({ members, hostId, pendingRequests }: { members: any[
                 {m.userId === hostId && <span title="Ekran kontrolü" style={{ display: 'inline-flex', marginLeft: 4, opacity: 0.7, color: 'var(--text-muted)' }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line><line x1="2" y1="7" x2="7" y2="7"></line><line x1="2" y1="17" x2="7" y2="17"></line><line x1="17" y1="17" x2="22" y2="17"></line><line x1="17" y1="7" x2="22" y2="7"></line></svg></span>}
               </div>
             </div>
-            {isHost && m.userId !== hostId && (
-              <button onClick={() => handleTransferHost(m.userId)} className="btn btn--ghost" style={{ padding: '6px', color: 'var(--text-muted)' }} title="Host Yap">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-              </button>
-            )}
             <div className={`member__status member__status--${m.presence?.isConnected ? 'online' : 'offline'}`} />
           </div>
         );

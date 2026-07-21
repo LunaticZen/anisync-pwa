@@ -104,7 +104,8 @@ export function RoomVideoArea({
   const bgTertiary = activeTheme.isImage ? 'rgba(0,0,0,0.2)' : 'var(--bg-tertiary)';
 
   // Mobile modes: video is rendered natively, so if there is a URL, don't render React video area
-  if (isMobile && currentUrl) {
+  // EXCEPT if they opened the URL input bar to change it.
+  if (isMobile && currentUrl && !showUrlInput) {
     return null;
   }
 
@@ -112,7 +113,7 @@ export function RoomVideoArea({
   return (
     <>
       {/* URL Input Bar (pre-anime) — Multi-platform support */}
-      {(showUrlInput || isMobile) && !currentUrl && (
+      {(showUrlInput || (isMobile && !currentUrl)) && (
         <div style={{ padding: '8px 16px', background: bgTertiary, borderBottom: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 6 }}>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <input className="form-input" value={animeUrl} onChange={e => onAnimeUrlChange(e.target.value)}
