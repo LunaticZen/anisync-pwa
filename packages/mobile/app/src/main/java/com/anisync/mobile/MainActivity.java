@@ -545,17 +545,20 @@ public class MainActivity extends AppCompatActivity {
                         ".adsbygoogle,ins.adsbygoogle,[class*=\\\"AdContainer\\\"],[class*=\\\"ad_wrapper\\\"]," +
                         "div[data-ad],div[data-ads],iframe[src*=\\\"doubleclick\\\"],iframe[src*=\\\"googlesyndication\\\"]," +
                         "[class*=\\\"overlay\\\"]:not(video):not([class*=\\\"player\\\"])," +
-                        "[class*=\\\"modal\\\"]:not([class*=\\\"player\\\"])," +
-                        "a[target=\\\"_blank\\\"][rel*=\\\"noopener\\\"]" +
+                        "[class*=\\\"modal\\\"]:not([class*=\\\"player\\\"])" +
                         "{display:none!important;height:0!important;overflow:hidden!important;}';" +
                         "document.head.appendChild(s);" +
-                        // Popup blocker
-                        "window.open=function(){return null;};" +
+                        // Popup blocker & navigator: redirect new windows to current frame
+                        "window.open=function(u){if(u)window.location.href=u;return null;};" +
                         "document.addEventListener('click',function(e){" +
                         "  var t=e.target;" +
-                        "  if(t.tagName==='A'&&t.target==='_blank'&&t.href&&" +
-                        "    (t.href.indexOf('ad')>-1||t.href.indexOf('click')>-1||t.href.indexOf('track')>-1)){" +
-                        "    e.preventDefault();e.stopPropagation();" +
+                        "  while(t && t.tagName!=='A') t=t.parentElement;" +
+                        "  if(t&&t.tagName==='A'&&t.target==='_blank'&&t.href){" +
+                        "    if(t.href.indexOf('ad')>-1||t.href.indexOf('click')>-1||t.href.indexOf('track')>-1){" +
+                        "      e.preventDefault();e.stopPropagation();" +
+                        "    } else {" +
+                        "      e.preventDefault();window.location.href=t.href;" +
+                        "    }" +
                         "  }" +
                         "},true);" +
                         // Video letterbox CSS (no MutationObserver — CSS !important is sufficient)
