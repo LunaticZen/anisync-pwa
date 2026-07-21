@@ -49,6 +49,10 @@ export default function RoomPage() {
 
   useEffect(() => {
     if (isElectron && currentUrl) {
+      if ((window as any).__urlChangeFromWebview === currentUrl) {
+        (window as any).__urlChangeFromWebview = null;
+        return;
+      }
       (window as any).anisync.anime.navigate(currentUrl);
       setAnimeLoaded(true);
       setTimeout(syncBoundsToElectron, 100);
@@ -88,6 +92,7 @@ export default function RoomPage() {
       if (!socket || !currentRoom) return;
       const current = useSyncStore.getState().currentUrl;
       if (newUrl !== current && newUrl !== 'about:blank') {
+        (window as any).__urlChangeFromWebview = newUrl;
         socket.emit('sync:url-changed', { roomId: currentRoom.id, url: newUrl });
         useSyncStore.getState().setCurrentUrl(newUrl);
       }
@@ -175,6 +180,10 @@ export default function RoomPage() {
   // ── Mobile: Open anime via bridge ──
   useEffect(() => {
     if (isMobile && currentUrl) {
+      if ((window as any).__urlChangeFromWebview === currentUrl) {
+         (window as any).__urlChangeFromWebview = null;
+         return;
+      }
       if ((window as any).AniSyncBridge?.openAnime) {
         (window as any).AniSyncBridge.openAnime(currentUrl);
       } else {
@@ -261,6 +270,7 @@ export default function RoomPage() {
       const socket = getSocket();
       const current = useSyncStore.getState().currentUrl;
       if (socket && newUrl !== current && newUrl !== 'about:blank') {
+        (window as any).__urlChangeFromWebview = newUrl;
         socket.emit('sync:url-changed', { roomId: currentRoom.id, url: newUrl });
         useSyncStore.getState().setCurrentUrl(newUrl);
       }
