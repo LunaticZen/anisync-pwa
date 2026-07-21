@@ -287,6 +287,8 @@ export interface Toast {
   title: string;
   message?: string;
   duration?: number;
+  onClick?: () => void;
+  actionLabel?: string;
 }
 
 let toastCounter = 0;

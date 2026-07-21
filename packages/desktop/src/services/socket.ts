@@ -286,7 +286,15 @@ export function connectSocket(username: string): TypedSocket {
       userId: data.userId, username: data.username, avatar: data.avatar || null,
       roomId: data.roomId, timestamp: data.timestamp,
     });
-    useUIStore.getState().addToast({ type: 'info', title: 'Katılma isteği', message: `${data.username} odaya katılmak istiyor` });
+    useUIStore.getState().addToast({
+      type: 'info', title: 'Katılma isteği', message: `${data.username} odaya katılmak istiyor`,
+      duration: 15000,
+      actionLabel: 'Onayla',
+      onClick: () => {
+        socket.emit('room:approve-join', { roomId: data.roomId, userId: data.userId });
+        useRoomStore.getState().removePendingRequest(data.userId);
+      }
+    });
   });
   (socket as any).on('room:request-cancelled', (data: any) => {
     useRoomStore.getState().removePendingRequest(data.userId);
