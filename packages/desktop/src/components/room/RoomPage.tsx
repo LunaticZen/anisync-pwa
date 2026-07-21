@@ -194,18 +194,23 @@ export default function RoomPage() {
     let lastSyncTime = 0;
     let lastHostTime = 0;
 
+    let ignoreUntil = 0;
+
     const onPlay = (d: any) => {
       if (d.originUserId === useAuthStore.getState().username) return;
+      ignoreUntil = Date.now() + 1500;
       bridge.controlAnime('seek', d.time || 0);
       bridge.controlAnime('play', d.time || 0);
     };
     const onPause = (d: any) => {
       if (d.originUserId === useAuthStore.getState().username) return;
+      ignoreUntil = Date.now() + 1500;
       bridge.controlAnime('seek', d.time || 0);
       bridge.controlAnime('pause', d.time || 0);
     };
     const onSeek = (d: any) => {
       if (d.originUserId === useAuthStore.getState().username) return;
+      ignoreUntil = Date.now() + 1500;
       bridge.controlAnime('seek', d.time || 0);
     };
     const onTimecheck = (d: any) => {
@@ -217,16 +222,29 @@ export default function RoomPage() {
       lastHostTime = d.time;
       lastSyncTime = now;
       if (hostDrift > 0.5) {
+        ignoreUntil = Date.now() + 1500;
         bridge.controlAnime('seek', d.time || 0);
       }
       if (d.playing) bridge.controlAnime('play', d.time || 0);
     };
 
+    const onMobileSyncEvent = (e: MessageEvent) => {
+      if (e.data?.type === 'mobile:sync-event') {
+        if (Date.now() < ignoreUntil) return; // Prevent echo loops
+        const { eventType, time } = e.data;
+        if (eventType === 'play') socket.emit('sync:play', { roomId: currentRoom.id, time, generation: Date.now() });
+        else if (eventType === 'pause') socket.emit('sync:pause', { roomId: currentRoom.id, time, generation: Date.now() });
+        else if (eventType === 'seek') socket.emit('sync:seek', { roomId: currentRoom.id, time, generation: Date.now() });
+      }
+    };
+
+    window.addEventListener('message', onMobileSyncEvent);
     socket.on('sync:play', onPlay);
     socket.on('sync:pause', onPause);
     socket.on('sync:seek', onSeek);
     socket.on('sync:timecheck', onTimecheck);
     return () => {
+      window.removeEventListener('message', onMobileSyncEvent);
       socket.off('sync:play', onPlay);
       socket.off('sync:pause', onPause);
       socket.off('sync:seek', onSeek);

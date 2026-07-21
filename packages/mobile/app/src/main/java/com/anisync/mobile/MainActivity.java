@@ -209,6 +209,18 @@ public class MainActivity extends AppCompatActivity {
         animeWebView.setLayerType(View.LAYER_TYPE_NONE, null);
         appLog("Anime WebView layer: NONE (allows HW video surfaces)");
 
+        animeWebView.addJavascriptInterface(new Object() {
+            @android.webkit.JavascriptInterface
+            public void sendEvent(String type, double time) {
+                if (mainWebView != null) {
+                    mainWebView.post(() -> {
+                        String js = "window.postMessage({ type: 'mobile:sync-event', eventType: '" + type + "', time: " + time + " }, '*');";
+                        mainWebView.evaluateJavascript(js, null);
+                    });
+                }
+            }
+        }, "AniSyncAnimeBridge");
+
         setupAnimeWebView();
     }
 
@@ -535,7 +547,23 @@ public class MainActivity extends AppCompatActivity {
                         "    window.__mobileVideoTime = e.data.time;" +
                         "    window.__mobileVideoPlaying = e.data.playing;" +
                         "  }" +
-                        "});" : "") +
+                        "  if (e.data && e.data.anisyncEvent && window.AniSyncAnimeBridge) {" +
+                        "    window.AniSyncAnimeBridge.sendEvent(e.data.anisyncEvent, e.data.time);" +
+                        "  }" +
+                        "});" +
+                        "setInterval(function() {" +
+                        "  var v = document.querySelector('video');" +
+                        "  if (v && !v.__anisyncAttached) {" +
+                        "    v.__anisyncAttached = true;" +
+                        "    var send = function(type) { " +
+                        "      if(window.AniSyncAnimeBridge) window.AniSyncAnimeBridge.sendEvent(type, v.currentTime);" +
+                        "      else if(window.parent) window.parent.postMessage({ anisyncEvent: type, time: v.currentTime }, '*');" +
+                        "    };" +
+                        "    v.addEventListener('play', function(){ send('play'); });" +
+                        "    v.addEventListener('pause', function(){ send('pause'); });" +
+                        "    v.addEventListener('seeked', function(){ send('seek'); });" +
+                        "  }" +
+                        "}, 1000);" : "") +
                         "})();";
                 view.evaluateJavascript(allInjects, null);
 
@@ -605,6 +633,16 @@ public class MainActivity extends AppCompatActivity {
                                         "});" +
                                         "setInterval(function() {" +
                                         "  var v = document.querySelector('video');" +
+                                        "  if (v && !v.__anisyncAttached) {" +
+                                        "    v.__anisyncAttached = true;" +
+                                        "    var send = function(type) { " +
+                                        "      if(window.AniSyncAnimeBridge) window.AniSyncAnimeBridge.sendEvent(type, v.currentTime);" +
+                                        "      else if(window.parent) window.parent.postMessage({ anisyncEvent: type, time: v.currentTime }, '*');" +
+                                        "    };" +
+                                        "    v.addEventListener('play', function(){ send('play'); });" +
+                                        "    v.addEventListener('pause', function(){ send('pause'); });" +
+                                        "    v.addEventListener('seeked', function(){ send('seek'); });" +
+                                        "  }" +
                                         "  if (v && window.parent) {" +
                                         "     window.parent.postMessage({" +
                                         "        anisyncState: true," +
