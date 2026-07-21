@@ -5,7 +5,7 @@
 // ═══════════════════════════════════════════════════════════════
 
 import React from 'react';
-import { useAuthStore, useUIStore } from '../../stores';
+import { useAuthStore, useUIStore, useRoomStore } from '../../stores';
 import {
   isXiaomi, isMobile,
   TOUCH_SIZE, HEADER_PAD, ANIM_SPEED, ICON_SIZE, FONT_HEADER, SAFE_TOP,
@@ -45,6 +45,7 @@ export function RoomHeader({
 }: RoomHeaderProps) {
   const avatar = useAuthStore(s => s.avatar);
   const myUsername = useAuthStore(s => s.username);
+  const currentRoom = useRoomStore(s => s.currentRoom);
 
   const isDesktop = mode === 'desktop';
   const isLandscape = mode === 'mobile-landscape';
