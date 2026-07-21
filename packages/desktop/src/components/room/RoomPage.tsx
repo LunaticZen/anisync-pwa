@@ -110,6 +110,7 @@ export default function RoomPage() {
 
     const eventPoll = setInterval(async () => {
       try {
+        if (useRoomStore.getState().currentRoom?.hostId !== useAuthStore.getState().username) return;
         const event = await (window as any).anisync.player.getEvent();
         if (event && event.ts > lastEventTs && Date.now() > ignoreUntil) {
           lastEventTs = event.ts;
@@ -123,6 +124,7 @@ export default function RoomPage() {
 
     const timecheckPoll = setInterval(async () => {
       try {
+        if (useRoomStore.getState().currentRoom?.hostId !== useAuthStore.getState().username) return;
         const state = await (window as any).anisync.player.getState();
         if (!state || state.time === undefined) return;
         socket.emit('sync:timecheck', {
@@ -130,7 +132,7 @@ export default function RoomPage() {
           playing: state.state === 'playing', userId: useAuthStore.getState().username,
         });
       } catch { }
-    }, 2000);
+    }, 1000);
 
     const onPlay = (d: any) => {
       if (d.originUserId === useAuthStore.getState().username) return;
@@ -154,12 +156,14 @@ export default function RoomPage() {
       if (d.userId === useAuthStore.getState().username) return;
       (window as any).anisync.player.getState().then((state: any) => {
         if (!state || state.time === undefined) return;
-        if (Math.abs(state.time - d.time) > 1.0) {
+        const drift = Math.abs(state.time - d.time);
+        if (drift > 1.5) {
           ignoreSync.current = Date.now() + 1500;
+          ignoreUntil = Date.now() + 1500;
           (window as any).anisync.player.seek(d.time);
-          if (d.playing && state.state !== 'playing') (window as any).anisync.player.play();
-          if (!d.playing && state.state === 'playing') (window as any).anisync.player.pause();
         }
+        if (d.playing && state.state !== 'playing') (window as any).anisync.player.play();
+        else if (!d.playing && state.state === 'playing') (window as any).anisync.player.pause();
       }).catch(() => { });
     };
 
@@ -225,25 +229,24 @@ export default function RoomPage() {
     const onTimecheck = (d: any) => {
       if (d.userId === useAuthStore.getState().username) return;
       const now = Date.now();
-      if (now - lastSyncTime < 8000) return;
-      const expectedHostTime = lastHostTime + (now - lastSyncTime) / 1000;
-      const hostDrift = Math.abs(d.time - expectedHostTime);
-      lastHostTime = d.time;
-      lastSyncTime = now;
-      if (hostDrift > 0.5) {
+      const hostDrift = Math.abs(d.time - ((window as any).__mobileVideoTime || 0));
+      if (hostDrift > 1.5) {
         ignoreUntil = Date.now() + 1500;
         bridge.controlAnime('seek', d.time || 0);
       }
-      if (d.playing) bridge.controlAnime('play', d.time || 0);
+      if (d.playing && !(window as any).__mobileVideoPlaying) bridge.controlAnime('play', d.time || 0);
+      else if (!d.playing && (window as any).__mobileVideoPlaying) bridge.controlAnime('pause', d.time || 0);
     };
 
     const onMobileSyncEvent = (e: MessageEvent) => {
       if (e.data?.type === 'mobile:sync-event') {
+        if (useRoomStore.getState().currentRoom?.hostId !== useAuthStore.getState().username) return;
         if (Date.now() < ignoreUntil) return; // Prevent echo loops
-        const { eventType, time } = e.data;
+        const { eventType, time, playing } = e.data;
         if (eventType === 'play') socket.emit('sync:play', { roomId: currentRoom.id, time, generation: Date.now() });
         else if (eventType === 'pause') socket.emit('sync:pause', { roomId: currentRoom.id, time, generation: Date.now() });
         else if (eventType === 'seek') socket.emit('sync:seek', { roomId: currentRoom.id, time, generation: Date.now() });
+        else if (eventType === 'timecheck') socket.emit('sync:timecheck', { roomId: currentRoom.id, time, playing, userId: useAuthStore.getState().username });
       }
     };
 

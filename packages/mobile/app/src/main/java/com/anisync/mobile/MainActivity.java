@@ -601,6 +601,11 @@ public class MainActivity extends AppCompatActivity {
                         "    v.addEventListener('pause', function(){ send('pause'); });" +
                         "    v.addEventListener('seeked', function(){ send('seek'); });" +
                         "  }" +
+                        "  if (v) {" +
+                        "    var type = 'timecheck';" +
+                        "    if(window.AniSyncAnimeBridge) window.AniSyncAnimeBridge.sendEvent(type, v.currentTime);" +
+                        "    else if(window.parent) window.parent.postMessage({ anisyncEvent: type, time: v.currentTime, playing: !v.paused }, '*');" +
+                        "  }" +
                         "}, 1000);" : "") +
                         "})();";
                 view.evaluateJavascript(allInjects, null);
