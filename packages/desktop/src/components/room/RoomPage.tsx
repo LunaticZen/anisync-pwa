@@ -749,6 +749,20 @@ export default function RoomPage() {
         {renderVideoBackground()}
         {renderBgLoader()}
         {/* Header hidden in landscape/fullscreen for clean video view */}
+        <RoomVideoArea
+          mode={mode}
+          currentUrl={currentUrl}
+          animeAreaRef={animeAreaRef}
+          animeLoaded={animeLoaded}
+          displayUrl={displayUrl}
+          onDisplayUrlChange={setDisplayUrl}
+          onNavUrlSubmit={handleNavUrlSubmit}
+          showUrlInput={showUrlInput}
+          animeUrl={animeUrl}
+          onAnimeUrlChange={setAnimeUrl}
+          onNavigate={handleNavigate}
+          onToggleUrlInput={() => setShowUrlInput(false)}
+        />
         <RoomChat
           mode={mode}
           roomId={currentRoom.id}
@@ -785,6 +799,20 @@ export default function RoomPage() {
         }} />}
         <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
           <RoomHeader {...headerProps} />
+          <RoomVideoArea
+            mode={mode}
+            currentUrl={currentUrl}
+            animeAreaRef={animeAreaRef}
+            animeLoaded={animeLoaded}
+            displayUrl={displayUrl}
+            onDisplayUrlChange={setDisplayUrl}
+            onNavUrlSubmit={handleNavUrlSubmit}
+            showUrlInput={showUrlInput}
+            animeUrl={animeUrl}
+            onAnimeUrlChange={setAnimeUrl}
+            onNavigate={handleNavigate}
+            onToggleUrlInput={() => setShowUrlInput(false)}
+          />
           <RoomChat
             mode={mode}
             roomId={currentRoom.id}
