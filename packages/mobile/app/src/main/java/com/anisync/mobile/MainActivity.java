@@ -517,7 +517,6 @@ public class MainActivity extends AppCompatActivity {
                         "},true);" +
                         // Video letterbox CSS (no MutationObserver — CSS !important is sufficient)
                         "var s2=document.createElement('style');" +
-                        "s2.id='anisync-letterbox';" +
                         "s2.textContent='video{object-fit:contain!important;max-width:100%!important;max-height:100%!important;}';" +
                         "document.head.appendChild(s2);" +
                         // CORS Bypass: Bridge state from iframe to React app
@@ -529,12 +528,7 @@ public class MainActivity extends AppCompatActivity {
                         "    window.__mobileVideoTime = e.data.time;" +
                         "    window.__mobileVideoPlaying = e.data.playing;" +
                         "  }" +
-                        "});" +
-                        "window.anisync = window.anisync || {};" +
-                        "window.anisync.player = window.anisync.player || {" +
-                        "  getState: function() { return Promise.resolve({ time: window.__mobileVideoTime, state: window.__mobileVideoPlaying ? 'playing' : 'paused' }); }," +
-                        "  getEvent: function() { return Promise.resolve(null); }" +
-                        "};" : "") +
+                        "});" : "") +
                         "})();";
                 view.evaluateJavascript(allInjects, null);
 
