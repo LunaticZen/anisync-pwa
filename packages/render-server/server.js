@@ -608,6 +608,27 @@ io.on('connection', (socket) => {
     console.log(`[Room] ${pending.username} rejected from ${room.name} by ${username}`);
   });
 
+  // ── Transfer Host (host only) ──
+  socket.on('room:transfer-host', (data) => {
+    const roomId = data.roomId;
+    const targetUserId = data.targetUserId;
+    if (!roomId || !rooms.has(roomId)) return;
+    const room = rooms.get(roomId);
+    if (room.hostId !== userId) return; // Only current host can transfer
+    
+    // Check if target user is in room
+    if (!room.members.has(targetUserId)) return;
+
+    // Update roles
+    room.hostId = targetUserId;
+    room.members.get(userId).role = 'viewer';
+    room.members.get(targetUserId).role = 'host';
+
+    io.to(roomId).emit('room:host-transferred', { newHostId: targetUserId });
+    io.to(roomId).emit('chat:system', { text: `Hostluk yetkisi devredildi` });
+    console.log(`[Room] Host transferred to ${targetUserId} by ${username} in ${room.name}`);
+  });
+
   // ── Cancel Join Request (requester cancels) ──
   socket.on('room:cancel-request', (data) => {
     const pendingKey = `${data.roomId}:${userId}`;

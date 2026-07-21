@@ -112,7 +112,7 @@ export function RoomVideoArea({
   return (
     <>
       {/* URL Input Bar (pre-anime) — Multi-platform support */}
-      {showUrlInput && !currentUrl && (
+      {(showUrlInput || isMobile) && !currentUrl && (
         <div style={{ padding: '8px 16px', background: bgTertiary, borderBottom: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 6 }}>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <input className="form-input" value={animeUrl} onChange={e => onAnimeUrlChange(e.target.value)}
