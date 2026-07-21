@@ -154,6 +154,24 @@ export async function leaveRoom(userId: string, roomId: string): Promise<{ roomC
   return { roomClosed: false };
 }
 
+export function transferHost(roomId: string, currentHostId: string, newHostId: string): boolean {
+  const room = rooms.get(roomId);
+  if (!room) return false;
+  
+  const currentHost = room.members.get(currentHostId);
+  if (!currentHost || currentHost.role !== 'host') return false;
+  
+  const newHost = room.members.get(newHostId);
+  if (!newHost) return false;
+
+  room.hostId = newHostId;
+  currentHost.role = 'viewer';
+  newHost.role = 'host';
+  
+  console.log(`[Room] Host transferred to ${newHostId} by ${currentHostId} in ${room.name}`);
+  return true;
+}
+
 export async function kickMember(roomId: string, targetUserId: string, byUserId: string) {
   const room = rooms.get(roomId);
   if (!room) throw new RoomError('ROOM_NOT_FOUND', 'Oda bulunamadı');

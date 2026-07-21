@@ -31,6 +31,14 @@ export function MemberPopup({ members, onClose, pendingRequests, hostId }: { mem
     (socket as any)?.emit('room:reject-join', { roomId: req.roomId, userId: req.userId });
     useRoomStore.getState().removePendingRequest(req.userId);
   };
+  const handleTransferHost = (targetUserId: string) => {
+    const currentRoom = useRoomStore.getState().currentRoom;
+    if (!currentRoom) return;
+    const socket = getSocket();
+    (socket as any)?.emit('room:transfer-host', { roomId: currentRoom.id, targetUserId });
+    setIsClosing(true);
+    setTimeout(onClose, 200);
+  };
 
   return (
     <>
@@ -107,6 +115,13 @@ export function MemberPopup({ members, onClose, pendingRequests, hostId }: { mem
                 <div style={{ fontWeight: 600, fontSize: 13 }}>{name}</div>
                 {m.role === 'host' && <span style={{ fontSize: 10, color: '#5b7cff', fontWeight: 700 }}>HOST</span>}
               </div>
+              {isHost && m.userId !== hostId && (
+                <button onClick={() => handleTransferHost(m.userId)} style={{
+                  background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: activeTheme.isLight ? '#64748b' : '#94a3b8', display: 'flex'
+                }} title="Host Yap">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                </button>
+              )}
               <div style={{
                 width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
                 background: m.presence?.isConnected ? '#22c55e' : '#475569',
@@ -134,6 +149,12 @@ export function MemberList({ members, hostId, pendingRequests }: { members: any[
     const socket = getSocket();
     (socket as any)?.emit('room:reject-join', { roomId: req.roomId, userId: req.userId });
     useRoomStore.getState().removePendingRequest(req.userId);
+  };
+  const handleTransferHost = (targetUserId: string) => {
+    const currentRoom = useRoomStore.getState().currentRoom;
+    if (!currentRoom) return;
+    const socket = getSocket();
+    (socket as any)?.emit('room:transfer-host', { roomId: currentRoom.id, targetUserId });
   };
 
   return (
@@ -199,6 +220,11 @@ export function MemberList({ members, hostId, pendingRequests }: { members: any[
                 {m.userId === hostId && <span title="Ekran kontrolü" style={{ display: 'inline-flex', marginLeft: 4, opacity: 0.7, color: 'var(--text-muted)' }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line><line x1="2" y1="7" x2="7" y2="7"></line><line x1="2" y1="17" x2="7" y2="17"></line><line x1="17" y1="17" x2="22" y2="17"></line><line x1="17" y1="7" x2="22" y2="7"></line></svg></span>}
               </div>
             </div>
+            {isHost && m.userId !== hostId && (
+              <button onClick={() => handleTransferHost(m.userId)} className="btn btn--ghost" style={{ padding: '6px', color: 'var(--text-muted)' }} title="Host Yap">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+              </button>
+            )}
             <div className={`member__status member__status--${m.presence?.isConnected ? 'online' : 'offline'}`} />
           </div>
         );
@@ -1044,6 +1070,36 @@ export function RoomModals({
       {showProfileModal && (
         <div style={wrap}>
           <RoomProfileModal onClose={onCloseProfile} />
+        </div>
+      )}
+      
+      {/* Floating Join Requests (Mobile) */}
+      {!showMembers && pendingJoinRequests && pendingJoinRequests.length > 0 && mode !== 'desktop' && (
+        <div style={{ ...wrap, position: 'fixed', top: 64, left: '50%', transform: 'translateX(-50%)', zIndex: 999 }}>
+          <div style={{
+            background: 'rgba(15, 23, 42, 0.85)', backdropFilter: 'blur(12px)',
+            border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12,
+            padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: 6,
+            boxShadow: '0 8px 32px rgba(0,0,0,0.5)', width: '90vw', maxWidth: 320,
+            pointerEvents: 'auto'
+          }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: 0.5, display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#f59e0b', animation: 'pulse 2s ease-in-out infinite' }} />
+              Katılma İstekleri ({pendingJoinRequests.length})
+            </div>
+            {pendingJoinRequests.slice(0, 2).map(req => (
+              <div key={req.userId} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ flex: 1, fontSize: 13, fontWeight: 600, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{req.username}</div>
+                <button onClick={() => { getSocket()?.emit('room:approve-join', { roomId: req.roomId, userId: req.userId }); useRoomStore.getState().removePendingRequest(req.userId); }} style={{ background: '#22c55e', border: 'none', borderRadius: 6, color: 'white', padding: '4px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>Onayla</button>
+                <button onClick={() => { getSocket()?.emit('room:reject-join', { roomId: req.roomId, userId: req.userId }); useRoomStore.getState().removePendingRequest(req.userId); }} style={{ background: '#ef4444', border: 'none', borderRadius: 6, color: 'white', padding: '4px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>Reddet</button>
+              </div>
+            ))}
+            {pendingJoinRequests.length > 2 && (
+              <div style={{ fontSize: 10, color: 'var(--text-muted)', textAlign: 'center', marginTop: 2 }}>
+                +{pendingJoinRequests.length - 2} istek daha var (Üyeler menüsünden bak)
+              </div>
+            )}
+          </div>
         </div>
       )}
     </>

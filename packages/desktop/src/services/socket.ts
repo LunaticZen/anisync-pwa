@@ -213,7 +213,11 @@ export function connectSocket(username: string): TypedSocket {
   socket.on('room:host-transferred', (data) => {
     const room = useRoomStore.getState().currentRoom;
     if (room) {
-      useRoomStore.getState().setRoom({ ...room, hostId: data.newHostId });
+      const updatedMembers = room.members.map(m => ({
+        ...m,
+        role: m.userId === data.newHostId ? 'host' : (m.role === 'host' ? 'viewer' : m.role)
+      }));
+      useRoomStore.getState().setRoom({ ...room, hostId: data.newHostId, members: updatedMembers });
     }
   });
 

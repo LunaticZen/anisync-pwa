@@ -103,8 +103,8 @@ export function RoomVideoArea({
   const hostId = currentRoom?.hostId;
   const bgTertiary = activeTheme.isImage ? 'rgba(0,0,0,0.2)' : 'var(--bg-tertiary)';
 
-  // Mobile modes: video is rendered natively, no React video area needed
-  if (isMobile) {
+  // Mobile modes: video is rendered natively, so if there is a URL, don't render React video area
+  if (isMobile && currentUrl) {
     return null;
   }
 

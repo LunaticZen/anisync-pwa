@@ -366,6 +366,21 @@ function registerDiscoveryHandlers(socket: TypedSocket) {
       callback({ rooms: [], total: 0, page: 1, hasMore: false });
     }
   });
+
+  socket.on('room:transfer-host', async (data) => {
+    try {
+      const success = roomService.transferHost(data.roomId, socket.data.userId, data.targetUserId);
+      if (success) {
+        io!.to(data.roomId).emit('room:host-transferred', { newHostId: data.targetUserId });
+        
+        io!.to(data.roomId).emit('chat:system', {
+          text: `Hostluk yetkisi devredildi`
+        });
+      }
+    } catch (err: any) {
+      console.error('[Gateway] Transfer host error:', err);
+    }
+  });
 }
 
 // ─── Helpers ──────────────────────────────────────────────────
