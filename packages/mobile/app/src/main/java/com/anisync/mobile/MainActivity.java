@@ -38,6 +38,7 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 import androidx.webkit.WebSettingsCompat;
 import androidx.webkit.WebViewFeature;
 
@@ -141,22 +142,19 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // Edge-to-Edge layout (transparent status and navigation bars)
+        // Edge-to-Edge layout (content draws behind system bars, handled via padding)
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         getWindow().setStatusBarColor(android.graphics.Color.TRANSPARENT);
         getWindow().setNavigationBarColor(android.graphics.Color.TRANSPARENT);
 
-
-
-        // PERF: FLAG_KEEP_SCREEN_ON removed from here — now only set during video playback
-        // to prevent battery drain when user is just chatting or on home screen.
+        // White icons on dark background
+        WindowInsetsControllerCompat insetsController = WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
+        insetsController.setAppearanceLightStatusBars(false);
+        insetsController.setAppearanceLightNavigationBars(false);
 
         // Detect Xiaomi / MIUI devices
         isXiaomiDevice = detectXiaomi();
         appLog("Device: " + Build.MANUFACTURER + " " + Build.MODEL + " | Xiaomi: " + isXiaomiDevice);
-
-        // PERF: KeepAliveService removed from onCreate — now started/stopped via JS Bridge
-        // when user joins/leaves a room. Prevents unnecessary foreground service when idle.
 
         rootLayout = new LinearLayout(this);
         rootLayout.setBackgroundColor(0xFF050816);
@@ -172,7 +170,8 @@ public class MainActivity extends AppCompatActivity {
             
             applySafeInsetsToWeb();
 
-            // Handle keyboard: if IME is open, pad the bottom of the root view!
+            // Native padding: bottom = keyboard when open, otherwise 0
+            // Top is handled by CSS via --safe-top so app background extends behind status bar
             int keyboardPadding = ime.bottom > systemBars.bottom ? ime.bottom : 0;
             v.setPadding(0, 0, 0, keyboardPadding);
             

@@ -293,7 +293,7 @@ export function RoomHeader({
       <div data-anisync-header="landscape" style={{
         position: 'absolute', top: 0, left: 0, right: 0,
         zIndex: 10, display: 'flex', alignItems: 'center',
-        padding: HEADER_PAD, paddingTop: `calc(var(--safe-top, 36px) + ${SAFE_TOP + 24}px)`, gap: isXiaomi ? 10 : 8,
+        padding: HEADER_PAD, paddingTop: `calc(var(--safe-top, 0px) + ${SAFE_TOP + 8}px)`, gap: isXiaomi ? 10 : 8,
         background: 'linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, transparent 100%)',
         pointerEvents: 'auto',
         minHeight: TOUCH_SIZE,
@@ -314,13 +314,13 @@ export function RoomHeader({
         display: 'flex', alignItems: 'center',
         gap: isKeyboardOpen ? 6 : (isXiaomi ? 10 : 8),
         padding: isKeyboardOpen ? '2px 8px' : HEADER_PAD,
-        paddingTop: isKeyboardOpen ? 2 : `calc(var(--safe-top, 44px) + ${SAFE_TOP + (isXiaomi ? 32 : 28)}px)`,
+        paddingTop: isKeyboardOpen ? 2 : `calc(var(--safe-top, 0px) + ${SAFE_TOP + 8}px)`,
         background: headerBg,
         backdropFilter: 'none',
         borderBottom: `1px solid ${effectiveIsLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.06)'}`,
         flexShrink: 0,
         transition: `background ${ANIM_SPEED} cubic-bezier(0.4, 0, 0.2, 1)`,
-        minHeight: isKeyboardOpen ? 28 : `calc(var(--safe-top, 32px) + ${TOUCH_SIZE}px)`,
+        minHeight: isKeyboardOpen ? 28 : `calc(var(--safe-top, 0px) + ${TOUCH_SIZE}px)`,
         overflow: 'hidden',
       }}>
         {renderBack()}
@@ -342,6 +342,7 @@ export function RoomHeader({
         background: headerBg, 
         transition: 'background 0.4s ease',
         padding: '8px 12px',
+        paddingTop: `calc(var(--safe-top, 28px) + 8px)`,
         minHeight: 'auto',
         display: 'flex',
         alignItems: 'center',

@@ -1258,7 +1258,7 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
         width: '100%',
         display: 'flex', alignItems: 'center',
         padding: isKeyboardOpen ? '4px 10px' : '8px 16px',
-        paddingBottom: isKeyboardOpen ? '4px' : 'max(8px, env(safe-area-inset-bottom, 8px))',
+        paddingBottom: isKeyboardOpen ? '4px' : 'calc(var(--safe-bottom, 8px) + 8px)',
         borderTop: (replyToMsg || editingMsg) ? 'none' : `1px solid ${activeTheme.isLight ? 'rgba(0,0,0,0.08)' : (activeTheme.isImage ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.06)')}`,
         background: activeTheme.menuBg, flexShrink: 0,
         backdropFilter: 'none',
