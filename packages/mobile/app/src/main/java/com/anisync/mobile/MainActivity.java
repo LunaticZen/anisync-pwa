@@ -400,9 +400,16 @@ public class MainActivity extends AppCompatActivity {
             return;
 
         if (ENABLE_CROSS_ORIGIN_SYNC) {
-            // Yeni Yöntem: Bütün iframe'lere postMessage ile yaylım ateşi (Broadcast)
             String js = "(function(){" +
-                "  var msg = { anisyncCmd: '" + command + "', time: " + time + " };" +
+                "  var cmd = '" + command + "', t = " + time + ";" +
+                "  var v = document.querySelector('video');" +
+                "  if(!v){var fs=document.querySelectorAll('iframe');for(var i=0;i<fs.length;i++){try{v=fs[i].contentDocument.querySelector('video');if(v)break;}catch(e){}}}" +
+                "  if(v){" +
+                "    if(cmd==='play') v.play();" +
+                "    else if(cmd==='pause') v.pause();" +
+                "    else if(cmd==='seek') v.currentTime=t;" +
+                "  }" +
+                "  var msg = { anisyncCmd: cmd, time: t };" +
                 "  for (var i=0; i<window.frames.length; i++) {" +
                 "    window.frames[i].postMessage(msg, '*');" +
                 "  }" +
