@@ -579,6 +579,17 @@ public class MainActivity extends AppCompatActivity {
                         "  }" +
                         "});" +
                         "setInterval(function() {" +
+                        "  var fs = document.querySelectorAll('iframe');" +
+                        "  for (var i=0; i<fs.length; i++) {" +
+                        "    var src = fs[i].src;" +
+                        "    if (src && src.startsWith('http') && !fs[i].__anisyncExtracted) {" +
+                        "      fs[i].__anisyncExtracted = true;" +
+                        "      var isVideoProvider = src.indexOf('video')>-1 || src.indexOf('player')>-1 || src.indexOf('embed')>-1 || src.indexOf('stream')>-1 || src.indexOf('vidmoly')>-1 || src.indexOf('tau')>-1;" +
+                        "      if (isVideoProvider && src.indexOf('animecix') === -1) {" +
+                        "        window.location.href = src;" +
+                        "      }" +
+                        "    }" +
+                        "  }" +
                         "  var v = document.querySelector('video');" +
                         "  if (v && !v.__anisyncAttached) {" +
                         "    v.__anisyncAttached = true;" +
@@ -615,91 +626,11 @@ public class MainActivity extends AppCompatActivity {
                             new ByteArrayInputStream("".getBytes()));
                 }
             
-                if (ENABLE_CROSS_ORIGIN_SYNC && !request.isForMainFrame()) {
-                    String url = request.getUrl().toString();
-                    String method = request.getMethod();
-                    java.util.Map<String, String> requestHeaders = request.getRequestHeaders();
-                    String acceptHeader = requestHeaders != null ? requestHeaders.get("Accept") : "";
-                    
-                    if (method.equalsIgnoreCase("GET") && acceptHeader != null && acceptHeader.contains("text/html")) {
-                        // Güvenlik: Reklam ve takip scripti iframe'lerini engelle (Ekstra koruma)
-                        if (!url.contains("google") && !url.contains("adsystem") && !url.contains("doubleclick")) {
-                            appLog("Intercepting Cross-Origin IFRAME for Sync: " + url);
-                            try {
-                                java.net.URL netUrl = new java.net.URL(url);
-                                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) netUrl.openConnection();
-                                conn.setRequestMethod("GET");
-                                if (requestHeaders != null) {
-                                    for (java.util.Map.Entry<String, String> entry : requestHeaders.entrySet()) {
-                                        conn.setRequestProperty(entry.getKey(), entry.getValue());
-                                    }
-                                }
-                                
-                                int responseCode = conn.getResponseCode();
-                                if (responseCode == java.net.HttpURLConnection.HTTP_OK) {
-                                    String contentType = conn.getContentType();
-                                    String encoding = conn.getContentEncoding();
-                                    if (encoding == null) encoding = "UTF-8";
-                                    
-                                    java.io.InputStream in = conn.getInputStream();
-                                    java.util.Scanner s = new java.util.Scanner(in, encoding).useDelimiter("\\A");
-                                    String html = s.hasNext() ? s.next() : "";
-                                    
-                                    // IFRAME İÇİNE ENJEKTE EDİLEN YAYLIM ATEŞİ DİNLEYİCİSİ VE BİLDİRİCİSİ
-                                    String playerScript = "<script>" +
-                                        "window.__anisync_injected = true;" +
-                                        "window.addEventListener('message', function(e) {" +
-                                        "  if (e.data && e.data.anisyncCmd) {" +
-                                        "    var v = document.querySelector('video');" +
-                                        "    if (v) {" +
-                                        "       if (e.data.anisyncCmd === 'play') v.play();" +
-                                        "       else if (e.data.anisyncCmd === 'pause') v.pause();" +
-                                        "       else if (e.data.anisyncCmd === 'seek') v.currentTime = e.data.time;" +
-                                        "    }" +
-                                        "  }" +
-                                        "});" +
-                                        "setInterval(function() {" +
-                                        "  var v = document.querySelector('video');" +
-                                        "  if (v && !v.__anisyncAttached) {" +
-                                        "    v.__anisyncAttached = true;" +
-                                        "    var send = function(type) { " +
-                                        "      if(window.AniSyncAnimeBridge) window.AniSyncAnimeBridge.sendEvent(type, v.currentTime);" +
-                                        "      else if(window.parent) window.parent.postMessage({ anisyncEvent: type, time: v.currentTime }, '*');" +
-                                        "    };" +
-                                        "    v.addEventListener('play', function(){ send('play'); });" +
-                                        "    v.addEventListener('pause', function(){ send('pause'); });" +
-                                        "    v.addEventListener('seeked', function(){ send('seek'); });" +
-                                        "  }" +
-                                        "  if (v && window.parent) {" +
-                                        "     window.parent.postMessage({" +
-                                        "        anisyncState: true," +
-                                        "        time: v.currentTime," +
-                                        "        playing: !v.paused" +
-                                        "     }, '*');" +
-                                        "  }" +
-                                        "}, 1000);" +
-                                        "</script>";
-                                    
-                                    html = html.replaceFirst("<head>", "<head>" + playerScript);
-                                    if (!html.contains("<head>")) {
-                                        html = playerScript + html; // Fallback
-                                    }
-                                    
-                                    java.io.InputStream newIn = new java.io.ByteArrayInputStream(html.getBytes(encoding));
-                                    
-                                    String mimeType = "text/html";
-                                    if (contentType != null && contentType.contains(";")) {
-                                        mimeType = contentType.split(";")[0].trim();
-                                    }
-                                    
-                                    return new WebResourceResponse(mimeType, encoding, newIn);
-                                }
-                            } catch (Exception e) {
-                                appLogError("Iframe interception failed: " + e.getMessage());
-                            }
-                        }
-                    }
-                }
+                // We no longer intercept iframes with HttpURLConnection because it strips Chromium fingerprints/cookies 
+                // and causes Cloudflare challenges to fail, resulting in black screens.
+                // Instead, the JS injected into the main page (above) will detect the iframe and automatically redirect 
+                // the main WebView to the iframe's URL. Once the main WebView navigates to the video provider, 
+                // onPageFinished will inject the sync script natively.
                 return super.shouldInterceptRequest(view, request);
             }
 
