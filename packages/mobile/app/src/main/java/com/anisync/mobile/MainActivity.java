@@ -549,6 +549,16 @@ public class MainActivity extends AppCompatActivity {
             // Samsung's WebView is more lenient. For anime content, strict SSL is unnecessary.
             @Override
             public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                String host = request.getUrl().getHost();
+                String path = request.getUrl().getPath();
+                
+                // Ad Blocker Logic
+                if (isAdDomain(host) || (path != null && (path.contains("/ads/") || path.contains("/ad/") ||
+                        path.contains("/banner") || path.contains("/popup")))) {
+                    return new WebResourceResponse("text/plain", "utf-8",
+                            new ByteArrayInputStream("".getBytes()));
+                }
+            
                 if (ENABLE_CROSS_ORIGIN_SYNC && !request.isForMainFrame()) {
                     String url = request.getUrl().toString();
                     String method = request.getMethod();
@@ -556,7 +566,7 @@ public class MainActivity extends AppCompatActivity {
                     String acceptHeader = requestHeaders != null ? requestHeaders.get("Accept") : "";
                     
                     if (method.equalsIgnoreCase("GET") && acceptHeader != null && acceptHeader.contains("text/html")) {
-                        // Güvenlik: Reklam ve takip scripti iframe'lerini engelle
+                        // Güvenlik: Reklam ve takip scripti iframe'lerini engelle (Ekstra koruma)
                         if (!url.contains("google") && !url.contains("adsystem") && !url.contains("doubleclick")) {
                             appLog("Intercepting Cross-Origin IFRAME for Sync: " + url);
                             try {
@@ -658,21 +668,7 @@ public class MainActivity extends AppCompatActivity {
                 return false;
             }
 
-            @Override
-            public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
-                String host = request.getUrl().getHost();
-                if (isAdDomain(host)) {
-                    return new WebResourceResponse("text/plain", "utf-8",
-                            new ByteArrayInputStream("".getBytes()));
-                }
-                String path = request.getUrl().getPath();
-                if (path != null && (path.contains("/ads/") || path.contains("/ad/") ||
-                        path.contains("/banner") || path.contains("/popup"))) {
-                    return new WebResourceResponse("text/plain", "utf-8",
-                            new ByteArrayInputStream("".getBytes()));
-                }
-                return super.shouldInterceptRequest(view, request);
-            }
+
 
             @Override
             public boolean onRenderProcessGone(WebView view, RenderProcessGoneDetail detail) {
