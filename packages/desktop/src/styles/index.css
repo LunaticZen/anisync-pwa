@@ -105,10 +105,8 @@
 }
 
 :root {
-  /* Native-safe variables are injected by Android via evaluateJavascript */
-  --safe-top: var(--native-safe-top, env(safe-area-inset-top, 28px));
-  /* VirtualKeyboard API first (for 60fps smooth animation), then fallback to native safe-bottom */
-  --safe-bottom: env(keyboard-inset-bottom, var(--native-safe-bottom, env(safe-area-inset-bottom, 0px)));
+  --safe-top: env(safe-area-inset-top, 28px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
   --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
   --radius: 24px;

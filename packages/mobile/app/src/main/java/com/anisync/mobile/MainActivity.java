@@ -172,10 +172,10 @@ public class MainActivity extends AppCompatActivity {
             
             applySafeInsetsToWeb();
 
-            // Native padding: 0 for both top and bottom.
-            // Top is handled by CSS via --safe-top
-            // Bottom is handled by CSS via virtual keyboard API or --safe-bottom
-            v.setPadding(0, 0, 0, 0);
+            // Native padding: bottom = keyboard when open, otherwise 0
+            // Top is handled by CSS via --safe-top so app background extends behind status bar
+            int keyboardPadding = ime.bottom > systemBars.bottom ? ime.bottom : 0;
+            v.setPadding(0, 0, 0, keyboardPadding);
             
             return windowInsets;
         });
@@ -239,8 +239,8 @@ public class MainActivity extends AppCompatActivity {
     private void applySafeInsetsToWeb() {
         if (mainWebView != null) {
             mainWebView.evaluateJavascript(
-                "document.documentElement.style.setProperty('--native-safe-top', '" + safeInsetTop + "px');" +
-                "document.documentElement.style.setProperty('--native-safe-bottom', '" + safeInsetBottom + "px');", 
+                "document.documentElement.style.setProperty('--safe-top', '" + safeInsetTop + "px');" +
+                "document.documentElement.style.setProperty('--safe-bottom', '" + safeInsetBottom + "px');", 
                 null
             );
         }
