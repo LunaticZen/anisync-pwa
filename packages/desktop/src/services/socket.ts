@@ -289,9 +289,13 @@ export function connectSocket(username: string): TypedSocket {
     useUIStore.getState().addToast({
       type: 'info', title: 'Katılma isteği', message: `${data.username} odaya katılmak istiyor`,
       duration: 15000,
-      actionLabel: 'Onayla',
+      imageUrl: data.avatar || null,
       onClick: () => {
         socket.emit('room:approve-join', { roomId: data.roomId, userId: data.userId });
+        useRoomStore.getState().removePendingRequest(data.userId);
+      },
+      onReject: () => {
+        socket.emit('room:reject-join', { roomId: data.roomId, userId: data.userId });
         useRoomStore.getState().removePendingRequest(data.userId);
       }
     });

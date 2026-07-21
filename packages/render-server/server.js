@@ -708,6 +708,18 @@ function handleLeave(socket, useGrace = false) {
     userId, presence: { isConnected: false, isBuffering: false, currentTime: 0, lastHeartbeat: Date.now() },
   });
 
+  // If the disconnected user is the host, auto-transfer to an active member immediately
+  if (room.hostId === userId) {
+    const nextHost = Array.from(room.members.values()).find(m => m.userId !== userId && !m.disconnected);
+    if (nextHost) {
+      room.hostId = nextHost.userId;
+      nextHost.role = 'host';
+      member.role = 'viewer';
+      io.to(roomId).emit('room:host-transferred', { newHostId: nextHost.userId });
+      console.log(`[Room] Host auto-transferred to ${nextHost.username} because ${username} disconnected`);
+    }
+  }
+
   socket.leave(roomId);
   socket.roomId = undefined;
 
@@ -737,10 +749,13 @@ function handleLeave(socket, useGrace = false) {
       console.log(`[Room] Closed: ${currentRoom.name}`);
     } else {
       if (currentRoom.hostId === userId) {
-        const newHost = currentRoom.members.keys().next().value;
-        currentRoom.hostId = newHost;
-        currentRoom.members.get(newHost).role = 'host';
-        io.to(roomId).emit('room:host-transferred', { newHostId: newHost });
+        let newHost = Array.from(currentRoom.members.values()).find(m => !m.disconnected)?.userId;
+        if (!newHost) newHost = currentRoom.members.keys().next().value; // Fallback
+        if (newHost) {
+          currentRoom.hostId = newHost;
+          currentRoom.members.get(newHost).role = 'host';
+          io.to(roomId).emit('room:host-transferred', { newHostId: newHost });
+        }
       }
       io.to(roomId).emit('room:member-left', { userId, reason: 'timeout' });
       io.to(roomId).emit('chat:system', { text: `${username} bağlantısı koptu` });
@@ -771,10 +786,13 @@ function performLeave(room, roomId, socket) {
     console.log(`[Room] Closed: ${room.name}`);
   } else {
     if (room.hostId === userId) {
-      const newHost = room.members.keys().next().value;
-      room.hostId = newHost;
-      room.members.get(newHost).role = 'host';
-      io.to(roomId).emit('room:host-transferred', { newHostId: newHost });
+      let newHost = Array.from(room.members.values()).find(m => !m.disconnected)?.userId;
+      if (!newHost) newHost = room.members.keys().next().value;
+      if (newHost) {
+        room.hostId = newHost;
+        room.members.get(newHost).role = 'host';
+        io.to(roomId).emit('room:host-transferred', { newHostId: newHost });
+      }
     }
     socket.to(roomId).emit('room:member-left', { userId, reason: 'left' });
     socket.to(roomId).emit('chat:system', { text: `${username} ayrıldı` });

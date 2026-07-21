@@ -289,6 +289,8 @@ export interface Toast {
   duration?: number;
   onClick?: () => void;
   actionLabel?: string;
+  imageUrl?: string | null;
+  onReject?: () => void;
 }
 
 let toastCounter = 0;
