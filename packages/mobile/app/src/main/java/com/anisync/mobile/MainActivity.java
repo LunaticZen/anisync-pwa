@@ -57,6 +57,9 @@ public class MainActivity extends AppCompatActivity {
     private static final String SERVER_URL = "https://anisync-9z1z.onrender.com";
     private static final int FILE_CHOOSER_REQUEST = 1001;
 
+    // Mobil video senkronizasyonunu (CORS bypass - HTML Interception) açıp kapatan ana şalter
+    private static final boolean ENABLE_CROSS_ORIGIN_SYNC = true;
+
     private WebView mainWebView;
     private WebView animeWebView;
     private LinearLayout rootLayout;
@@ -396,33 +399,45 @@ public class MainActivity extends AppCompatActivity {
         if (animeWebView == null || !animeVisible)
             return;
 
-        String js;
-        switch (command) {
-            case "play":
-                js = "(function(){" +
-                        "  var v = document.querySelector('video');" +
-                        "  if(!v){var fs=document.querySelectorAll('iframe');for(var i=0;i<fs.length;i++){try{v=fs[i].contentDocument.querySelector('video');if(v)break;}catch(e){}}}" +
-                        "  if(v){v.currentTime=" + time + ";v.play();}" +
-                        "})()";
-                break;
-            case "pause":
-                js = "(function(){" +
-                        "  var v = document.querySelector('video');" +
-                        "  if(!v){var fs=document.querySelectorAll('iframe');for(var i=0;i<fs.length;i++){try{v=fs[i].contentDocument.querySelector('video');if(v)break;}catch(e){}}}" +
-                        "  if(v){v.currentTime=" + time + ";v.pause();}" +
-                        "})()";
-                break;
-            case "seek":
-                js = "(function(){" +
-                        "  var v = document.querySelector('video');" +
-                        "  if(!v){var fs=document.querySelectorAll('iframe');for(var i=0;i<fs.length;i++){try{v=fs[i].contentDocument.querySelector('video');if(v)break;}catch(e){}}}" +
-                        "  if(v){v.currentTime=" + time + ";}" +
-                        "})()";
-                break;
-            default:
-                return;
+        if (ENABLE_CROSS_ORIGIN_SYNC) {
+            // Yeni Yöntem: Bütün iframe'lere postMessage ile yaylım ateşi (Broadcast)
+            String js = "(function(){" +
+                "  var msg = { anisyncCmd: '" + command + "', time: " + time + " };" +
+                "  for (var i=0; i<window.frames.length; i++) {" +
+                "    window.frames[i].postMessage(msg, '*');" +
+                "  }" +
+                "})()";
+            animeWebView.evaluateJavascript(js, null);
+        } else {
+            // Eski Yöntem (Çalışmayan DOM sorgusu - Sadece Fallback)
+            String js;
+            switch (command) {
+                case "play":
+                    js = "(function(){" +
+                            "  var v = document.querySelector('video');" +
+                            "  if(!v){var fs=document.querySelectorAll('iframe');for(var i=0;i<fs.length;i++){try{v=fs[i].contentDocument.querySelector('video');if(v)break;}catch(e){}}}" +
+                            "  if(v){v.currentTime=" + time + ";v.play();}" +
+                            "})()";
+                    break;
+                case "pause":
+                    js = "(function(){" +
+                            "  var v = document.querySelector('video');" +
+                            "  if(!v){var fs=document.querySelectorAll('iframe');for(var i=0;i<fs.length;i++){try{v=fs[i].contentDocument.querySelector('video');if(v)break;}catch(e){}}}" +
+                            "  if(v){v.currentTime=" + time + ";v.pause();}" +
+                            "})()";
+                    break;
+                case "seek":
+                    js = "(function(){" +
+                            "  var v = document.querySelector('video');" +
+                            "  if(!v){var fs=document.querySelectorAll('iframe');for(var i=0;i<fs.length;i++){try{v=fs[i].contentDocument.querySelector('video');if(v)break;}catch(e){}}}" +
+                            "  if(v){v.currentTime=" + time + ";}" +
+                            "})()";
+                    break;
+                default:
+                    return;
+            }
+            animeWebView.evaluateJavascript(js, null);
         }
-        animeWebView.evaluateJavascript(js, null);
     }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -505,6 +520,21 @@ public class MainActivity extends AppCompatActivity {
                         "s2.id='anisync-letterbox';" +
                         "s2.textContent='video{object-fit:contain!important;max-width:100%!important;max-height:100%!important;}';" +
                         "document.head.appendChild(s2);" +
+                        // CORS Bypass: Bridge state from iframe to React app
+                        (ENABLE_CROSS_ORIGIN_SYNC ? 
+                        "window.__mobileVideoTime = 0;" +
+                        "window.__mobileVideoPlaying = false;" +
+                        "window.addEventListener('message', function(e) {" +
+                        "  if (e.data && e.data.anisyncState) {" +
+                        "    window.__mobileVideoTime = e.data.time;" +
+                        "    window.__mobileVideoPlaying = e.data.playing;" +
+                        "  }" +
+                        "});" +
+                        "window.anisync = window.anisync || {};" +
+                        "window.anisync.player = window.anisync.player || {" +
+                        "  getState: function() { return Promise.resolve({ time: window.__mobileVideoTime, state: window.__mobileVideoPlaying ? 'playing' : 'paused' }); }," +
+                        "  getEvent: function() { return Promise.resolve(null); }" +
+                        "};" : "") +
                         "})();";
                 view.evaluateJavascript(allInjects, null);
 
@@ -517,6 +547,86 @@ public class MainActivity extends AppCompatActivity {
             // ── VPN/SSL Fix: Proton VPN & Cloudflare WARP re-sign SSL certs ──
             // Xiaomi WebView silently rejects these modified certs → black screen.
             // Samsung's WebView is more lenient. For anime content, strict SSL is unnecessary.
+            @Override
+            public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                if (ENABLE_CROSS_ORIGIN_SYNC && !request.isForMainFrame()) {
+                    String url = request.getUrl().toString();
+                    String method = request.getMethod();
+                    java.util.Map<String, String> requestHeaders = request.getRequestHeaders();
+                    String acceptHeader = requestHeaders != null ? requestHeaders.get("Accept") : "";
+                    
+                    if (method.equalsIgnoreCase("GET") && acceptHeader != null && acceptHeader.contains("text/html")) {
+                        // Güvenlik: Reklam ve takip scripti iframe'lerini engelle
+                        if (!url.contains("google") && !url.contains("adsystem") && !url.contains("doubleclick")) {
+                            appLog("Intercepting Cross-Origin IFRAME for Sync: " + url);
+                            try {
+                                java.net.URL netUrl = new java.net.URL(url);
+                                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) netUrl.openConnection();
+                                conn.setRequestMethod("GET");
+                                if (requestHeaders != null) {
+                                    for (java.util.Map.Entry<String, String> entry : requestHeaders.entrySet()) {
+                                        conn.setRequestProperty(entry.getKey(), entry.getValue());
+                                    }
+                                }
+                                
+                                int responseCode = conn.getResponseCode();
+                                if (responseCode == java.net.HttpURLConnection.HTTP_OK) {
+                                    String contentType = conn.getContentType();
+                                    String encoding = conn.getContentEncoding();
+                                    if (encoding == null) encoding = "UTF-8";
+                                    
+                                    java.io.InputStream in = conn.getInputStream();
+                                    java.util.Scanner s = new java.util.Scanner(in, encoding).useDelimiter("\\A");
+                                    String html = s.hasNext() ? s.next() : "";
+                                    
+                                    // IFRAME İÇİNE ENJEKTE EDİLEN YAYLIM ATEŞİ DİNLEYİCİSİ VE BİLDİRİCİSİ
+                                    String playerScript = "<script>" +
+                                        "window.__anisync_injected = true;" +
+                                        "window.addEventListener('message', function(e) {" +
+                                        "  if (e.data && e.data.anisyncCmd) {" +
+                                        "    var v = document.querySelector('video');" +
+                                        "    if (v) {" +
+                                        "       if (e.data.anisyncCmd === 'play') v.play();" +
+                                        "       else if (e.data.anisyncCmd === 'pause') v.pause();" +
+                                        "       else if (e.data.anisyncCmd === 'seek') v.currentTime = e.data.time;" +
+                                        "    }" +
+                                        "  }" +
+                                        "});" +
+                                        "setInterval(function() {" +
+                                        "  var v = document.querySelector('video');" +
+                                        "  if (v && window.parent) {" +
+                                        "     window.parent.postMessage({" +
+                                        "        anisyncState: true," +
+                                        "        time: v.currentTime," +
+                                        "        playing: !v.paused" +
+                                        "     }, '*');" +
+                                        "  }" +
+                                        "}, 1000);" +
+                                        "</script>";
+                                    
+                                    html = html.replaceFirst("<head>", "<head>" + playerScript);
+                                    if (!html.contains("<head>")) {
+                                        html = playerScript + html; // Fallback
+                                    }
+                                    
+                                    java.io.InputStream newIn = new java.io.ByteArrayInputStream(html.getBytes(encoding));
+                                    
+                                    String mimeType = "text/html";
+                                    if (contentType != null && contentType.contains(";")) {
+                                        mimeType = contentType.split(";")[0].trim();
+                                    }
+                                    
+                                    return new WebResourceResponse(mimeType, encoding, newIn);
+                                }
+                            } catch (Exception e) {
+                                appLogError("Iframe interception failed: " + e.getMessage());
+                            }
+                        }
+                    }
+                }
+                return super.shouldInterceptRequest(view, request);
+            }
+
             @Override
             public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {
                 appLog("SSL error (proceeding): " + error.getPrimaryError() + " url=" + error.getUrl());
