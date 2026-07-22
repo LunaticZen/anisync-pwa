@@ -136,21 +136,33 @@ export default function RoomPage() {
 
     const onPlay = (d: any) => {
       if (d.originUserId === useAuthStore.getState().username) return;
-      ignoreUntil = Date.now() + 1500;
-      (window as any).anisync.player.seek(d.time);
-      (window as any).anisync.player.play();
+      (window as any).anisync.player.getState().then((state: any) => {
+        if (state && Math.abs(state.time - d.time) > 1.5) {
+          ignoreUntil = Date.now() + 1500;
+          (window as any).anisync.player.seek(d.time);
+        }
+        (window as any).anisync.player.play();
+      }).catch(() => {});
     };
     const onPause = (d: any) => {
       if (d.originUserId === useAuthStore.getState().username) return;
-      ignoreUntil = Date.now() + 1500;
-      (window as any).anisync.player.seek(d.time);
-      (window as any).anisync.player.pause();
+      (window as any).anisync.player.getState().then((state: any) => {
+        if (state && Math.abs(state.time - d.time) > 1.5) {
+          ignoreUntil = Date.now() + 1500;
+          (window as any).anisync.player.seek(d.time);
+        }
+        (window as any).anisync.player.pause();
+      }).catch(() => {});
     };
     const onSeek = (d: any) => {
       if (d.originUserId === useAuthStore.getState().username) return;
-      ignoreUntil = Date.now() + 1500;
-      ignoreSync.current = Date.now() + 1500;
-      (window as any).anisync.player.seek(d.time);
+      (window as any).anisync.player.getState().then((state: any) => {
+        if (state && Math.abs(state.time - d.time) > 1.5) {
+          ignoreUntil = Date.now() + 1500;
+          ignoreSync.current = Date.now() + 1500;
+          (window as any).anisync.player.seek(d.time);
+        }
+      }).catch(() => {});
     };
     const onTimecheck = (d: any) => {
       if (d.userId === useAuthStore.getState().username) return;
@@ -211,20 +223,29 @@ export default function RoomPage() {
 
     const onPlay = (d: any) => {
       if (d.originUserId === useAuthStore.getState().username) return;
-      ignoreUntil = Date.now() + 1500;
-      bridge.controlAnime('seek', d.time || 0);
+      const currentVideoTime = (window as any).__mobileVideoTime || 0;
+      if (Math.abs(currentVideoTime - d.time) > 1.5) {
+        ignoreUntil = Date.now() + 1500;
+        bridge.controlAnime('seek', d.time || 0);
+      }
       bridge.controlAnime('play', d.time || 0);
     };
     const onPause = (d: any) => {
       if (d.originUserId === useAuthStore.getState().username) return;
-      ignoreUntil = Date.now() + 1500;
-      bridge.controlAnime('seek', d.time || 0);
+      const currentVideoTime = (window as any).__mobileVideoTime || 0;
+      if (Math.abs(currentVideoTime - d.time) > 1.5) {
+        ignoreUntil = Date.now() + 1500;
+        bridge.controlAnime('seek', d.time || 0);
+      }
       bridge.controlAnime('pause', d.time || 0);
     };
     const onSeek = (d: any) => {
       if (d.originUserId === useAuthStore.getState().username) return;
-      ignoreUntil = Date.now() + 1500;
-      bridge.controlAnime('seek', d.time || 0);
+      const currentVideoTime = (window as any).__mobileVideoTime || 0;
+      if (Math.abs(currentVideoTime - d.time) > 1.5) {
+        ignoreUntil = Date.now() + 1500;
+        bridge.controlAnime('seek', d.time || 0);
+      }
     };
     const onTimecheck = (d: any) => {
       if (d.userId === useAuthStore.getState().username) return;
