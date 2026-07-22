@@ -157,7 +157,7 @@ export default function RoomPage() {
       (window as any).anisync.player.getState().then((state: any) => {
         if (!state || state.time === undefined) return;
         const drift = Math.abs(state.time - d.time);
-        if (drift > 4.0) {
+        if (drift > 1.5) {
           ignoreSync.current = Date.now() + 1500;
           ignoreUntil = Date.now() + 1500;
           (window as any).anisync.player.seek(d.time);
@@ -230,7 +230,7 @@ export default function RoomPage() {
       if (d.userId === useAuthStore.getState().username) return;
       const now = Date.now();
       const hostDrift = Math.abs(d.time - ((window as any).__mobileVideoTime || 0));
-      if (hostDrift > 4.0) {
+      if (hostDrift > 1.5) {
         ignoreUntil = Date.now() + 1500;
         bridge.controlAnime('seek', d.time || 0);
       }
@@ -338,22 +338,11 @@ export default function RoomPage() {
     tickerKeyCounter.current = 0;
   }, [currentUrl]);
 
-  // ── Mobile: Track viewport height and keyboard detection ──
+  // ── Mobile: Track viewport height for keyboard detection ──
   useEffect(() => {
     if (!isMobile) return;
     
-    // ── Native bridge (Android): Definitive keyboard state from IME insets ──
-    // This is the primary detection method. Android sends keyboard state directly
-    // via __anisyncNativeKeyboard(bool) from the WindowInsets listener.
-    // This avoids the viewport-height guessing bug where shrinking the WebView
-    // to 40% for video mode falsely triggers keyboard-open detection.
-    let hasNativeBridge = false;
-    (window as any).__anisyncNativeKeyboard = (open: boolean) => {
-      hasNativeBridge = true;
-      setIsKeyboardOpen(open);
-    };
-
-    // ── Fallback: Viewport-based detection for non-native environments ──
+    // Fallback if visualViewport is unavailable
     const vv = window.visualViewport;
     
     const initTimer = setTimeout(() => {
@@ -364,10 +353,7 @@ export default function RoomPage() {
     const onResize = () => {
       const h = vv ? vv.height : window.innerHeight;
       setViewportHeight(h);
-      // Only use viewport-based detection if native bridge hasn't reported yet
-      if (!hasNativeBridge) {
-        setIsKeyboardOpen(h < initialVpHeight.current * 0.75);
-      }
+      setIsKeyboardOpen(h < initialVpHeight.current * 0.75);
     };
 
     if (vv) {
@@ -377,7 +363,6 @@ export default function RoomPage() {
     }
 
     return () => {
-      delete (window as any).__anisyncNativeKeyboard;
       if (vv) vv.removeEventListener('resize', onResize);
       else window.removeEventListener('resize', onResize);
       clearTimeout(initTimer);
@@ -953,8 +938,7 @@ export default function RoomPage() {
         color: resolvedTextColor,
         transition: 'background 0.4s ease, color 0.4s ease',
       }}>
-        {/* Hide MemberList when keyboard is open on mobile to give chat more room */}
-        {!(isMobile && isKeyboardOpen) && <MemberList members={members} hostId={currentRoom.hostId} pendingRequests={pendingJoinRequests} />}
+        <MemberList members={members} hostId={currentRoom.hostId} pendingRequests={pendingJoinRequests} />
         <RoomChat mode={mode} roomId={currentRoom.id} members={members} />
       </div>
 

@@ -2,18 +2,6 @@
 
 Tüm önemli sürümler ve değişiklikler bu dosyada listelenir.
 
-## [v1.3.1] - 2026-07-22
-
-### Düzeltilenler (Fixes)
-- **Klavye UI Daralma Sorunu (Xiaomi/Samsung):** Video izlerken "Klavye açıkmış gibi" sohbetin daralması ve butonların çakışması engellendi. Web'in kendi ekran yüksekliği hesabı (visualViewport) iptal edildi; klavye durumu (ime insets) doğrudan Android Native sisteminden alındı.
-- **Header Kalınlık Sorunu (Portrait Mode):** Video açıkken ekranın yarısına düşen sohbet alanının en üstüne hala statü çubuğu (batarya/wifi) koruma boşluğunun (`SAFE_TOP`) eklenmesi engellendi. Video açıkken header artık incecik görünüyor.
-- **Sahte (Spurious) Seek Takılmaları:** Android WebView'de HLS segment sınırlarında oluşan otomatik `seeked` eventleri artık `sync:seek` tetiklemeyecek. Seek algılaması manuel saniye farkı (`> 2.5s`) eşiğine bağlandı, böylece durduk yere oluşan mikro takılmalar tarihe karıştı.
-- **Eksik Playing Sinyali:** Android JS köprüsünden gönderilen zaman bildiriminde (`timecheck`) eksik olan `playing` parametresi eklendi. Bu sayede web tarafının saniyede bir durduk yere videoyu durdurmaya (pause) çalışması kilitlenmeleri çözüldü.
-
-### Dağıtım ve Yayınlama
-- Yeni Android APK sürümü oluşturuldu (`AniSync_v1.3.1.apk` / `son.apk`).
-- Render sunucusundaki React dosyaları güncellendi.
-
 ## [v1.3.0+] - 2026-07-20
 
 ### Yeni Özellikler (Features)

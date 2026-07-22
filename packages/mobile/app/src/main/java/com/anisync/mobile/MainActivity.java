@@ -174,18 +174,8 @@ public class MainActivity extends AppCompatActivity {
 
             // Native padding: bottom = keyboard when open, otherwise 0
             // Top is handled by CSS via --safe-top so app background extends behind status bar
-            boolean isKbOpen = ime.bottom > systemBars.bottom;
-            int keyboardPadding = isKbOpen ? ime.bottom : 0;
+            int keyboardPadding = ime.bottom > systemBars.bottom ? ime.bottom : 0;
             v.setPadding(0, 0, 0, keyboardPadding);
-
-            // Send definitive keyboard state to web layer via JS bridge.
-            // The web side previously guessed keyboard state by comparing viewport height
-            // against initial height, which BREAKS when the WebView shrinks to 40% for video mode.
-            if (mainWebView != null) {
-                final boolean kbState = isKbOpen;
-                mainWebView.post(() -> mainWebView.evaluateJavascript(
-                    "window.__anisyncNativeKeyboard && window.__anisyncNativeKeyboard(" + kbState + ")", null));
-            }
             
             return windowInsets;
         });
@@ -222,12 +212,10 @@ public class MainActivity extends AppCompatActivity {
 
         animeWebView.addJavascriptInterface(new Object() {
             @android.webkit.JavascriptInterface
-            public void sendEvent(String type, double time, boolean playing) {
+            public void sendEvent(String type, double time) {
                 if (mainWebView != null) {
                     mainWebView.post(() -> {
-                        String js = "window.__mobileVideoTime = " + time + ";" +
-                                    "window.__mobileVideoPlaying = " + playing + ";" +
-                                    "window.postMessage({ type: 'mobile:sync-event', eventType: '" + type + "', time: " + time + ", playing: " + playing + " }, '*');";
+                        String js = "window.postMessage({ type: 'mobile:sync-event', eventType: '" + type + "', time: " + time + " }, '*');";
                         mainWebView.evaluateJavascript(js, null);
                     });
                 }
@@ -250,18 +238,8 @@ public class MainActivity extends AppCompatActivity {
 
     private void applySafeInsetsToWeb() {
         if (mainWebView != null) {
-            boolean isPortrait = getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT;
-            int effectiveTopInset = safeInsetTop;
-            
-            // PORTRAIT: Video is at the top 60%, Chat is at the bottom 40%.
-            // The top status bar is covering the video, not the chat.
-            // If we keep --safe-top padding, the chat gets squished unnecessarily.
-            if (animeVisible && isPortrait) {
-                effectiveTopInset = 0;
-            }
-
             mainWebView.evaluateJavascript(
-                "document.documentElement.style.setProperty('--safe-top', '" + effectiveTopInset + "px');" +
+                "document.documentElement.style.setProperty('--safe-top', '" + safeInsetTop + "px');" +
                 "document.documentElement.style.setProperty('--safe-bottom', '" + safeInsetBottom + "px');", 
                 null
             );
@@ -590,13 +568,15 @@ public class MainActivity extends AppCompatActivity {
                         "document.head.appendChild(s2);" +
                         // CORS Bypass: Bridge state from iframe to React app
                         (ENABLE_CROSS_ORIGIN_SYNC ? 
+                        "window.__mobileVideoTime = 0;" +
+                        "window.__mobileVideoPlaying = false;" +
                         "window.addEventListener('message', function(e) {" +
                         "  if (e.data && e.data.anisyncState) {" +
                         "    window.__mobileVideoTime = e.data.time;" +
                         "    window.__mobileVideoPlaying = e.data.playing;" +
                         "  }" +
                         "  if (e.data && e.data.anisyncEvent && window.AniSyncAnimeBridge) {" +
-                        "    window.AniSyncAnimeBridge.sendEvent(e.data.anisyncEvent, e.data.time, e.data.playing);" +
+                        "    window.AniSyncAnimeBridge.sendEvent(e.data.anisyncEvent, e.data.time);" +
                         "  }" +
                         "});" +
                         "setInterval(function() {" +
@@ -615,24 +595,17 @@ public class MainActivity extends AppCompatActivity {
                         "  if (v && !v.__anisyncAttached) {" +
                         "    v.__anisyncAttached = true;" +
                         "    var send = function(type) { " +
-                        "      if(window.AniSyncAnimeBridge) window.AniSyncAnimeBridge.sendEvent(type, v.currentTime, !v.paused);" +
-                        "      else if(window.parent) window.parent.postMessage({ anisyncEvent: type, time: v.currentTime, playing: !v.paused }, '*');" +
+                        "      if(window.AniSyncAnimeBridge) window.AniSyncAnimeBridge.sendEvent(type, v.currentTime);" +
+                        "      else if(window.parent) window.parent.postMessage({ anisyncEvent: type, time: v.currentTime }, '*');" +
                         "    };" +
                         "    v.addEventListener('play', function(){ send('play'); });" +
                         "    v.addEventListener('pause', function(){ send('pause'); });" +
+                        "    v.addEventListener('seeked', function(){ send('seek'); });" +
                         "  }" +
                         "  if (v) {" +
-                        "    var playing = !v.paused;" +
                         "    var type = 'timecheck';" +
-                        "    if (v.__lastTime !== undefined) {" +
-                        "      if (Math.abs(v.currentTime - v.__lastTime) > 2.5) {" +
-                        "        if(window.AniSyncAnimeBridge) window.AniSyncAnimeBridge.sendEvent('seek', v.currentTime, playing);" +
-                        "        else if(window.parent) window.parent.postMessage({ anisyncEvent: 'seek', time: v.currentTime, playing: playing }, '*');" +
-                        "      }" +
-                        "    }" +
-                        "    v.__lastTime = v.currentTime;" +
-                        "    if(window.AniSyncAnimeBridge) window.AniSyncAnimeBridge.sendEvent(type, v.currentTime, playing);" +
-                        "    else if(window.parent) window.parent.postMessage({ anisyncEvent: type, time: v.currentTime, playing: playing }, '*');" +
+                        "    if(window.AniSyncAnimeBridge) window.AniSyncAnimeBridge.sendEvent(type, v.currentTime);" +
+                        "    else if(window.parent) window.parent.postMessage({ anisyncEvent: type, time: v.currentTime, playing: !v.paused }, '*');" +
                         "  }" +
                         "}, 1000);" : "") +
                         "})();";
@@ -895,15 +868,15 @@ public class MainActivity extends AppCompatActivity {
 
         if (animeVisible) {
             if (isPortrait) {
-                // PORTRAIT: Anime top (85%), Main bottom (15%) — vertical stack
+                // PORTRAIT: Anime top (60%), Main bottom (40%) — vertical stack
                 rootLayout.setOrientation(LinearLayout.VERTICAL);
                 rootLayout.addView(animeWebView, new LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.MATCH_PARENT, 0, 8.5f));
+                        LinearLayout.LayoutParams.MATCH_PARENT, 0, 6f));
                 mainWebView.setBackgroundColor(0xFF050816);
                 // Reset mainWebView to hardware rendering in portrait
                 mainWebView.setLayerType(View.LAYER_TYPE_NONE, null);
                 rootLayout.addView(mainWebView, new LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.MATCH_PARENT, 0, 1.5f));
+                        LinearLayout.LayoutParams.MATCH_PARENT, 0, 4f));
             } else {
                 // LANDSCAPE: Anime full screen, Main WebView overlaid (transparent for ticker)
                 rootLayout.setOrientation(LinearLayout.VERTICAL);
@@ -945,10 +918,6 @@ public class MainActivity extends AppCompatActivity {
         // Force layout pass
         rootLayout.requestLayout();
         rootLayout.invalidate();
-        
-        // Update web safe insets based on new layout
-        applySafeInsetsToWeb();
-
         // Debounced redraw for slow rendering devices — cancel previous first
         mainHandler.removeCallbacks(pendingRedraw);
         mainHandler.postDelayed(pendingRedraw, 300);
