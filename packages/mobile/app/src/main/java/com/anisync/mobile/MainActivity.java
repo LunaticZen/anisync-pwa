@@ -57,7 +57,7 @@ import java.util.Set;
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "AniSync";
-    private static final String SERVER_URL = "https://anisync-9z1z.onrender.com";
+    private static final String SERVER_URL = "https://anisync-9z1z.onrender.com/?v=2";
     private static final int FILE_CHOOSER_REQUEST = 1001;
 
     // Mobil video senkronizasyonunu (CORS bypass - HTML Interception) açıp kapatan ana şalter
