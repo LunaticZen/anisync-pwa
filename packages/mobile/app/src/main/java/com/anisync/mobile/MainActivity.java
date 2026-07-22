@@ -250,8 +250,18 @@ public class MainActivity extends AppCompatActivity {
 
     private void applySafeInsetsToWeb() {
         if (mainWebView != null) {
+            boolean isPortrait = getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT;
+            int effectiveTopInset = safeInsetTop;
+            
+            // PORTRAIT: Video is at the top 60%, Chat is at the bottom 40%.
+            // The top status bar is covering the video, not the chat.
+            // If we keep --safe-top padding, the chat gets squished unnecessarily.
+            if (animeVisible && isPortrait) {
+                effectiveTopInset = 0;
+            }
+
             mainWebView.evaluateJavascript(
-                "document.documentElement.style.setProperty('--safe-top', '" + safeInsetTop + "px');" +
+                "document.documentElement.style.setProperty('--safe-top', '" + effectiveTopInset + "px');" +
                 "document.documentElement.style.setProperty('--safe-bottom', '" + safeInsetBottom + "px');", 
                 null
             );
@@ -935,6 +945,10 @@ public class MainActivity extends AppCompatActivity {
         // Force layout pass
         rootLayout.requestLayout();
         rootLayout.invalidate();
+        
+        // Update web safe insets based on new layout
+        applySafeInsetsToWeb();
+
         // Debounced redraw for slow rendering devices — cancel previous first
         mainHandler.removeCallbacks(pendingRedraw);
         mainHandler.postDelayed(pendingRedraw, 300);
