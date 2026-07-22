@@ -222,10 +222,12 @@ public class MainActivity extends AppCompatActivity {
 
         animeWebView.addJavascriptInterface(new Object() {
             @android.webkit.JavascriptInterface
-            public void sendEvent(String type, double time) {
+            public void sendEvent(String type, double time, boolean playing) {
                 if (mainWebView != null) {
                     mainWebView.post(() -> {
-                        String js = "window.postMessage({ type: 'mobile:sync-event', eventType: '" + type + "', time: " + time + " }, '*');";
+                        String js = "window.__mobileVideoTime = " + time + ";" +
+                                    "window.__mobileVideoPlaying = " + playing + ";" +
+                                    "window.postMessage({ type: 'mobile:sync-event', eventType: '" + type + "', time: " + time + ", playing: " + playing + " }, '*');";
                         mainWebView.evaluateJavascript(js, null);
                     });
                 }
@@ -578,15 +580,13 @@ public class MainActivity extends AppCompatActivity {
                         "document.head.appendChild(s2);" +
                         // CORS Bypass: Bridge state from iframe to React app
                         (ENABLE_CROSS_ORIGIN_SYNC ? 
-                        "window.__mobileVideoTime = 0;" +
-                        "window.__mobileVideoPlaying = false;" +
                         "window.addEventListener('message', function(e) {" +
                         "  if (e.data && e.data.anisyncState) {" +
                         "    window.__mobileVideoTime = e.data.time;" +
                         "    window.__mobileVideoPlaying = e.data.playing;" +
                         "  }" +
                         "  if (e.data && e.data.anisyncEvent && window.AniSyncAnimeBridge) {" +
-                        "    window.AniSyncAnimeBridge.sendEvent(e.data.anisyncEvent, e.data.time);" +
+                        "    window.AniSyncAnimeBridge.sendEvent(e.data.anisyncEvent, e.data.time, e.data.playing);" +
                         "  }" +
                         "});" +
                         "setInterval(function() {" +
@@ -605,17 +605,24 @@ public class MainActivity extends AppCompatActivity {
                         "  if (v && !v.__anisyncAttached) {" +
                         "    v.__anisyncAttached = true;" +
                         "    var send = function(type) { " +
-                        "      if(window.AniSyncAnimeBridge) window.AniSyncAnimeBridge.sendEvent(type, v.currentTime);" +
-                        "      else if(window.parent) window.parent.postMessage({ anisyncEvent: type, time: v.currentTime }, '*');" +
+                        "      if(window.AniSyncAnimeBridge) window.AniSyncAnimeBridge.sendEvent(type, v.currentTime, !v.paused);" +
+                        "      else if(window.parent) window.parent.postMessage({ anisyncEvent: type, time: v.currentTime, playing: !v.paused }, '*');" +
                         "    };" +
                         "    v.addEventListener('play', function(){ send('play'); });" +
                         "    v.addEventListener('pause', function(){ send('pause'); });" +
-                        "    v.addEventListener('seeked', function(){ send('seek'); });" +
                         "  }" +
                         "  if (v) {" +
+                        "    var playing = !v.paused;" +
                         "    var type = 'timecheck';" +
-                        "    if(window.AniSyncAnimeBridge) window.AniSyncAnimeBridge.sendEvent(type, v.currentTime);" +
-                        "    else if(window.parent) window.parent.postMessage({ anisyncEvent: type, time: v.currentTime, playing: !v.paused }, '*');" +
+                        "    if (v.__lastTime !== undefined) {" +
+                        "      if (Math.abs(v.currentTime - v.__lastTime) > 2.5) {" +
+                        "        if(window.AniSyncAnimeBridge) window.AniSyncAnimeBridge.sendEvent('seek', v.currentTime, playing);" +
+                        "        else if(window.parent) window.parent.postMessage({ anisyncEvent: 'seek', time: v.currentTime, playing: playing }, '*');" +
+                        "      }" +
+                        "    }" +
+                        "    v.__lastTime = v.currentTime;" +
+                        "    if(window.AniSyncAnimeBridge) window.AniSyncAnimeBridge.sendEvent(type, v.currentTime, playing);" +
+                        "    else if(window.parent) window.parent.postMessage({ anisyncEvent: type, time: v.currentTime, playing: playing }, '*');" +
                         "  }" +
                         "}, 1000);" : "") +
                         "})();";
