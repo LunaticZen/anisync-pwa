@@ -895,15 +895,15 @@ public class MainActivity extends AppCompatActivity {
 
         if (animeVisible) {
             if (isPortrait) {
-                // PORTRAIT: Anime top (60%), Main bottom (40%) — vertical stack
+                // PORTRAIT: Anime top (85%), Main bottom (15%) — vertical stack
                 rootLayout.setOrientation(LinearLayout.VERTICAL);
                 rootLayout.addView(animeWebView, new LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.MATCH_PARENT, 0, 6f));
+                        LinearLayout.LayoutParams.MATCH_PARENT, 0, 8.5f));
                 mainWebView.setBackgroundColor(0xFF050816);
                 // Reset mainWebView to hardware rendering in portrait
                 mainWebView.setLayerType(View.LAYER_TYPE_NONE, null);
                 rootLayout.addView(mainWebView, new LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.MATCH_PARENT, 0, 4f));
+                        LinearLayout.LayoutParams.MATCH_PARENT, 0, 1.5f));
             } else {
                 // LANDSCAPE: Anime full screen, Main WebView overlaid (transparent for ticker)
                 rootLayout.setOrientation(LinearLayout.VERTICAL);

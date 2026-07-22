@@ -826,8 +826,14 @@ export default function RoomPage() {
           zIndex: 0,
         }} />}
         <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
-          {/* Hide header when video is active — user uses Android back button to leave */}
-          {!currentUrl && <RoomHeader {...headerProps} />}
+          <RoomHeader {...headerProps} />
+          {/* Hide chat when video is active — header with icons stays for room control */}
+          {!currentUrl && <RoomChat
+            mode={mode}
+            roomId={currentRoom.id}
+            members={members}
+            isKeyboardOpen={isKeyboardOpen}
+          />}
           <RoomVideoArea
             mode={mode}
             currentUrl={currentUrl}
@@ -841,12 +847,6 @@ export default function RoomPage() {
             onAnimeUrlChange={setAnimeUrl}
             onNavigate={handleNavigate}
             onToggleUrlInput={() => setShowUrlInput(false)}
-          />
-          <RoomChat
-            mode={mode}
-            roomId={currentRoom.id}
-            members={members}
-            isKeyboardOpen={isKeyboardOpen}
           />
           <RoomModals {...modalProps} />
         </div>

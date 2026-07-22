@@ -347,22 +347,22 @@ export function RoomHeader({
       <div className="sync-bar" style={{ 
         background: headerBg, 
         transition: 'background 0.4s ease',
-        padding: '8px 12px',
-        paddingTop: `calc(var(--safe-top, 28px) + 8px)`,
-        minHeight: 'auto',
+        padding: isKeyboardOpen ? '2px 8px' : '8px 12px',
+        paddingTop: isKeyboardOpen ? 2 : `calc(var(--safe-top, 28px) + 8px)`,
+        minHeight: isKeyboardOpen ? 28 : 'auto',
         display: 'flex',
         alignItems: 'center',
-        gap: 6,
+        gap: isKeyboardOpen ? 4 : 6,
         overflow: 'hidden'
       }}>
         {renderBack()}
-        {renderAvatar()}
+        {!isKeyboardOpen && renderAvatar()}
         {renderRoomInfo()}
-        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: isKeyboardOpen ? 2 : 6, flexShrink: 0 }}>
           {renderAnimeButton()}
           {renderLogButton()}
-          {renderTheme()}
-          <ThemeToggleBtn size={16} color={activeTheme.accent} style={{ padding: 6 }} />
+          {!isKeyboardOpen && renderTheme()}
+          {!isKeyboardOpen && <ThemeToggleBtn size={16} color={activeTheme.accent} style={{ padding: 6 }} />}
         </div>
       </div>
     );
