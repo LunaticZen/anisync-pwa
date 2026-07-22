@@ -470,12 +470,12 @@ Copy-Item dist ../render-server/public -Recurse -Force
 - Chat geçmişi saklanmaz
 
 ### Video Sync
-- Sadece host PC kontrol edebilir (APK → PC event gönderemiyor)
+- Hem PC hem de APK (Mobil) üzerinden video kontrolü (play/pause/seek) yapılabilir
 - Farklı video kaynakları sync edilemez
 - Web tarayıcıda video yeni sekmede açılır, sync yok
 
 ### Mobil
-- Mobil kullanıcı video kontrolü yapamaz (sadece PC host)
+- Mobil cihazlar da video kontrolü yapabilir ve senkronizasyonu yönetebilir.
 - Xiaomi fix APK rebuild gerektirir
 - Bazı anime sitelerinde video element'i farklı selector gerektirebilir
 
@@ -1040,7 +1040,7 @@ graph TB
 | Video gösterim | BrowserView (ayrı process) | animeWebView (system WebView) | Yeni sekme |
 | UI rendering | BrowserWindow (React) | mainWebView (React) | Tarayıcı (React) |
 | Video kontrolü | Injected JS → IPC → preload | AniSyncBridge (Java ↔ JS) | Yok |
-| Sync gönderme | ✅ Host olarak | ❌ Sadece alır | ❌ |
+| Sync gönderme | ✅ Host olarak | ✅ Gönderebilir | ❌ |
 | Sync alma | ✅ seek/play/pause | ✅ controlAnime() | ❌ |
 | Offline desteği | ❌ | ❌ | ❌ |
 | Paketleme | electron-builder | Gradle (APK) | Yok (URL) |
@@ -1441,7 +1441,7 @@ Web: useSyncStore.setCurrentUrl(url)
 
 ## Bilinen Sınırlamalar
 
-1. **Mobil → PC event gönderemiyor**: APK video kontrolünü kullanıcıya bırakır, host her zaman PC
+1. **Mobil artık event gönderebilir**: Mobil uygulama (APK) da senkronizasyonu kontrol edebilir.
 2. **Web tarayıcı**: Video yeni sekmede açılır, senkron yok
 3. **Farklı video kaynakları**: Aynı siteyi kullanmak gerekir (URL sync)
 
