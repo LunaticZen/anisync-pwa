@@ -353,7 +353,9 @@ export default function RoomPage() {
     const onResize = () => {
       const h = vv ? vv.height : window.innerHeight;
       setViewportHeight(h);
-      setIsKeyboardOpen(h < initialVpHeight.current * 0.75);
+      // If the viewport shrinks by more than 150px, assume keyboard is open.
+      // Percentage checks (e.g. 0.75) fail on very tall screens.
+      setIsKeyboardOpen(initialVpHeight.current - h > 150);
     };
 
     if (vv) {

@@ -179,9 +179,9 @@ public class MainActivity extends AppCompatActivity {
                 safeInsetBottom = (int) (systemBars.bottom / density);
             }
             if (safeInsetBottom < 16) {
-                // If it's suspiciously small or 0, fallback to a safe 36dp which covers most gesture bars 
+                // If it's suspiciously small or 0, fallback to a safe 48dp which covers most gesture bars 
                 // and provides enough clearance for 3-button navs if they overlap.
-                safeInsetBottom = 36; 
+                safeInsetBottom = 48; 
             }
             
             applySafeInsetsToWeb();
@@ -252,9 +252,17 @@ public class MainActivity extends AppCompatActivity {
 
     private void applySafeInsetsToWeb() {
         if (mainWebView != null) {
+            String cssFixes = "const style = document.createElement('style');" +
+                              "style.innerHTML = `" +
+                              ".chat__input-area { padding-bottom: calc(max(var(--safe-bottom, 36px), 36px) + 8px) !important; }" +
+                              "@media (max-height: 500px) { .members { display: none !important; } }" +
+                              "`;" +
+                              "document.head.appendChild(style);";
+
             mainWebView.evaluateJavascript(
                 "document.documentElement.style.setProperty('--safe-top', '" + safeInsetTop + "px');" +
-                "document.documentElement.style.setProperty('--safe-bottom', '" + safeInsetBottom + "px');", 
+                "document.documentElement.style.setProperty('--safe-bottom', '" + safeInsetBottom + "px');" +
+                cssFixes, 
                 null
             );
         }
