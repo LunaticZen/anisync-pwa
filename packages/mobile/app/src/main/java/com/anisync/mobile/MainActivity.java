@@ -57,7 +57,7 @@ import java.util.Set;
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "AniSync";
-    private static final String SERVER_URL = "https://anisync-9z1z.onrender.com/?v=3";
+    private static final String SERVER_URL = "https://anisync-9z1z.onrender.com/?v=2";
     private static final int FILE_CHOOSER_REQUEST = 1001;
 
     // Mobil video senkronizasyonunu (CORS bypass - HTML Interception) açıp kapatan ana şalter
@@ -168,8 +168,21 @@ public class MainActivity extends AppCompatActivity {
             
             float density = getResources().getDisplayMetrics().density;
             safeInsetTop = (int) (systemBars.top / density);
-            safeInsetBottom = (int) (systemBars.bottom / density);
-            if (safeInsetBottom < 24) safeInsetBottom = 24; // Force minimum 24px for gesture nav or hidden nav bars
+            
+            // On some custom ROMs (Xiaomi, Samsung A-series), systemBars().bottom returns 0 when edge-to-edge is enabled, 
+            // even if 3-button navigation is active. We force a minimum of 48dp (standard 3-button height) 
+            // if we suspect they aren't using gesture nav. But since we can't reliably detect gesture vs 3-button 
+            // when it returns 0, we'll just read navigationBars() directly.
+            Insets navBars = windowInsets.getInsets(WindowInsetsCompat.Type.navigationBars());
+            safeInsetBottom = (int) (navBars.bottom / density);
+            if (safeInsetBottom == 0 && systemBars.bottom > 0) {
+                safeInsetBottom = (int) (systemBars.bottom / density);
+            }
+            if (safeInsetBottom < 16) {
+                // If it's suspiciously small or 0, fallback to a safe 36dp which covers most gesture bars 
+                // and provides enough clearance for 3-button navs if they overlap.
+                safeInsetBottom = 36; 
+            }
             
             applySafeInsetsToWeb();
 
@@ -346,6 +359,11 @@ public class MainActivity extends AppCompatActivity {
                     clipboard.setPrimaryClip(clip);
                     appLog("Logs copied to clipboard (" + logBuffer.size() + " entries)");
                 });
+            }
+
+            @JavascriptInterface
+            public int getSafeBottom() {
+                return safeInsetBottom;
             }
         }, "AniSyncBridge");
 

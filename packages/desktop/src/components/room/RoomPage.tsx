@@ -641,6 +641,17 @@ export default function RoomPage() {
     return cleanup;
   }, [currentUrl]);
 
+  useEffect(() => {
+    if (isMobile && (window as any).AniSyncBridge?.getSafeBottom) {
+      try {
+        const sb = (window as any).AniSyncBridge.getSafeBottom();
+        if (sb > 0) {
+          document.documentElement.style.setProperty('--safe-bottom', `${sb}px`);
+        }
+      } catch (e) { }
+    }
+  }, []);
+
   // ══════════════════════════════════════════════════════════
   // MODE DETECTION
   // ══════════════════════════════════════════════════════════
