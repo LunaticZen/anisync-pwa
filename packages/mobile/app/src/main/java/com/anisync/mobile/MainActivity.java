@@ -57,7 +57,7 @@ import java.util.Set;
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "AniSync";
-    private static final String SERVER_URL = "https://anisync-9z1z.onrender.com/?v=3";
+    private static final String SERVER_URL = "https://anisync-9z1z.onrender.com/?v=4";
     private static final int FILE_CHOOSER_REQUEST = 1001;
 
     // Mobil video senkronizasyonunu (CORS bypass - HTML Interception) açıp kapatan ana şalter
@@ -144,10 +144,14 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // Edge-to-Edge layout (content draws behind system bars, handled via padding)
-        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+        androidx.activity.EdgeToEdge.enable(this);
+        
         getWindow().setStatusBarColor(android.graphics.Color.TRANSPARENT);
         getWindow().setNavigationBarColor(android.graphics.Color.TRANSPARENT);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            getWindow().setNavigationBarContrastEnforced(false);
+            getWindow().setStatusBarContrastEnforced(false);
+        }
 
         // White icons on dark background
         WindowInsetsControllerCompat insetsController = WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
@@ -184,11 +188,25 @@ public class MainActivity extends AppCompatActivity {
                 safeInsetBottom = 48; 
             }
             
-            applySafeInsetsToWeb();
-
             // Native padding: bottom = keyboard when open, otherwise 0
-            // Top is handled by CSS via --safe-top so app background extends behind status bar
             int keyboardPadding = ime.bottom > systemBars.bottom ? ime.bottom : 0;
+            boolean isKeyboardOpen = windowInsets.isVisible(WindowInsetsCompat.Type.ime());
+            
+            // Bypass broken Render deployment by forcing padding via Java CSS injection!
+            // When keyboard is open, force 4px. When closed, force safeInsetBottom + 8px.
+            int customPadding = isKeyboardOpen ? 4 : (safeInsetBottom + 8);
+
+            if (mainWebView != null) {
+                String js = "document.documentElement.style.setProperty('--java-padding-bottom', '" + customPadding + "px', 'important');" +
+                            "if (!document.getElementById('java-fixes')) {" +
+                            "  const s = document.createElement('style');" +
+                            "  s.id = 'java-fixes';" +
+                            "  s.innerHTML = '.chat > div:last-of-type { padding-bottom: var(--java-padding-bottom) !important; }';" +
+                            "  document.head.appendChild(s);" +
+                            "}";
+                mainWebView.evaluateJavascript(js, null);
+            }
+
             v.setPadding(0, 0, 0, keyboardPadding);
             
             return windowInsets;
@@ -252,17 +270,9 @@ public class MainActivity extends AppCompatActivity {
 
     private void applySafeInsetsToWeb() {
         if (mainWebView != null) {
-            String cssFixes = "const style = document.createElement('style');" +
-                              "style.innerHTML = `" +
-                              ".chat__input-area { padding-bottom: calc(max(var(--safe-bottom, 36px), 36px) + 8px) !important; }" +
-                              "@media (max-height: 500px) { .members { display: none !important; } }" +
-                              "`;" +
-                              "document.head.appendChild(style);";
-
             mainWebView.evaluateJavascript(
-                "document.documentElement.style.setProperty('--safe-top', '" + safeInsetTop + "px');" +
-                "document.documentElement.style.setProperty('--safe-bottom', '" + safeInsetBottom + "px');" +
-                cssFixes, 
+                "document.documentElement.style.setProperty('--safe-top', '" + safeInsetTop + "px', 'important');" +
+                "document.documentElement.style.setProperty('--safe-bottom', '" + safeInsetBottom + "px', 'important');", 
                 null
             );
         }

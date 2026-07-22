@@ -780,10 +780,10 @@ export function ThemePickerPopup({ roomId, onClose }: { roomId: string; onClose:
           {currentView === 'root' && (
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-              gap: 16,
+              gridTemplateColumns: '1fr 1fr',
+              gap: 12,
               width: '100%',
-              padding: '20px 0'
+              padding: '12px 0'
             }}>
               {/* Wallpapers Card */}
               <div
@@ -792,28 +792,28 @@ export function ThemePickerPopup({ roomId, onClose }: { roomId: string; onClose:
                 style={{
                   background: resolvedTheme.isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.03)',
                   border: `1px solid ${resolvedTheme.isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'}`,
-                  borderRadius: 16,
-                  padding: 24,
+                  borderRadius: 14,
+                  padding: '16px 12px',
                   cursor: 'pointer',
                   textAlign: 'center',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
-                  gap: 12
+                  gap: 10
                 }}
               >
                 <div style={{
-                  width: 52, height: 52, borderRadius: 14,
+                  width: 44, height: 44, borderRadius: 12,
                   background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   color: 'white',
                   boxShadow: '0 8px 16px rgba(139, 92, 246, 0.2)'
                 }}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
                 </div>
                 <div>
-                  <h3 style={{ margin: '0 0 6px 0', fontSize: 15, fontWeight: 700 }}>Duvar Kağıtları</h3>
-                  <p style={{ margin: 0, fontSize: 11, opacity: 0.7, lineHeight: 1.4 }}>Oda arka planını ve genel renk şemasını değiştirir. (Herkesi etkiler)</p>
+                  <h3 style={{ margin: '0 0 4px 0', fontSize: 13, fontWeight: 700 }}>Duvar Kağıtları</h3>
+                  <p style={{ margin: 0, fontSize: 10, opacity: 0.7, lineHeight: 1.3 }}>Arka planı değiştir.</p>
                 </div>
               </div>
 
@@ -824,28 +824,28 @@ export function ThemePickerPopup({ roomId, onClose }: { roomId: string; onClose:
                 style={{
                   background: resolvedTheme.isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.03)',
                   border: `1px solid ${resolvedTheme.isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'}`,
-                  borderRadius: 16,
-                  padding: 24,
+                  borderRadius: 14,
+                  padding: '16px 12px',
                   cursor: 'pointer',
                   textAlign: 'center',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
-                  gap: 12
+                  gap: 10
                 }}
               >
                 <div style={{
-                  width: 52, height: 52, borderRadius: 14,
+                  width: 44, height: 44, borderRadius: 12,
                   background: 'linear-gradient(135deg, #ec4899, #f43f5e)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   color: 'white',
                   boxShadow: '0 8px 16px rgba(244, 63, 94, 0.2)'
                 }}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
                 </div>
                 <div>
-                  <h3 style={{ margin: '0 0 6px 0', fontSize: 15, fontWeight: 700 }}>Baloncuklar</h3>
-                  <p style={{ margin: 0, fontSize: 11, opacity: 0.7, lineHeight: 1.4 }}>Kendi mesaj baloncuk stilini kişiselleştir. (Sadece sana özel)</p>
+                  <h3 style={{ margin: '0 0 4px 0', fontSize: 13, fontWeight: 700 }}>Baloncuklar</h3>
+                  <p style={{ margin: 0, fontSize: 10, opacity: 0.7, lineHeight: 1.3 }}>Sohbet mesaj stili.</p>
                 </div>
               </div>
             </div>
