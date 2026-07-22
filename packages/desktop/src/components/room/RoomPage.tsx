@@ -826,7 +826,8 @@ export default function RoomPage() {
           zIndex: 0,
         }} />}
         <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
-          <RoomHeader {...headerProps} />
+          {/* Hide header when video is active — user uses Android back button to leave */}
+          {!currentUrl && <RoomHeader {...headerProps} />}
           <RoomVideoArea
             mode={mode}
             currentUrl={currentUrl}
@@ -953,7 +954,8 @@ export default function RoomPage() {
         color: resolvedTextColor,
         transition: 'background 0.4s ease, color 0.4s ease',
       }}>
-        <MemberList members={members} hostId={currentRoom.hostId} pendingRequests={pendingJoinRequests} />
+        {/* Hide MemberList when keyboard is open on mobile to give chat more room */}
+        {!(isMobile && isKeyboardOpen) && <MemberList members={members} hostId={currentRoom.hostId} pendingRequests={pendingJoinRequests} />}
         <RoomChat mode={mode} roomId={currentRoom.id} members={members} />
       </div>
 
