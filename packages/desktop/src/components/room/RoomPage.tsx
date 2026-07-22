@@ -157,7 +157,7 @@ export default function RoomPage() {
       (window as any).anisync.player.getState().then((state: any) => {
         if (!state || state.time === undefined) return;
         const drift = Math.abs(state.time - d.time);
-        if (drift > 1.5) {
+        if (drift > 5.0) {
           ignoreSync.current = Date.now() + 1500;
           ignoreUntil = Date.now() + 1500;
           (window as any).anisync.player.seek(d.time);
@@ -230,7 +230,7 @@ export default function RoomPage() {
       if (d.userId === useAuthStore.getState().username) return;
       const now = Date.now();
       const hostDrift = Math.abs(d.time - ((window as any).__mobileVideoTime || 0));
-      if (hostDrift > 1.5) {
+      if (hostDrift > 5.0) {
         ignoreUntil = Date.now() + 1500;
         bridge.controlAnime('seek', d.time || 0);
       }
