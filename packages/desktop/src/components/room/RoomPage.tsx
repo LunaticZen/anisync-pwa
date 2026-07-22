@@ -351,10 +351,6 @@ export default function RoomPage() {
     (window as any).__anisyncNativeKeyboard = (open: boolean) => {
       hasNativeBridge = true;
       setIsKeyboardOpen(open);
-      if (open) {
-        window.scrollTo(0, 0);
-        document.body.scrollTop = 0;
-      }
     };
 
     // ── Fallback: Viewport-based detection for non-native environments ──
@@ -371,11 +367,6 @@ export default function RoomPage() {
       // Only use viewport-based detection if native bridge hasn't reported yet
       if (!hasNativeBridge) {
         setIsKeyboardOpen(h < initialVpHeight.current * 0.75);
-      }
-      // Force scroll to top to prevent Chrome from double-shifting the layout
-      if (h < initialVpHeight.current * 0.75) {
-        window.scrollTo(0, 0);
-        document.body.scrollTop = 0;
       }
     };
 
