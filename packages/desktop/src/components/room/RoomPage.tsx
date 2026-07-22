@@ -938,8 +938,10 @@ export default function RoomPage() {
         color: resolvedTextColor,
         transition: 'background 0.4s ease, color 0.4s ease',
       }}>
-        <MemberList members={members} hostId={currentRoom.hostId} pendingRequests={pendingJoinRequests} />
-        <RoomChat mode={mode} roomId={currentRoom.id} members={members} />
+        {!(isMobile && isKeyboardOpen) && (
+          <MemberList members={members} hostId={currentRoom.hostId} pendingRequests={pendingJoinRequests} />
+        )}
+        <RoomChat mode={mode} roomId={currentRoom.id} members={members} isKeyboardOpen={isKeyboardOpen} />
       </div>
 
       <RoomModals {...modalProps} />
