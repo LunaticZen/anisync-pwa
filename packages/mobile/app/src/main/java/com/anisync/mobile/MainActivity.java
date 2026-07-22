@@ -187,11 +187,6 @@ public class MainActivity extends AppCompatActivity {
             if (safeInsetBottom == 0 && systemBars.bottom > 0) {
                 safeInsetBottom = (int) (systemBars.bottom / density);
             }
-            if (safeInsetBottom < 16) {
-                // If it's suspiciously small or 0, fallback to a safe 48dp which covers most gesture bars 
-                // and provides enough clearance for 3-button navs if they overlap.
-                safeInsetBottom = 48; 
-            }
             
             // Native padding: bottom = keyboard when open, otherwise 0
             int keyboardPadding = ime.bottom > systemBars.bottom ? ime.bottom : 0;
