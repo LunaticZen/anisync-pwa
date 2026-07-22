@@ -351,6 +351,10 @@ export default function RoomPage() {
     (window as any).__anisyncNativeKeyboard = (open: boolean) => {
       hasNativeBridge = true;
       setIsKeyboardOpen(open);
+      if (open) {
+        window.scrollTo(0, 0);
+        document.body.scrollTop = 0;
+      }
     };
 
     // ── Fallback: Viewport-based detection for non-native environments ──
@@ -367,6 +371,11 @@ export default function RoomPage() {
       // Only use viewport-based detection if native bridge hasn't reported yet
       if (!hasNativeBridge) {
         setIsKeyboardOpen(h < initialVpHeight.current * 0.75);
+      }
+      // Force scroll to top to prevent Chrome from double-shifting the layout
+      if (h < initialVpHeight.current * 0.75) {
+        window.scrollTo(0, 0);
+        document.body.scrollTop = 0;
       }
     };
 
@@ -827,13 +836,6 @@ export default function RoomPage() {
         }} />}
         <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
           <RoomHeader {...headerProps} />
-          {/* Hide chat when video is active — header with icons stays for room control */}
-          {!currentUrl && <RoomChat
-            mode={mode}
-            roomId={currentRoom.id}
-            members={members}
-            isKeyboardOpen={isKeyboardOpen}
-          />}
           <RoomVideoArea
             mode={mode}
             currentUrl={currentUrl}
@@ -847,6 +849,12 @@ export default function RoomPage() {
             onAnimeUrlChange={setAnimeUrl}
             onNavigate={handleNavigate}
             onToggleUrlInput={() => setShowUrlInput(false)}
+          />
+          <RoomChat
+            mode={mode}
+            roomId={currentRoom.id}
+            members={members}
+            isKeyboardOpen={isKeyboardOpen}
           />
           <RoomModals {...modalProps} />
         </div>
