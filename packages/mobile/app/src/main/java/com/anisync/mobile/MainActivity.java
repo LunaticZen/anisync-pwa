@@ -57,7 +57,7 @@ import java.util.Set;
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "AniSync";
-    private static final String SERVER_URL = "https://anisync-9z1z.onrender.com/?v=2";
+    private static final String SERVER_URL = "https://anisync-9z1z.onrender.com/?v=3";
     private static final int FILE_CHOOSER_REQUEST = 1001;
 
     // Mobil video senkronizasyonunu (CORS bypass - HTML Interception) açıp kapatan ana şalter
@@ -169,6 +169,7 @@ public class MainActivity extends AppCompatActivity {
             float density = getResources().getDisplayMetrics().density;
             safeInsetTop = (int) (systemBars.top / density);
             safeInsetBottom = (int) (systemBars.bottom / density);
+            if (safeInsetBottom < 24) safeInsetBottom = 24; // Force minimum 24px for gesture nav or hidden nav bars
             
             applySafeInsetsToWeb();
 
