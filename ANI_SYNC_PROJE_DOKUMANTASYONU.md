@@ -1585,15 +1585,34 @@ Send: { roomId, time, playing, userId }
 Receive: { time, playing, userId, serverTimestamp }
 ```
 
-### Mikro-Takılma (Micro-Stutter) Sorunu ve Çözümü
+### 🛑 Mikro-Takılma (Micro-Stutter) Sorunu ve Çözümü
 
-**Sorun:** Host olan kullanıcının oynatıcısı (özellikle HLS/m3u8 yayınlarda veya tamponlama esnasında) arka planda otomatik olarak rastgele `seeked`, `play` veya `pause` eventleri fırlatabiliyordu. Bu eventler anında `sync:seek` veya `sync:play` paketi olarak diğer kullanıcılara iletiliyor ve istemciler (aradaki fark sadece 0.1 saniye bile olsa) tam o milisaniyeye `seek` atarak sürekli mikro-takılmalar yaşıyordu.
+**Sorunun Kaynağı:**
+Host olan kullanıcının oynatıcısı, özellikle HLS (m3u8) yayınlarında arka planda tamponlama yaparken (buffering) veya küçük veri aktarımlarında izleyicinin haberi bile olmadan rastgele milisaniyelik `seeked`, `play` veya `pause` eventleri tetikleyebiliyordu. Önceki sistemde, host'tan gelen her event anında `sync:seek` veya `sync:play` paketi olarak tüm izleyicilere yayınlanıyordu (broadcast). İstemciler (client), kendi süreleriyle host'un süresi arasında 0.1 saniye bile fark olsa anında o milisaniyeye `seek` atıp duraksayarak videoyu senkronize etmeye çalışıyordu. Bu aşırı hassas senkronizasyon mekanizması, videoda sürekli kesik kesik ilerleme (mikro-takılma) yaratıyordu.
 
-**Çözüm:** `RoomPage.tsx` dosyasındaki `onPlay`, `onPause` ve `onSeek` fonksiyonlarına `1.5 saniye` tolerans (threshold) eklendi. Artık host'tan gelen rastgele `seek` veya `play` komutları, eğer istemciyle aradaki zaman farkı `> 1.5` saniyeden küçükse **seek atmadan** yoksayılır veya sadece oynatma durumunu değiştirir. Sürekli takılmalar tamamen önlenmiştir.
-- Her 5 saniyede bir gönderilir (PC tarafında)
-- Drift correction için kullanılır
-- PC: >1.5s drift → seek + play/pause düzeltme
-- Mobil: >3s drift + 8s debounce → seek
+**Uygulanan Çözüm:**
+`RoomPage.tsx` dosyasındaki `onPlay`, `onPause`, ve `onSeek` fonksiyonlarına özel bir **1.5 saniye esneklik (tolerans) eşiği** eklendi.
+1. Artık host'tan bir `seek` veya `play` komutu geldiğinde, istemci önce kendi süresiyle hedeflenen süreyi karşılaştırır.
+2. Eğer aradaki fark **1.5 saniyeden küçükse**, istemci asla zorunlu bir `seek` atlaması (jump) yapmaz; sadece oynatmaya devam eder (veya durumu paused/playing olarak değiştirir).
+3. Yalnızca aradaki fark 1.5 saniyeyi aşarsa (gerçek bir senkronizasyon kopması yaşanırsa), oynatıcı host'un saniyesine keskin bir geçiş yapar.
+4. Ayrıca periyodik zaman senkronizasyonu (`sync:timecheck`) de sadece aradaki fark >1.5s ise devreye girer.
+
+Bu çözüm, izleyicinin normal seyrini bölmeden doğal bir senkronizasyon akışı sağlamış ve tüm takılma şikayetlerini kökten gidermiştir.
+
+
+### 📱 Android Arayüz (UI) Hata Düzeltmeleri
+
+#### 1. Klavye Aç/Kapat Sonrası Devasa Üst Boşluk (Older Android & MIUI Bug)
+**Sorun:** Eski Android cihazlarda (J7 Prime) ve MIUI kullanan eski Xiaomi telefonlarda, klavye açılıp kapandıktan sonra `RoomHeader`'ın üstünde ekranın üçte birini kaplayan devasa bir boşluk (gap) oluşuyordu. Bu durum, Android'in `WindowInsetsCompat` API'sinin klavye kapanış animasyonu sırasında `systemBars().top` değerine yanlışlıkla klavye yüksekliğini (örn: 300px) atamasından ve bizim de bu hatalı değeri React'a `--safe-top` değişkeniyle iletmemizden kaynaklanıyordu.
+**Çözüm:**
+- `MainActivity.java` içinde `safeInsetTop` değeri okunurken maksimum `80dp` sınırı (cap) getirildi. Klavye yüksekliği sisteme üst boşluk olarak yansıtılamıyor.
+- `RoomHeader.tsx` içinde; mobil cihazda, portre modunda bir video oynuyorken React arayüzü alt %40'lık kısmı kapladığı için `var(--safe-top)` kullanımı tamamen iptal edildi (Zaten status bar üstteki videonun alanında kalıyor).
+
+#### 2. Jest Navigasyonu (Gesture Nav) İçin Alt Boşluk Hatası
+**Sorun:** Sohbet input alanının 3'lü navigasyon butonlarının (Geri, Ana Ekran vb.) altında kalmaması için, navigasyon yüksekliği küçükse bile (`<16dp`) zorunlu olarak `48dp` boşluk bırakılıyordu. Ancak günümüzde ince çizgi şeklindeki kaydırma hareketlerini (Gesture Navigation) kullanan cihazlarda bu kural yüzünden ekranın en altında devasa ve anlamsız bir boşluk kalıyordu.
+**Çözüm:**
+- Java tarafındaki `48dp` zorunlu (force) fallback koşulu tamamen kaldırıldı. Artık cihaz `navigationBars.bottom` değerini ne raporlarsa (jest için 14-16dp, 3'lü buton için ~48dp, yoksa 0dp) doğrudan dinamik olarak React arayüzüne `--java-padding-bottom` olarak enjekte ediliyor.
+- `RoomChat.tsx` içindeki Web PWA kullanıcıları için olan 48px yedeği de `16px` olarak güncellendi. Artık alt boşluk her cihazın kendi donanım özelliklerine göre kusursuz şekilleniyor.
 
 ### `sync:url-changed`
 ```
