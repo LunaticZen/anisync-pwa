@@ -322,9 +322,63 @@ Eğer görseller tek bir sprite sheet'te geliyorsa:
 | Kenar pürüzlü | Kötü arka plan kaldırma | Defringe + alpha smoothing uygula |
 | Gri leke görünüyor | Avatar circle kalıntısı | Gray cluster flood-fill ile sil |
 
+### E. Play Store Yayın Stratejisi ve Telif (Copyright) Sorunları
+**Sorun:** Uygulamanın doğrudan "Animecix" adıyla veya telif hakkı içeren (korsan) yayın sitelerine gömülü olarak Google Play Store'a yüklenmesi, uygulamanın banlanmasına ve geliştirici hesabının kapatılmasına yol açar.
+**Çözüm (Generic Watch Party Konsepti):** Uygulamayı Play Store'a "AniSync: Birlikte Video İzleme Aracı" gibi tamamen **jenerik (yasal)** bir web tarayıcı / senkronizasyon aracı olarak konumlandırdık. Uygulamanın içerisine gömülü korsan site adresleri koymak yerine, "Kendi URL'ni yapıştır ve arkadaşlarınla izle" mantığına geçildi. 
+**Alınan Ders:** Uygulamanın popülerleşmesi hedefleniyorsa, yasal sorumluluğun tamamen son kullanıcıya (URL'yi giren kişiye) ait olduğu "Boş Tarayıcı (Blank Browser)" veya "Senkronizasyon Platformu" yapısı benimsenmelidir. Kullanıcıların "hangi sitelerin desteklendiğini" keşfetmesi ise Play Store açıklaması yerine Discord, Reddit veya TikTok gibi topluluk platformlarında yapılacak viral pazarlama ile sağlanmalıdır.
+
+### F. Video Oynatıcı Veri Çekme Sistemi (DOM Extraction & JS Injection)
+**Soru:** URL'sini verdiğimiz (Animecix, YouTube vb.) web sitelerindeki video oynatıcılardan senkronizasyon verilerini nasıl çekiyoruz?
+**Cevap & Mimari:** Sistemimiz sunucu taraflı bir proxy veya header interceptor **kullanmaz**. Videoları indirmeyiz veya kendi sunucumuzdan geçirmeyiz. Sistem tamamen **İstemci Taraflı (Client-Side) JS Enjeksiyonu** mantığıyla çalışır.
+1. Kullanıcı bir link girdiğinde Android `WebView` o siteyi tam ekran açar.
+2. Web sayfası yüklendiğinde, `MainActivity` arka planda sayfanın içine özel bir JavaScript kodu enjekte eder (`evaluateJavascript`).
+3. Bu kod, sayfanın DOM ağacını (HTML yapısını) tarayarak `document.querySelector('video')` veya iframe içerisindeki `<video>` etiketlerini bulur.
+4. Bulunan video elementine `addEventListener` ile dinleyiciler (`play`, `pause`, `seeked`, `timeupdate`) bağlanır.
+5. Kullanıcı videoda bir işlem yaptığında, bu JS kodu `window.AniSyncAnimeBridge` (Android JS Interface) üzerinden React uygulamasına sinyal gönderir.
+**Header ve Trafik Durumu:** Videonun bant genişliği (bandwidth) ve HTTP Headers (Referer, Origin vb.) doğrudan kullanıcının telefonu ile video sağlayıcısı (Vidmoly, Google vb.) arasında gerçekleşir. Bizim Node.js sunucumuz (Render) asla video verisini görmez, sadece "14. saniyede durduruldu" gibi minik metin (socket) mesajlarını taşır.
+
+### G. Android Native Klavye Animasyonu Deneyimi (WindowInsetsAnimationController)
+**Deneyim:** Sohbet alanında klavyenin kusursuz ve pürüzsüz bir şekilde kayarak açılması (iOS veya Telegram tarzı) için Android'in yeni `WindowInsetsAnimationController` API'si ile Webview padding'lerini senkronize etmeye çalıştık.
+**Hata (Glitch/Thrashing):** Klavyenin milisaniyelik kayma verisini alıp Webview'in `setPadding` veya `setTranslationY` değerlerine anlık olarak basmak, Webview'in içindeki React/CSS render motorunun her frame'de (60FPS) kendini yeniden hesaplamasına (Layout Thrashing) yol açtı. Sonuç olarak animasyonlar inanılmaz "titrek" (glitchy) oldu, bazen tüm uygulama ters yönlere kaydı veya mesaj kutusu klavyenin altında kaldı.
+**Çözüm & Alınan Ders:** WebView barındıran hibrid (React + Android) uygulamalarda, DOM yapısını native animasyon frame'leriyle (60 kere saniyede) yeniden boyutlandırmaya (resize/padding) çalışmak kesinlikle felaketle sonuçlanır. Bunun yerine, uygulamanın (Activity) `windowSoftInputMode="adjustResize"` standart davranışında bırakılması ve klavye boyutunun Web tarafında `CSS flex` veya `position: absolute; bottom: 0` mimarisiyle tarayıcının kendi optimizasyonuna bırakılması en pürüzsüz sonucu verdi.
+
+### H. UI ve UX İyileştirmeleri (Mesaj Yanıtlama & Emojiler)
+- **Alıntı (Reply) Baloncuğu Taşması:** Uzun mesajlara yanıt verildiğinde, alıntı kutucuğu (reply preview) ekrana sığmak yerine tek satırda kalıp ekranın dışına taşıyordu (overflow). Bu durum CSS'te `min-width: 0`, `word-break: break-word` ve doğru flex wrap özellikleri ile çözülerek alıntı kutucuğunun da alt satırlara inmesi sağlandı.
+- **Alıntıda Emoji Render Hataları:** Emojili bir mesaja yanıt verildiğinde, alıntı kutusunda emoji resmi yerine `[emoji:xxx.png]` şeklinde metin kodları (shortcode) çıkıyordu. Yanıt önizlemesi (preview) bileşeni, özel mesaj render motoruna (parser) bağlanarak emojilerin alıntılarda da küçük resim (thumbnail) olarak çıkması sağlandı.
+- **Tek Tuşla Emoji Silme:** Özel emojiler arkada uzun bir metin/tag barındırdığı için, klavyeden "Sil" tuşuna basıldığında o uzun metni harf harf siliyordu. Özel Backspace algılayıcıları ile tek bir silme işleminde tüm emojinin DOM'dan kalkması (Zero-width space veya node deletion mantığı) sağlandı.
+- **Emoji Paneli Optimizasyonu:** Kullanıcı emoji paneline dokunduğunda klavyenin kapanması (blur event) veya gereksiz yere açılması engellendi (`onTouchStart` ile `preventDefault`). Ayrıca klavye açıkken emoji paneline dar alan kaldığı için, "Özel Emojiler" gibi yer kaplayan başlıklar dinamik olarak gizlenip alan tasarrufu yapıldı.
+- **Tek Parça Desktop Uygulaması (Single Executable):** Masaüstü versiyonunda EXE etrafında bir sürü klasör dolaşması yerine `electron-builder` (nsis/portable veya asar) kullanılarak her şey tek bir portatif EXE dosyasında paketlendi.
+
 ***
 **Sürüm:** v1.3.0+
 **Tarih:** Temmuz 2026
+
+## 8. Android WebView ve Senkronizasyon İyileştirmeleri (Kritik Dersler)
+
+### A. Klavye Açılıp/Kapanma Algılaması (Viewport Bug)
+**Hata:** Android uygulamasında Xiaomi ve Samsung cihazlarda, video bağlantısı girildiğinde sohbet kısmında klavye açık olmamasına rağmen "klavye açıkmış gibi" ekran daralıyor ve alttaki butonlar sohbet barının üzerine biniyordu.
+**Neden:** React tarafında klavyenin açıldığını algılamak için `visualViewport.height` değeri ilk (tam ekran) yükseklik ile kıyaslanıyordu (`initialVpHeight * 0.75`). Ancak video linki girildiğinde Android tarafındaki WebView ekranın sadece alt %40'ına sıkıştırıldığından, React bunu "Klavye açıldı ve ekran daraldı" olarak algılayıp `isKeyboardOpen` flag'ini `true` yapıyordu. Bu durum `safe-bottom` padding'inin silinmesine ve UI'ın sıkışmasına sebep oluyordu.
+**Çözüm:** Klavye algılamasını Web'in tahminsel `viewport` hesaplamasından çıkartıp, doğrudan Android'in işletim sistemi seviyesindeki `WindowInsets` verisine bağladık. Android tarafında `ime.bottom > systemBars.bottom` şartı ile klavyenin gerçekten açık olup olmadığını yakalayıp JavaScript köprüsü (`__anisyncNativeKeyboard`) üzerinden anlık olarak web katmanına ilettik.
+**Alınan Ders:** Uygulamanın içerisinde dinamik olarak boyutlandırılabilen (split-screen veya oranlı layout) WebView'ler kullanıldığında, Web tarafındaki `window.innerHeight` veya `visualViewport` değerlerine güvenerek sistem (OS) düzeyindeki olayları (klavye gibi) tespit etmeye çalışmak ciddi mantık hatalarına yol açar. Sistem verileri her zaman Native köprülerle Web'e aktarılmalıdır.
+
+### B. HLS Kaynaklı Spurious (Sahte) Seeked Takılmaları
+**Hata:** Odaya katılan diğer kullanıcıların cihazlarında durduk yere anlık (mikro) takılmalar (stuttering) yaşanıyordu.
+**Neden:** Video oynatıcılar (Animecix vb.) HLS tabanlı yayın yaparken yayın kalitesini değiştirirken veya segment (parça) sınırlarını yüklerken kendi içlerinde milisaniyelik `seeking` ve `seeked` (sarma) event'leri fırlatır. Android `MainActivity`'deki JS enjeksiyonunda doğrudan `video.addEventListener('seeked', ...)` bulunduğu için, oynatıcının doğal segment atlamalarını bile "Oda sahibi ileri sardı" sanıp herkese `sync:seek` gönderiyor, bu da mikro takılmalara neden oluyordu.
+**Çözüm:** Native `seeked` event dinleyicisini tamamen kaldırdık. Bunun yerine saniyede bir çalışan `timecheck` döngüsünün içine, `Math.abs(v.currentTime - v.__lastTime) > 2.5` saniye kontrolü ekleyerek, sadece kullanıcının el ile yaptığı gerçek (büyük) sarmaların `seek` eventi göndermesini sağladık.
+**Alınan Ders:** Ham HTML5 video event'leri (özellikle `seeked` ve `waiting`), HLS/DASH tabanlı third-party akış sunucularında tahmin edilemez şekilde ve sık sık tetiklenebilir. Senkronizasyon motorları tasarlanırken bu eventlere güvenmek yerine, zaman farkı (time-delta) threshold (eşik) hesaplamaları ile "gerçek" kullanıcı müdahaleleri ayırt edilmelidir.
+
+### C. Eksik 'Playing' (State) Sinyalinin Yarattığı Kilitlenmeler
+**Hata:** Android'den web tarafına zaman gönderilirken (`timecheck`), videonun oynatılıp oynatılmadığı (`playing`) bilgisi JS köprüsünden yanlışlıkla eksik (undefined) gönderiliyordu.
+**Neden:** `AniSyncAnimeBridge.sendEvent(type, time)` fonksiyonunun sadece 2 parametresi vardı. `playing` verisi gitmediği için React tarafındaki `onTimecheck` fonksiyonunda `d.playing` değeri boş (falsy) düşüyordu. Bu durumda React, "Oda sahibi videoyu durdurmuş" sanıp her 1 saniyede bir zorla `pause()` komutu basıyor, ama aynı zamanda timecheck zamanları ilerlediği için video dur-kalk (stuttering) döngüsüne giriyordu.
+**Çözüm:** Java tarafındaki `@JavascriptInterface` metodu `sendEvent(String type, double time, boolean playing)` şeklinde 3 parametreli hale getirilip videonun `!v.paused` durumu Native köprüden React katmanına güvenli şekilde taşındı.
+
+### D. Safe-Top Padding (Statü Çubuğu Boşluğu) Daralması
+**Hata:** Dikey modda video açıldığında sohbet alanının en üstündeki panel (Back butonu ve ayarların olduğu yer) çok kalın görünüyor ve sohbet alanını gereksiz daraltıyordu.
+**Neden:** Uygulama telefonda çalışırken en üstte yer alan wifi, şarj, saat gibi göstergeler (status bar) sohbet ikonlarının üstüne binmesin diye Web tarafında `calc(var(--safe-top) + SAFE_TOP + 8px)` şeklinde ekstra bir boşluk eklemiştik. Ancak video açıldığında WebView ekranın *alt* yarısına taşındığı için artık status bar ile çakışmıyordu. Buna rağmen o boşluk hala ekleniyordu.
+**Çözüm:** `MainActivity.java` içerisindeki insets hesaplamasına şu mantığı ekledik: `if (animeVisible && isPortrait) effectiveTopInset = 0;`. Ayrıca React tarafındaki `RoomHeader.tsx`'te `currentUrl` (video var) şartı eklendiğinde `SAFE_TOP` sabitinin tamamen iptal edilmesini sağlayarak header'ın incecik formuna dönmesini sağladık.
+**Alınan Ders:** `safe-area-inset` değerleri statik olmamalıdır. Ekranda çoklu parçalı (split) WebView kullanıldığında, WebView'in fiziksel pozisyonu ekranın en tepesinden ayrıldığı an üst `safe-area` ihtiyacı ortadan kalkar.
+
+---
 
 ---
 

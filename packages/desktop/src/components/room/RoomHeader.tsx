@@ -50,6 +50,8 @@ export function RoomHeader({
   const isDesktop = mode === 'desktop';
   const isLandscape = mode === 'mobile-landscape';
   const isPortraitMode = mode === 'mobile-portrait';
+  // Video active in portrait = header should be ultra-compact
+  const videoActive = isPortraitMode && !!currentUrl;
 
   // ─── Render Helpers ───
   const globalTheme = useUIStore(s => s.theme);
@@ -70,18 +72,18 @@ export function RoomHeader({
       );
     }
     // Mobile (portrait + landscape)
-    const iconSize = isPortraitMode && isKeyboardOpen ? 14 : ICON_SIZE;
+    const compact = isKeyboardOpen || videoActive;
+    const iconSize = compact ? 14 : ICON_SIZE;
     return (
       <button onClick={onBack} style={{
         background: 'none', border: 'none',
         color: isLandscape ? 'white' : headerText,
         cursor: 'pointer', display: 'flex',
-        padding: isLandscape ? (isXiaomi ? 8 : 6) : (isKeyboardOpen ? 2 : (isXiaomi ? 6 : 4)),
-        minWidth: isKeyboardOpen ? 'auto' : TOUCH_SIZE,
-        minHeight: isKeyboardOpen ? 'auto' : TOUCH_SIZE,
+        padding: isLandscape ? (isXiaomi ? 8 : 6) : (compact ? 2 : (isXiaomi ? 6 : 4)),
+        minWidth: compact ? 'auto' : TOUCH_SIZE,
+        minHeight: compact ? 'auto' : TOUCH_SIZE,
         alignItems: 'center', justifyContent: 'center',
         opacity: isLandscape ? 0.9 : undefined,
-        /* padding removed from transition */
       }}>
         <svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
       </button>
@@ -92,8 +94,9 @@ export function RoomHeader({
   const renderAvatar = () => {
     if (isLandscape) return null;
 
-    // Compact mode when keyboard/split-screen is active
-    const compact = isPortraitMode && isKeyboardOpen;
+    // Compact mode when keyboard/split-screen is active OR video is active
+    const compact = isPortraitMode && (isKeyboardOpen || videoActive);
+    if (videoActive) return null; // Hide avatar entirely when video is active to save space
     const size = compact ? 20 : (isDesktop ? 32 : (isXiaomi ? 32 : 28));
     return (
       <div onClick={onShowProfile} style={{
@@ -137,23 +140,25 @@ export function RoomHeader({
     }
 
     // Mobile (portrait + landscape)
+    // Compact: keyboard open OR video active
+    const compact = isPortraitMode && (isKeyboardOpen || videoActive);
     return (
       <div style={{
         flex: 1, minWidth: 0, display: 'flex',
-        flexDirection: isPortraitMode && isKeyboardOpen ? 'row' as const : 'column' as const,
-        alignItems: isPortraitMode && isKeyboardOpen ? 'center' : 'flex-start',
-        gap: isPortraitMode && isKeyboardOpen ? 6 : 0,
+        flexDirection: compact ? 'row' as const : 'column' as const,
+        alignItems: compact ? 'center' : 'flex-start',
+        gap: compact ? 6 : 0,
         color: isLandscape ? 'white' : activeTheme.textColor,
       }}>
         <div style={{
           fontWeight: 700,
-          fontSize: isPortraitMode && isKeyboardOpen ? 11 : FONT_HEADER,
+          fontSize: compact ? 11 : FONT_HEADER,
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
           transition: isPortraitMode ? `font-size ${ANIM_SPEED} ease` : undefined,
           lineHeight: 1.2,
           ...(isLandscape ? { opacity: 0.95 } : {}),
         }}>{roomName}</div>
-        {!(isPortraitMode && isKeyboardOpen) && (
+        {!compact && (
           <div style={{
             fontSize: isLandscape ? 10 : (isXiaomi ? 12 : 11),
             color: isLandscape ? undefined : headerText,
@@ -172,7 +177,8 @@ export function RoomHeader({
   const renderMembers = () => {
     if (isDesktop) return null; // Desktop shows members in sidebar
 
-    const iconSize = isPortraitMode && isKeyboardOpen ? 13 : ICON_SIZE;
+    const compact = isKeyboardOpen || videoActive;
+    const iconSize = compact ? 13 : ICON_SIZE;
 
     return (
       <button onClick={onShowMembers} style={{
@@ -180,30 +186,29 @@ export function RoomHeader({
         color: isLandscape ? 'white' : headerText,
         cursor: 'pointer', display: 'flex', alignItems: 'center',
         gap: isLandscape ? 4 : 3, position: 'relative',
-        padding: isLandscape ? (isXiaomi ? 8 : 6) : (isKeyboardOpen ? 2 : (isXiaomi ? 6 : 4)),
+        padding: isLandscape ? (isXiaomi ? 8 : 6) : (compact ? 2 : (isXiaomi ? 6 : 4)),
         flexShrink: 0,
-        minWidth: isKeyboardOpen ? 'auto' : TOUCH_SIZE,
-        minHeight: isKeyboardOpen ? 'auto' : TOUCH_SIZE,
+        minWidth: compact ? 'auto' : TOUCH_SIZE,
+        minHeight: compact ? 'auto' : TOUCH_SIZE,
         justifyContent: 'center',
         opacity: isLandscape ? 0.9 : undefined,
-        /* padding removed from transition */
       }}>
         <svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" />
           <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
         </svg>
         <span style={{
-          fontSize: isKeyboardOpen ? 10 : (isLandscape ? 11 : (isXiaomi ? 13 : 12)),
+          fontSize: compact ? 10 : (isLandscape ? 11 : (isXiaomi ? 13 : 12)),
           fontWeight: 700,
         }}>{memberCount}</span>
         {pendingRequestCount > 0 && (
           <span style={{
-            position: 'absolute', top: isKeyboardOpen ? -2 : (isLandscape ? 0 : -2),
-            right: isKeyboardOpen ? -2 : (isLandscape ? 0 : -2),
-            width: isKeyboardOpen ? 12 : (isXiaomi ? (isLandscape ? 16 : 18) : (isLandscape ? 14 : 16)),
-            height: isKeyboardOpen ? 12 : (isXiaomi ? (isLandscape ? 16 : 18) : (isLandscape ? 14 : 16)),
+            position: 'absolute', top: compact ? -2 : (isLandscape ? 0 : -2),
+            right: compact ? -2 : (isLandscape ? 0 : -2),
+            width: compact ? 12 : (isXiaomi ? (isLandscape ? 16 : 18) : (isLandscape ? 14 : 16)),
+            height: compact ? 12 : (isXiaomi ? (isLandscape ? 16 : 18) : (isLandscape ? 14 : 16)),
             borderRadius: '50%', background: '#ef4444', color: 'white',
-            fontSize: isKeyboardOpen ? 7 : (isXiaomi ? (isLandscape ? 9 : 10) : (isLandscape ? 8 : 9)),
+            fontSize: compact ? 7 : (isXiaomi ? (isLandscape ? 9 : 10) : (isLandscape ? 8 : 9)),
             fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center',
             boxShadow: isPortraitMode ? '0 0 8px rgba(239,68,68,0.5)' : undefined,
           }}>{pendingRequestCount}</span>
@@ -243,8 +248,8 @@ export function RoomHeader({
       );
     }
 
-    // Portrait — compact when keyboard/split-screen active
-    const compact = isPortraitMode && isKeyboardOpen;
+    // Portrait — compact when keyboard/split-screen active OR video active
+    const compact = isKeyboardOpen || videoActive;
     const iconSz = compact ? 13 : (isXiaomi ? 18 : 16);
     const dotSz = compact ? 7 : (isXiaomi ? 12 : 10);
     return (
@@ -309,18 +314,19 @@ export function RoomHeader({
   }
 
   if (isPortraitMode) {
+    const compact = isKeyboardOpen || videoActive;
     return (
       <div style={{
         display: 'flex', alignItems: 'center',
-        gap: isKeyboardOpen ? 6 : (isXiaomi ? 10 : 8),
-        padding: isKeyboardOpen ? '2px 8px' : HEADER_PAD,
-        paddingTop: isKeyboardOpen ? 2 : (currentUrl ? 8 : `calc(var(--safe-top, 0px) + ${SAFE_TOP + 8}px)`),
+        gap: compact ? 4 : (isXiaomi ? 10 : 8),
+        padding: compact ? '2px 8px' : HEADER_PAD,
+        paddingTop: compact ? 2 : `calc(var(--safe-top, 0px) + ${SAFE_TOP + 8}px)`,
         background: headerBg,
         backdropFilter: 'none',
         borderBottom: `1px solid ${effectiveIsLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.06)'}`,
         flexShrink: 0,
         transition: `background ${ANIM_SPEED} cubic-bezier(0.4, 0, 0.2, 1)`,
-        minHeight: isKeyboardOpen ? 28 : (currentUrl ? TOUCH_SIZE : `calc(var(--safe-top, 0px) + ${TOUCH_SIZE}px)`),
+        minHeight: compact ? 28 : `calc(var(--safe-top, 0px) + ${TOUCH_SIZE}px)`,
         overflow: 'hidden',
       }}>
         {renderBack()}
@@ -330,7 +336,7 @@ export function RoomHeader({
         {renderMembers()}
         {renderLogButton()}
         {renderTheme()}
-        <ThemeToggleBtn size={isKeyboardOpen ? 13 : (isXiaomi ? 18 : 16)} color={activeTheme.accent} style={{ padding: isKeyboardOpen ? 2 : (isXiaomi ? 6 : 4), flexShrink: 0, minWidth: isKeyboardOpen ? 'auto' : TOUCH_SIZE, minHeight: isKeyboardOpen ? 'auto' : TOUCH_SIZE, justifyContent: 'center' }} />
+        <ThemeToggleBtn size={compact ? 13 : (isXiaomi ? 18 : 16)} color={activeTheme.accent} style={{ padding: compact ? 2 : (isXiaomi ? 6 : 4), flexShrink: 0, minWidth: compact ? 'auto' : TOUCH_SIZE, minHeight: compact ? 'auto' : TOUCH_SIZE, justifyContent: 'center' }} />
       </div>
     );
   }
