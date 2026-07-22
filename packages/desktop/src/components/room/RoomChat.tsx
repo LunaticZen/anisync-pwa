@@ -1082,15 +1082,6 @@ const ChatPanel = React.memo(function ChatPanel({ roomId, members, isKeyboardOpe
 
   return (
     <div className="chat" style={{ containerType: 'size', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
-      {/* DEBUG OVERLAY */}
-      <div style={{ padding: 10, background: 'red', color: 'white', fontSize: 12, zIndex: 9999 }}>
-        DEBUG - isKB: {isKeyboardOpen ? 'YES' : 'NO'} | 
-        mobile: {isMobile ? 'YES' : 'NO'} | 
-        paddingBottom: {isKeyboardOpen ? '4px' : (isMobile ? 'calc(var(--safe-bottom, 48px) + 8px)' : '16px')} | 
-        safeBottomVar: {typeof document !== 'undefined' ? getComputedStyle(document.documentElement).getPropertyValue('--safe-bottom') : 'N/A'} |
-        innerH: {window.innerHeight} |
-        visualH: {window.visualViewport?.height}
-      </div>
 
       {/* Chat Header — slides up and vanishes when keyboard opens */}
       <div style={{

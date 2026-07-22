@@ -1584,6 +1584,12 @@ Client → Server → Room (broadcast, except sender)
 Send: { roomId, time, playing, userId }
 Receive: { time, playing, userId, serverTimestamp }
 ```
+
+### Mikro-Takılma (Micro-Stutter) Sorunu ve Çözümü
+
+**Sorun:** Host olan kullanıcının oynatıcısı (özellikle HLS/m3u8 yayınlarda veya tamponlama esnasında) arka planda otomatik olarak rastgele `seeked`, `play` veya `pause` eventleri fırlatabiliyordu. Bu eventler anında `sync:seek` veya `sync:play` paketi olarak diğer kullanıcılara iletiliyor ve istemciler (aradaki fark sadece 0.1 saniye bile olsa) tam o milisaniyeye `seek` atarak sürekli mikro-takılmalar yaşıyordu.
+
+**Çözüm:** `RoomPage.tsx` dosyasındaki `onPlay`, `onPause` ve `onSeek` fonksiyonlarına `1.5 saniye` tolerans (threshold) eklendi. Artık host'tan gelen rastgele `seek` veya `play` komutları, eğer istemciyle aradaki zaman farkı `> 1.5` saniyeden küçükse **seek atmadan** yoksayılır veya sadece oynatma durumunu değiştirir. Sürekli takılmalar tamamen önlenmiştir.
 - Her 5 saniyede bir gönderilir (PC tarafında)
 - Drift correction için kullanılır
 - PC: >1.5s drift → seek + play/pause düzeltme
