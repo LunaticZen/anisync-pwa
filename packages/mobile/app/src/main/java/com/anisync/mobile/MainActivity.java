@@ -174,8 +174,18 @@ public class MainActivity extends AppCompatActivity {
 
             // Native padding: bottom = keyboard when open, otherwise 0
             // Top is handled by CSS via --safe-top so app background extends behind status bar
-            int keyboardPadding = ime.bottom > systemBars.bottom ? ime.bottom : 0;
+            boolean isKbOpen = ime.bottom > systemBars.bottom;
+            int keyboardPadding = isKbOpen ? ime.bottom : 0;
             v.setPadding(0, 0, 0, keyboardPadding);
+
+            // Send definitive keyboard state to web layer via JS bridge.
+            // The web side previously guessed keyboard state by comparing viewport height
+            // against initial height, which BREAKS when the WebView shrinks to 40% for video mode.
+            if (mainWebView != null) {
+                final boolean kbState = isKbOpen;
+                mainWebView.post(() -> mainWebView.evaluateJavascript(
+                    "window.__anisyncNativeKeyboard && window.__anisyncNativeKeyboard(" + kbState + ")", null));
+            }
             
             return windowInsets;
         });

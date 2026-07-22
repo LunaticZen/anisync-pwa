@@ -338,11 +338,22 @@ export default function RoomPage() {
     tickerKeyCounter.current = 0;
   }, [currentUrl]);
 
-  // ── Mobile: Track viewport height for keyboard detection ──
+  // ── Mobile: Track viewport height and keyboard detection ──
   useEffect(() => {
     if (!isMobile) return;
     
-    // Fallback if visualViewport is unavailable
+    // ── Native bridge (Android): Definitive keyboard state from IME insets ──
+    // This is the primary detection method. Android sends keyboard state directly
+    // via __anisyncNativeKeyboard(bool) from the WindowInsets listener.
+    // This avoids the viewport-height guessing bug where shrinking the WebView
+    // to 40% for video mode falsely triggers keyboard-open detection.
+    let hasNativeBridge = false;
+    (window as any).__anisyncNativeKeyboard = (open: boolean) => {
+      hasNativeBridge = true;
+      setIsKeyboardOpen(open);
+    };
+
+    // ── Fallback: Viewport-based detection for non-native environments ──
     const vv = window.visualViewport;
     
     const initTimer = setTimeout(() => {
@@ -353,7 +364,10 @@ export default function RoomPage() {
     const onResize = () => {
       const h = vv ? vv.height : window.innerHeight;
       setViewportHeight(h);
-      setIsKeyboardOpen(h < initialVpHeight.current * 0.75);
+      // Only use viewport-based detection if native bridge hasn't reported yet
+      if (!hasNativeBridge) {
+        setIsKeyboardOpen(h < initialVpHeight.current * 0.75);
+      }
     };
 
     if (vv) {
@@ -363,6 +377,7 @@ export default function RoomPage() {
     }
 
     return () => {
+      delete (window as any).__anisyncNativeKeyboard;
       if (vv) vv.removeEventListener('resize', onResize);
       else window.removeEventListener('resize', onResize);
       clearTimeout(initTimer);
