@@ -30,6 +30,7 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.net.http.SslError;
+import android.webkit.WebStorage;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 
@@ -201,7 +202,12 @@ public class MainActivity extends AppCompatActivity {
                             "if (!document.getElementById('java-fixes')) {" +
                             "  const s = document.createElement('style');" +
                             "  s.id = 'java-fixes';" +
-                            "  s.innerHTML = '.chat > div:last-of-type { padding-bottom: var(--java-padding-bottom) !important; }';" +
+                            "  s.innerHTML = '.chat > div:last-of-type { padding-bottom: var(--java-padding-bottom) !important; }' + " +
+                            "  'div[style*=\"minmax(200px\"] { grid-template-columns: 1fr 1fr !important; gap: 12px !important; padding: 12px 0 !important; }' + " +
+                            "  '.folder-card { padding: 16px 12px !important; gap: 10px !important; }' + " +
+                            "  '.folder-card > div:first-child { width: 44px !important; height: 44px !important; border-radius: 12px !important; }' + " +
+                            "  '.folder-card h3 { font-size: 13px !important; margin: 0 0 4px 0 !important; }' + " +
+                            "  '.folder-card p { font-size: 10px !important; line-height: 1.3 !important; }';" +
                             "  document.head.appendChild(s);" +
                             "}";
                 mainWebView.evaluateJavascript(js, null);
@@ -244,10 +250,10 @@ public class MainActivity extends AppCompatActivity {
 
         animeWebView.addJavascriptInterface(new Object() {
             @android.webkit.JavascriptInterface
-            public void sendEvent(String type, double time) {
+            public void sendEvent(String type, double time, boolean playing) {
                 if (mainWebView != null) {
                     mainWebView.post(() -> {
-                        String js = "window.postMessage({ type: 'mobile:sync-event', eventType: '" + type + "', time: " + time + " }, '*');";
+                        String js = "window.postMessage({ type: 'mobile:sync-event', eventType: '" + type + "', time: " + time + ", playing: " + playing + " }, '*');";
                         mainWebView.evaluateJavascript(js, null);
                     });
                 }
@@ -613,7 +619,7 @@ public class MainActivity extends AppCompatActivity {
                         "    window.__mobileVideoPlaying = e.data.playing;" +
                         "  }" +
                         "  if (e.data && e.data.anisyncEvent && window.AniSyncAnimeBridge) {" +
-                        "    window.AniSyncAnimeBridge.sendEvent(e.data.anisyncEvent, e.data.time);" +
+                        "    window.AniSyncAnimeBridge.sendEvent(e.data.anisyncEvent, e.data.time, e.data.playing || false);" +
                         "  }" +
                         "});" +
                         "setInterval(function() {" +
@@ -632,8 +638,8 @@ public class MainActivity extends AppCompatActivity {
                         "  if (v && !v.__anisyncAttached) {" +
                         "    v.__anisyncAttached = true;" +
                         "    var send = function(type) { " +
-                        "      if(window.AniSyncAnimeBridge) window.AniSyncAnimeBridge.sendEvent(type, v.currentTime);" +
-                        "      else if(window.parent) window.parent.postMessage({ anisyncEvent: type, time: v.currentTime }, '*');" +
+                        "      if(window.AniSyncAnimeBridge) window.AniSyncAnimeBridge.sendEvent(type, v.currentTime, !v.paused);" +
+                        "      else if(window.parent) window.parent.postMessage({ anisyncEvent: type, time: v.currentTime, playing: !v.paused }, '*');" +
                         "    };" +
                         "    v.addEventListener('play', function(){ send('play'); });" +
                         "    v.addEventListener('pause', function(){ send('pause'); });" +
@@ -641,7 +647,7 @@ public class MainActivity extends AppCompatActivity {
                         "  }" +
                         "  if (v) {" +
                         "    var type = 'timecheck';" +
-                        "    if(window.AniSyncAnimeBridge) window.AniSyncAnimeBridge.sendEvent(type, v.currentTime);" +
+                        "    if(window.AniSyncAnimeBridge) window.AniSyncAnimeBridge.sendEvent(type, v.currentTime, !v.paused);" +
                         "    else if(window.parent) window.parent.postMessage({ anisyncEvent: type, time: v.currentTime, playing: !v.paused }, '*');" +
                         "  }" +
                         "}, 1000);" : "") +

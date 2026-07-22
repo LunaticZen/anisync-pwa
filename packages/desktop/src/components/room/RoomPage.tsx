@@ -162,8 +162,8 @@ export default function RoomPage() {
           ignoreUntil = Date.now() + 1500;
           (window as any).anisync.player.seek(d.time);
         }
-        if (d.playing && state.state !== 'playing') (window as any).anisync.player.play();
-        else if (!d.playing && state.state === 'playing') (window as any).anisync.player.pause();
+        if (d.playing === true && state.state !== 'playing') (window as any).anisync.player.play();
+        else if (d.playing === false && state.state === 'playing') (window as any).anisync.player.pause();
       }).catch(() => { });
     };
 
@@ -240,9 +240,13 @@ export default function RoomPage() {
 
     const onMobileSyncEvent = (e: MessageEvent) => {
       if (e.data?.type === 'mobile:sync-event') {
+        const { eventType, time, playing } = e.data;
+        if (time !== undefined) (window as any).__mobileVideoTime = time;
+        if (playing !== undefined) (window as any).__mobileVideoPlaying = playing;
+
         if (useRoomStore.getState().currentRoom?.hostId !== useAuthStore.getState().username) return;
         if (Date.now() < ignoreUntil) return; // Prevent echo loops
-        const { eventType, time, playing } = e.data;
+
         if (eventType === 'play') socket.emit('sync:play', { roomId: currentRoom.id, time, generation: Date.now() });
         else if (eventType === 'pause') socket.emit('sync:pause', { roomId: currentRoom.id, time, generation: Date.now() });
         else if (eventType === 'seek') socket.emit('sync:seek', { roomId: currentRoom.id, time, generation: Date.now() });
