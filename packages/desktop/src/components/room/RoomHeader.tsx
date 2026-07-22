@@ -314,13 +314,13 @@ export function RoomHeader({
         display: 'flex', alignItems: 'center',
         gap: isKeyboardOpen ? 6 : (isXiaomi ? 10 : 8),
         padding: isKeyboardOpen ? '2px 8px' : HEADER_PAD,
-        paddingTop: isKeyboardOpen ? 2 : `calc(var(--safe-top, 0px) + ${SAFE_TOP + 8}px)`,
+        paddingTop: isKeyboardOpen ? 2 : ((hasBridge && currentUrl) ? 8 : `calc(var(--safe-top, 0px) + ${SAFE_TOP + 8}px)`),
         background: headerBg,
         backdropFilter: 'none',
         borderBottom: `1px solid ${effectiveIsLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.06)'}`,
         flexShrink: 0,
         transition: `background ${ANIM_SPEED} cubic-bezier(0.4, 0, 0.2, 1)`,
-        minHeight: isKeyboardOpen ? 28 : `calc(var(--safe-top, 0px) + ${TOUCH_SIZE}px)`,
+        minHeight: isKeyboardOpen ? 28 : ((hasBridge && currentUrl) ? TOUCH_SIZE : `calc(var(--safe-top, 0px) + ${TOUCH_SIZE}px)`),
         overflow: 'hidden',
       }}>
         {renderBack()}

@@ -172,7 +172,11 @@ public class MainActivity extends AppCompatActivity {
             Insets ime = windowInsets.getInsets(WindowInsetsCompat.Type.ime());
             
             float density = getResources().getDisplayMetrics().density;
-            safeInsetTop = (int) (systemBars.top / density);
+            int rawSafeTop = (int) (systemBars.top / density);
+            // Prevent older Android bugs where systemBars.top temporarily returns keyboard height
+            if (rawSafeTop >= 0 && rawSafeTop <= 80) {
+                safeInsetTop = rawSafeTop;
+            }
             
             // On some custom ROMs (Xiaomi, Samsung A-series), systemBars().bottom returns 0 when edge-to-edge is enabled, 
             // even if 3-button navigation is active. We force a minimum of 48dp (standard 3-button height) 
