@@ -654,8 +654,10 @@ function setupHeaderInterceptors(view: BrowserView) {
 
 // ─── App Lifecycle ────────────────────────────────────────────
 
+app.commandLine.appendSwitch('disable-features', 'UserAgentClientHint');
 app.commandLine.appendSwitch('disable-blink-features', 'AutomationControlled');
-app.userAgentFallback = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+// Electron 30 uses Chromium 124. Match the Chrome version exactly so Cloudflare Turnstile doesn't detect a version mismatch.
+app.userAgentFallback = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
 
 app.whenReady().then(async () => {
   console.log('[AniSync] Starting...');
