@@ -650,19 +650,36 @@ public class MainActivity extends AppCompatActivity {
                         "  }" +
                         "});" +
                         "setInterval(function() {" +
+                        "  var loc = window.location.href;" +
+                        "  var isAnimecix = loc.indexOf('animecix') > -1;" +
+                        "  var isDizibox = loc.indexOf('dizibox') > -1 || loc.indexOf('dizipub') > -1 || loc.indexOf('diziwatch') > -1;" +
+                        "  var isKnownSite = isAnimecix || isDizibox;" +
                         "  var fs = document.querySelectorAll('iframe');" +
                         "  for (var i=0; i<fs.length; i++) {" +
                         "    var src = fs[i].src;" +
                         "    if (src && src.startsWith('http') && !fs[i].__anisyncExtracted) {" +
                         "      fs[i].__anisyncExtracted = true;" +
-                        "      var isVideoProvider = src.indexOf('video')>-1 || src.indexOf('player')>-1 || src.indexOf('embed')>-1 || src.indexOf('stream')>-1 || src.indexOf('vidmoly')>-1 || src.indexOf('tau')>-1;" +
-                        "      if (isVideoProvider && src.indexOf('animecix') === -1) {" +
+                        "      if (isAnimecix) continue;" +
+                        "      var isSameDomain = src.indexOf(window.location.hostname) > -1;" +
+                        "      var shouldExtract = false;" +
+                        "      if (isDizibox) {" +
+                        "        var isVideoProvider = src.indexOf('video')>-1 || src.indexOf('player')>-1 || src.indexOf('embed')>-1 || src.indexOf('stream')>-1 || src.indexOf('vidmoly')>-1 || src.indexOf('tau')>-1;" +
+                        "        shouldExtract = isVideoProvider && !isSameDomain;" +
+                        "      } else {" +
+                        "        var wList = ['molystream', 'vidmoly', 'ok.ru', 'tau', 'fembed', 'mega', 'streamtape', 'mixdrop', 'mp4upload', 'okru', 'voe.sx', 'dood'];" +
+                        "        var inWList = false;" +
+                        "        for(var j=0; j<wList.length; j++) { if(src.indexOf(wList[j]) > -1) { inWList = true; break; } }" +
+                        "        var isBigEnough = fs[i].clientWidth > 300 && fs[i].clientHeight > 150;" +
+                        "        shouldExtract = inWList && isBigEnough && !isSameDomain;" +
+                        "      }" +
+                        "      if (shouldExtract) {" +
                         "        window.location.href = src;" +
                         "      }" +
                         "    }" +
                         "  }" +
                         "  var v = document.querySelector('video');" +
-                        "  if (v && !v.__anisyncAttached) {" +
+                        "  var isValidUniversal = isKnownSite || (v && !v.muted && (isNaN(v.duration) || v.duration > 600));" +
+                        "  if (v && isValidUniversal && !v.__anisyncAttached) {" +
                         "    v.__anisyncAttached = true;" +
                         "    var send = function(type) { " +
                         "      if(window.AniSyncAnimeBridge) window.AniSyncAnimeBridge.sendEvent(type, v.currentTime, !v.paused);" +
