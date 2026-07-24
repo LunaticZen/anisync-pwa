@@ -74,6 +74,7 @@ public class MainActivity extends AppCompatActivity {
     private FrameLayout frameContainer; // Reused across rotations to prevent black screen
     private boolean animeVisible = false;
     private boolean diziboxVisible = false;
+    private String lastAnimeOrigin = "https://animecix.net/";
     private ValueCallback<Uri[]> fileUploadCallback;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
@@ -649,6 +650,17 @@ public class MainActivity extends AppCompatActivity {
                         "    window.AniSyncAnimeBridge.sendEvent(e.data.anisyncEvent, e.data.time, e.data.playing || false);" +
                         "  }" +
                         "});" +
+                        "if (!window.__anisync_prototype_hooked) {" +
+                        "  window.__anisync_prototype_hooked = true;" +
+                        "  var sendPrototypeEvent = function(v, type) { " +
+                        "    if(window.AniSyncAnimeBridge) window.AniSyncAnimeBridge.sendEvent(type, v.currentTime, !v.paused);" +
+                        "    else if(window.parent) window.parent.postMessage({ anisyncEvent: type, time: v.currentTime, playing: !v.paused }, '*');" +
+                        "  };" +
+                        "  var origPlay = HTMLVideoElement.prototype.play;" +
+                        "  HTMLVideoElement.prototype.play = function() { sendPrototypeEvent(this, 'play'); return origPlay.apply(this, arguments); };" +
+                        "  var origPause = HTMLVideoElement.prototype.pause;" +
+                        "  HTMLVideoElement.prototype.pause = function() { sendPrototypeEvent(this, 'pause'); return origPause.apply(this, arguments); };" +
+                        "}" +
                         "setInterval(function() {" +
                         "  var loc = window.location.href;" +
                         "  var isAnimecix = loc.indexOf('animecix') > -1;" +
@@ -752,9 +764,20 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                String url = request.getUrl().toString();
                 String host = request.getUrl().getHost();
                 if (isAdDomain(host))
                     return true;
+                if (isVideoProvider(url)) {
+                    java.util.Map<String, String> reqHeaders = request.getRequestHeaders();
+                    if (reqHeaders == null || !reqHeaders.containsKey("Referer")) {
+                        java.util.Map<String, String> headers = new java.util.HashMap<>();
+                        if (reqHeaders != null) headers.putAll(reqHeaders);
+                        headers.put("Referer", lastAnimeOrigin);
+                        view.loadUrl(url, headers);
+                        return true;
+                    }
+                }
                 return false;
             }
 
@@ -1092,6 +1115,10 @@ public class MainActivity extends AppCompatActivity {
 
     private void loadAnime(String url) {
         appLog("Loading anime: " + url);
+        try {
+            Uri uri = Uri.parse(url);
+            lastAnimeOrigin = uri.getScheme() + "://" + uri.getHost() + "/";
+        } catch (Exception e) {}
         animeVisible = true;
         animeWebView.setVisibility(View.VISIBLE);
 
@@ -1299,6 +1326,18 @@ public class MainActivity extends AppCompatActivity {
      * Optimized ad-domain check using suffix matching instead of O(N) contains loop.
      * Splits host into domain suffixes and checks HashSet membership.
      */
+    private boolean isVideoProvider(String url) {
+        if (url == null) return false;
+        String lowerUrl = url.toLowerCase();
+        return lowerUrl.contains("video") || lowerUrl.contains("player") ||
+               lowerUrl.contains("embed") || lowerUrl.contains("stream") ||
+               lowerUrl.contains("vidmoly") || lowerUrl.contains("tau") ||
+               lowerUrl.contains("fembed") || lowerUrl.contains("mega") ||
+               lowerUrl.contains("mixdrop") || lowerUrl.contains("mp4upload") ||
+               lowerUrl.contains("ok.ru") || lowerUrl.contains("okru") ||
+               lowerUrl.contains("voe.sx") || lowerUrl.contains("dood");
+    }
+
     private boolean isAdDomain(String host) {
         if (host == null || host.isEmpty())
             return false;
