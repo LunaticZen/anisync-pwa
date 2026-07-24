@@ -85,8 +85,9 @@ export default function RoomPage() {
 
   useEffect(() => {
     if (!isElectron || !currentRoom) return;
-    const isHost = currentRoom.hostId === useAuthStore.getState().username;
-    if (!isHost) return;
+    // ALLOW ANYONE TO CHANGE URL: removed host check
+    // const isHost = currentRoom.hostId === useAuthStore.getState().username;
+    // if (!isHost) return;
     const cleanup = (window as any).anisync.anime.onNavigated((newUrl: string) => {
       const socket = getSocket();
       if (!socket || !currentRoom) return;
@@ -110,7 +111,7 @@ export default function RoomPage() {
 
     const eventPoll = setInterval(async () => {
       try {
-        if (useRoomStore.getState().currentRoom?.hostId !== useAuthStore.getState().username) return;
+        // ALLOW ANYONE TO CONTROL: removed host check here
         const event = await (window as any).anisync.player.getEvent();
         if (event && event.ts > lastEventTs && Date.now() > ignoreUntil) {
           lastEventTs = event.ts;
@@ -265,13 +266,15 @@ export default function RoomPage() {
         if (time !== undefined) (window as any).__mobileVideoTime = time;
         if (playing !== undefined) (window as any).__mobileVideoPlaying = playing;
 
-        if (useRoomStore.getState().currentRoom?.hostId !== useAuthStore.getState().username) return;
         if (Date.now() < ignoreUntil) return; // Prevent echo loops
 
+        // ALLOW ANYONE TO CONTROL play/pause/seek. But timecheck MUST be host-only to prevent infinite seeking loops!
         if (eventType === 'play') socket.emit('sync:play', { roomId: currentRoom.id, time, generation: Date.now() });
         else if (eventType === 'pause') socket.emit('sync:pause', { roomId: currentRoom.id, time, generation: Date.now() });
         else if (eventType === 'seek') socket.emit('sync:seek', { roomId: currentRoom.id, time, generation: Date.now() });
-        else if (eventType === 'timecheck') socket.emit('sync:timecheck', { roomId: currentRoom.id, time, playing, userId: useAuthStore.getState().username });
+        else if (eventType === 'timecheck' && useRoomStore.getState().currentRoom?.hostId === useAuthStore.getState().username) {
+            socket.emit('sync:timecheck', { roomId: currentRoom.id, time, playing, userId: useAuthStore.getState().username });
+        }
       }
     };
 
@@ -292,8 +295,9 @@ export default function RoomPage() {
   // ── Mobile: Host URL tracking ──
   useEffect(() => {
     if (!isMobile || !currentRoom) return;
-    const isHost = currentRoom.hostId === useAuthStore.getState().username;
-    if (!isHost) return;
+    // ALLOW ANYONE TO CHANGE URL: removed host check
+    // const isHost = currentRoom.hostId === useAuthStore.getState().username;
+    // if (!isHost) return;
     (window as any).__anisyncUrlChanged = (newUrl: string) => {
       const socket = getSocket();
       const current = useSyncStore.getState().currentUrl;

@@ -159,21 +159,9 @@ export function getBufferingUsers(roomId: string): string[] {
 // ─── Authorization ────────────────────────────────────────────
 
 async function isAuthorized(roomId: string, userId: string, _state: SyncState): Promise<boolean> {
-  const db = getDb();
-  const member = await db.roomMember.findUnique({
-    where: { userId_roomId: { userId, roomId } },
-  });
-  if (!member) return false;
-
-  // Host and moderators always allowed
-  if (member.role === 'host' || member.role === 'moderator') return true;
-
-  // Check room settings for viewer control
-  const room = await db.room.findUnique({ where: { id: roomId } });
-  if (!room) return false;
-  const settings = room.settings as unknown as import('@anisync/shared').RoomSettings;
-
-  return settings.allowGuestControl || settings.syncMode === 'democratic';
+  // ALLOW ANYONE TO CONTROL THE ROOM
+  // The user requested that mobile users (even guests) should be able to control the video.
+  return true;
 }
 
 // ─── Late Join ────────────────────────────────────────────────
