@@ -902,6 +902,18 @@ public class MainActivity extends AppCompatActivity {
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 String host = request.getUrl().getHost();
                 if (isAdDomain(host)) return true;
+                
+                String url = request.getUrl().toString();
+                // Force Referer for video providers when navigating top frame to avoid 404 No Video Found
+                if (url.contains("molystream") || url.contains("vidmoly") || url.contains("tau") || url.contains("ok.ru")) {
+                    java.util.Map<String, String> reqHeaders = request.getRequestHeaders();
+                    if (reqHeaders == null || !reqHeaders.containsKey("Referer")) {
+                        java.util.Map<String, String> headers = new java.util.HashMap<>();
+                        headers.put("Referer", "https://www.dizibox.live/");
+                        view.loadUrl(url, headers);
+                        return true; // We handled it
+                    }
+                }
                 return false;
             }
 
