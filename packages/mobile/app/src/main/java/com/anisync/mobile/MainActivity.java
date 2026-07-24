@@ -64,11 +64,16 @@ public class MainActivity extends AppCompatActivity {
     // Mobil video senkronizasyonunu (CORS bypass - HTML Interception) açıp kapatan ana şalter
     private static final boolean ENABLE_CROSS_ORIGIN_SYNC = true;
 
+    // ── Dizibox Rollback Flag ──
+    private static final boolean ENABLE_DIZIBOX_SUPPORT = true;
+
     private WebView mainWebView;
     private WebView animeWebView;
+    private WebView diziboxWebView;
     private LinearLayout rootLayout;
     private FrameLayout frameContainer; // Reused across rotations to prevent black screen
     private boolean animeVisible = false;
+    private boolean diziboxVisible = false;
     private ValueCallback<Uri[]> fileUploadCallback;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
@@ -79,10 +84,12 @@ public class MainActivity extends AppCompatActivity {
     // ── Redraw debounce: prevent postDelayed accumulation ──
     private final Runnable pendingRedraw = () -> {
         if (animeVisible && animeWebView != null) forceWebViewRedraw(animeWebView);
+        if (diziboxVisible && diziboxWebView != null) forceWebViewRedraw(diziboxWebView);
         if (mainWebView != null) forceWebViewRedraw(mainWebView);
     };
     private final Runnable pendingAnimeRedraw = () -> {
         if (animeWebView != null && animeVisible) forceWebViewRedraw(animeWebView);
+        if (diziboxWebView != null && diziboxVisible) forceWebViewRedraw(diziboxWebView);
     };
 
     // ── Page load counter for memory management ──
@@ -224,6 +231,7 @@ public class MainActivity extends AppCompatActivity {
 
         // ── Anime WebView (video player) — lazy init for Xiaomi ──
         createAnimeWebView();
+        createDiziboxWebView(); // ── Dizibox WebView ──
 
         applyLayout();
         setContentView(rootLayout);
@@ -314,17 +322,37 @@ public class MainActivity extends AppCompatActivity {
         mainWebView.addJavascriptInterface(new Object() {
             @JavascriptInterface
             public void openAnime(String url) {
-                runOnUiThread(() -> loadAnime(url));
+                runOnUiThread(() -> {
+                    if (url == null || url.isEmpty()) {
+                        hideAnime();
+                        hideDizibox();
+                    } else if (ENABLE_DIZIBOX_SUPPORT && (url.contains("dizibox.live") || url.contains("dizibox.vip") || url.contains("dizibox.pw") || url.contains("dizibox.com") || url.contains("dizibox.tv"))) {
+                        hideAnime();
+                        loadDizibox(url);
+                    } else {
+                        hideDizibox();
+                        loadAnime(url);
+                    }
+                });
             }
 
             @JavascriptInterface
             public void closeAnime() {
-                runOnUiThread(() -> hideAnime());
+                runOnUiThread(() -> {
+                    hideAnime();
+                    hideDizibox();
+                });
             }
 
             @JavascriptInterface
             public void controlAnime(String command, double time) {
-                runOnUiThread(() -> executeVideoCommand(command, time));
+                runOnUiThread(() -> {
+                    if (diziboxVisible) {
+                        executeDiziboxCommand(command, time);
+                    } else {
+                        executeVideoCommand(command, time);
+                    }
+                });
             }
 
             // PERF: KeepAliveService lifecycle — start when joining room, stop when leaving
@@ -833,6 +861,152 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    // ── Dizibox WebView (Isolated Support) ──
+    private void createDiziboxWebView() {
+        diziboxWebView = new WebView(this);
+        diziboxWebView.setBackgroundColor(0xFF000000);
+        diziboxWebView.setVisibility(View.GONE);
+        diziboxWebView.setLayerType(View.LAYER_TYPE_NONE, null);
+
+        diziboxWebView.addJavascriptInterface(new Object() {
+            @android.webkit.JavascriptInterface
+            public void sendEvent(String type, double time, boolean playing) {
+                if (mainWebView != null) {
+                    mainWebView.post(() -> {
+                        String js = "window.postMessage({ type: 'mobile:sync-event', eventType: '" + type + "', time: " + time + ", playing: " + playing + " }, '*');";
+                        mainWebView.evaluateJavascript(js, null);
+                    });
+                }
+            }
+        }, "AniSyncAnimeBridge");
+
+        setupDiziboxWebView();
+    }
+
+    @SuppressLint("SetJavaScriptEnabled")
+    private void setupDiziboxWebView() {
+        WebSettings s = diziboxWebView.getSettings();
+        s.setJavaScriptEnabled(true);
+        s.setDomStorageEnabled(true);
+        s.setMediaPlaybackRequiresUserGesture(false);
+
+        CookieManager.getInstance().setAcceptThirdPartyCookies(diziboxWebView, true);
+
+        diziboxWebView.setWebViewClient(new WebViewClient() {
+            @Override
+            public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                String reqUrl = request.getUrl().toString();
+                
+                // Dizibox Molystream Intercept & Redirect Strategy
+                if (reqUrl.contains("dbx.molystream.org/embed/")) {
+                    appLog("[Dizibox] Found video embed URL: " + reqUrl);
+                    
+                    runOnUiThread(() -> {
+                        appLog("[Dizibox] Redirecting diziboxWebView directly to video iframe");
+                        java.util.Map<String, String> headers = new java.util.HashMap<>();
+                        headers.put("Referer", "https://www.dizibox.live/");
+                        diziboxWebView.loadUrl(reqUrl, headers);
+                    });
+                    
+                    return new WebResourceResponse("text/html", "UTF-8", new java.io.ByteArrayInputStream("".getBytes()));
+                }
+                return super.shouldInterceptRequest(view, request);
+            }
+
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                super.onPageFinished(view, url);
+                if (url.contains("molystream.org")) {
+                    appLog("[Dizibox] Video player loaded, injecting AniSync tracker");
+                    String js = "(function() {" +
+                        "if(window.__anisyncTracker) return;" +
+                        "window.__anisyncTracker = true;" +
+                        "setInterval(function() {" +
+                        "  var v = document.querySelector('video');" +
+                        "  if(v) {" +
+                        "    if(!v.__anisyncBound) {" +
+                        "      v.__anisyncBound = true;" +
+                        "      v.addEventListener('play', function(){ window.AniSyncAnimeBridge.sendEvent('play', v.currentTime, true); });" +
+                        "      v.addEventListener('pause', function(){ window.AniSyncAnimeBridge.sendEvent('pause', v.currentTime, false); });" +
+                        "      v.addEventListener('seeked', function(){ window.AniSyncAnimeBridge.sendEvent('seek', v.currentTime, !v.paused); });" +
+                        "    }" +
+                        "  }" +
+                        "}, 1000);" +
+                        "})()";
+                    view.evaluateJavascript(js, null);
+                }
+            }
+        });
+
+        diziboxWebView.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public void onShowCustomView(View view, CustomViewCallback callback) {
+                if (fullscreenCustomView != null) {
+                    callback.onCustomViewHidden();
+                    return;
+                }
+                fullscreenCustomView = view;
+                fullscreenCallback = callback;
+
+                if (mainWebView.getParent() != null) {
+                    ((ViewGroup) mainWebView.getParent()).removeView(mainWebView);
+                }
+                diziboxWebView.setVisibility(View.GONE);
+
+                FrameLayout fsContainer = new FrameLayout(MainActivity.this);
+                fsContainer.addView(fullscreenCustomView, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+
+                mainWebView.setBackgroundColor(0x00000000);
+                if (isXiaomiDevice) {
+                    mainWebView.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
+                }
+                fsContainer.addView(mainWebView, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+
+                rootLayout.removeAllViews();
+                rootLayout.addView(fsContainer, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.MATCH_PARENT));
+
+                mainWebView.setOnTouchListener((v, event) -> {
+                    if (fullscreenCustomView != null) {
+                        fullscreenCustomView.dispatchTouchEvent(event);
+                        return true;
+                    }
+                    return false;
+                });
+
+                mainHandler.postDelayed(() -> mainWebView.evaluateJavascript("window.__anisyncSetFullscreen && window.__anisyncSetFullscreen(true)", null), 100);
+                getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
+                WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+                appLog("Fullscreen video started (Dizibox)");
+            }
+
+            @Override
+            public void onHideCustomView() {
+                if (fullscreenCustomView == null) return;
+                if (mainWebView.getParent() != null) {
+                    ((ViewGroup) mainWebView.getParent()).removeView(mainWebView);
+                }
+                rootLayout.removeAllViews();
+                fullscreenCallback.onCustomViewHidden();
+                fullscreenCustomView = null;
+                fullscreenCallback = null;
+
+                diziboxWebView.setVisibility(diziboxVisible ? View.VISIBLE : View.GONE);
+                mainWebView.setOnTouchListener(null);
+                applyLayout();
+
+                if (isXiaomiDevice) {
+                    mainHandler.postDelayed(pendingRedraw, 200);
+                    mainHandler.postDelayed(pendingAnimeRedraw, 500);
+                    mainHandler.postDelayed(pendingRedraw, 1000);
+                }
+
+                mainWebView.evaluateJavascript("window.__anisyncSetFullscreen && window.__anisyncSetFullscreen(false)", null);
+                WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+                appLog("Fullscreen video ended (Dizibox)");
+            }
+        });
+    }
+
     /**
      * Force WebView to redraw — workaround for rendering glitches.
      * Xiaomi MIUI requires JS opacity poke to trigger Chromium compositor repaint
@@ -892,6 +1066,52 @@ public class MainActivity extends AppCompatActivity {
         applyLayout();
     }
 
+    private void loadDizibox(String url) {
+        appLog("Loading Dizibox: " + url);
+        diziboxVisible = true;
+        diziboxWebView.setVisibility(View.VISIBLE);
+
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
+        diziboxWebView.clearHistory();
+        diziboxWebView.loadUrl(url);
+
+        mainHandler.removeCallbacks(pendingRedraw);
+        mainHandler.removeCallbacks(pendingAnimeRedraw);
+        mainHandler.postDelayed(pendingAnimeRedraw, 1500);
+
+        applyLayout();
+    }
+
+    private void hideDizibox() {
+        diziboxVisible = false;
+        if (diziboxWebView != null) {
+            diziboxWebView.setVisibility(View.GONE);
+            diziboxWebView.loadUrl("about:blank");
+        }
+
+        getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        applyLayout();
+    }
+
+    private void executeDiziboxCommand(String command, double time) {
+        if (diziboxWebView == null || !diziboxVisible)
+            return;
+
+        // Since we load the video iframe directly into the main frame, we can just select the video tag natively
+        String js = "(function(){";
+        if (command.equals("play")) {
+            js += "  var v = document.querySelector('video'); if(v){ v.play(); }";
+        } else if (command.equals("pause")) {
+            js += "  var v = document.querySelector('video'); if(v){ v.currentTime = " + time + "; v.pause(); }";
+        } else if (command.equals("seek")) {
+            js += "  var v = document.querySelector('video'); if(v){ v.currentTime = " + time + "; }";
+        }
+        js += "})()";
+        
+        diziboxWebView.evaluateJavascript(js, null);
+    }
+
     private void applyLayout() {
         // Detach views from any existing parent first
         if (mainWebView.getParent() != null) {
@@ -900,6 +1120,9 @@ public class MainActivity extends AppCompatActivity {
         if (animeWebView.getParent() != null) {
             ((android.view.ViewGroup) animeWebView.getParent()).removeView(animeWebView);
         }
+        if (diziboxWebView != null && diziboxWebView.getParent() != null) {
+            ((android.view.ViewGroup) diziboxWebView.getParent()).removeView(diziboxWebView);
+        }
         // Remove frameContainer from rootLayout if present
         if (frameContainer != null && frameContainer.getParent() != null) {
             ((android.view.ViewGroup) frameContainer.getParent()).removeView(frameContainer);
@@ -907,12 +1130,13 @@ public class MainActivity extends AppCompatActivity {
         rootLayout.removeAllViews();
 
         boolean isPortrait = getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT;
+        WebView activeVideoWebView = diziboxVisible ? diziboxWebView : (animeVisible ? animeWebView : null);
 
-        if (animeVisible) {
+        if (activeVideoWebView != null) {
             if (isPortrait) {
-                // PORTRAIT: Anime top (60%), Main bottom (40%) — vertical stack
+                // PORTRAIT: Video top (60%), Main bottom (40%) — vertical stack
                 rootLayout.setOrientation(LinearLayout.VERTICAL);
-                rootLayout.addView(animeWebView, new LinearLayout.LayoutParams(
+                rootLayout.addView(activeVideoWebView, new LinearLayout.LayoutParams(
                         LinearLayout.LayoutParams.MATCH_PARENT, 0, 6f));
                 mainWebView.setBackgroundColor(0xFF050816);
                 // Reset mainWebView to hardware rendering in portrait
@@ -920,20 +1144,18 @@ public class MainActivity extends AppCompatActivity {
                 rootLayout.addView(mainWebView, new LinearLayout.LayoutParams(
                         LinearLayout.LayoutParams.MATCH_PARENT, 0, 4f));
             } else {
-                // LANDSCAPE: Anime full screen, Main WebView overlaid (transparent for ticker)
+                // LANDSCAPE: Video full screen, Main WebView overlaid (transparent for ticker)
                 rootLayout.setOrientation(LinearLayout.VERTICAL);
                 // Reuse FrameLayout to prevent black screen on rotation
                 if (frameContainer == null) {
                     frameContainer = new FrameLayout(this);
                 }
                 frameContainer.removeAllViews();
-                frameContainer.addView(animeWebView, new FrameLayout.LayoutParams(
+                frameContainer.addView(activeVideoWebView, new FrameLayout.LayoutParams(
                         FrameLayout.LayoutParams.MATCH_PARENT,
                         FrameLayout.LayoutParams.MATCH_PARENT));
                 mainWebView.setBackgroundColor(0x00000000); // Transparent
                 // Xiaomi fix: software-render the transparent overlay WebView
-                // so MIUI compositor can composite it over hardware video surface.
-                // Samsung handles dual-HW-WebView overlay fine, Xiaomi cannot.
                 if (isXiaomiDevice) {
                     mainWebView.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
                     appLog("Landscape Xiaomi: mainWebView → SOFTWARE layer");
