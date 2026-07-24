@@ -239,17 +239,36 @@ const PLAYER_SCRIPT = `
   var ignoreUntil = 0;
 
   function findVideo() {
-    // ── Iframe Extractor (Dizibox Fix) ──
+    var loc = window.location.href;
+    var isAnimecix = loc.indexOf('animecix') > -1;
+    var isDizibox = loc.indexOf('dizibox') > -1 || loc.indexOf('dizipub') > -1 || loc.indexOf('diziwatch') > -1;
+    var isKnownSite = isAnimecix || isDizibox;
+
+    // ── Universal Iframe Extractor ──
     try {
       var fs = document.querySelectorAll('iframe');
       for (var i = 0; i < fs.length; i++) {
         var src = fs[i].src;
         if (src && src.startsWith('http') && !fs[i].__anisyncExtracted) {
           fs[i].__anisyncExtracted = true;
-          var isVideo = src.indexOf('video')>-1 || src.indexOf('player')>-1 || src.indexOf('embed')>-1 || src.indexOf('stream')>-1 || src.indexOf('vidmoly')>-1 || src.indexOf('tau')>-1;
+          if (isAnimecix) continue;
           var isSameDomain = src.indexOf(window.location.hostname) > -1;
-          var isAnimecix = window.location.href.indexOf('animecix') > -1;
-          if (isVideo && !isSameDomain && !isAnimecix) {
+          
+          var shouldExtract = false;
+          if (isDizibox) {
+             // Original loose rule for Dizibox
+             var isVideo = src.indexOf('video')>-1 || src.indexOf('player')>-1 || src.indexOf('embed')>-1 || src.indexOf('stream')>-1 || src.indexOf('vidmoly')>-1 || src.indexOf('tau')>-1;
+             shouldExtract = isVideo && !isSameDomain;
+          } else {
+             // UNIVERSAL MODE: Strict Whitelist & Size Heuristics
+             var wList = ['molystream', 'vidmoly', 'ok.ru', 'tau', 'fembed', 'mega', 'streamtape', 'mixdrop', 'mp4upload', 'okru', 'voe.sx', 'dood'];
+             var inWList = false;
+             for(var j=0; j<wList.length; j++) { if(src.indexOf(wList[j]) > -1) { inWList = true; break; } }
+             var isBigEnough = fs[i].clientWidth > 300 && fs[i].clientHeight > 150;
+             shouldExtract = inWList && isBigEnough && !isSameDomain;
+          }
+
+          if (shouldExtract) {
             console.log('[AniSync] Extracting iframe to top level:', src);
             try { if (window.top) window.top.location.href = src; else window.location.href = src; }
             catch(e) { window.location.href = src; }
@@ -258,18 +277,24 @@ const PLAYER_SCRIPT = `
         }
       }
     } catch(e) {}
-    // Strategy 1: Direct video elements in this frame (works for Animecix)
+
+    // Strategy 1: Direct video elements in this frame (works for Animecix + Universal)
     var videos = document.querySelectorAll('video');
     for (var i = 0; i < videos.length; i++) {
       var v = videos[i];
-      if (v.readyState > 0 || v.src || v.currentSrc) {
+      var isValidUniversal = isKnownSite || (!v.muted && (isNaN(v.duration) || v.duration > 600));
+      if (isValidUniversal && (v.readyState > 0 || v.src || v.currentSrc)) {
         hookVideo(v);
         return true;
       }
     }
     if (videos.length > 0) {
-      hookVideo(videos[0]);
-      return true;
+      var v2 = videos[0];
+      var isValidUniversal2 = isKnownSite || (!v2.muted && (isNaN(v2.duration) || v2.duration > 600));
+      if (isValidUniversal2) {
+        hookVideo(videos[0]);
+        return true;
+      }
     }
 
     // Strategy 2: Scan iframe contentDocuments (critical for Dizibox)
