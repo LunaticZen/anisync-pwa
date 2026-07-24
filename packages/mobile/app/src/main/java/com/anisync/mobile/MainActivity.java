@@ -890,51 +890,85 @@ public class MainActivity extends AppCompatActivity {
         s.setDomStorageEnabled(true);
         s.setMediaPlaybackRequiresUserGesture(false);
 
+        // Add User-Agent to bypass Cloudflare and outdated WebView blocks on mobile (so dizibox.tv opens!)
+        s.setUserAgentString(
+                "Mozilla/5.0 (Linux; Android 14; SM-S918B) AppleWebKit/537.36 " +
+                        "(KHTML, like Gecko) Chrome/125.0.6422.165 Mobile Safari/537.36");
+
         CookieManager.getInstance().setAcceptThirdPartyCookies(diziboxWebView, true);
 
         diziboxWebView.setWebViewClient(new WebViewClient() {
             @Override
-            public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
-                String reqUrl = request.getUrl().toString();
-                
-                // Dizibox Molystream Intercept & Redirect Strategy
-                if (reqUrl.contains("dbx.molystream.org/embed/")) {
-                    appLog("[Dizibox] Found video embed URL: " + reqUrl);
-                    
-                    runOnUiThread(() -> {
-                        appLog("[Dizibox] Redirecting diziboxWebView directly to video iframe");
-                        java.util.Map<String, String> headers = new java.util.HashMap<>();
-                        headers.put("Referer", "https://www.dizibox.live/");
-                        diziboxWebView.loadUrl(reqUrl, headers);
-                    });
-                    
-                    return new WebResourceResponse("text/html", "UTF-8", new java.io.ByteArrayInputStream("".getBytes()));
-                }
-                return super.shouldInterceptRequest(view, request);
+            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                String host = request.getUrl().getHost();
+                if (isAdDomain(host)) return true;
+                return false;
             }
 
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
-                if (url.contains("molystream.org")) {
-                    appLog("[Dizibox] Video player loaded, injecting AniSync tracker");
-                    String js = "(function() {" +
-                        "if(window.__anisyncTracker) return;" +
-                        "window.__anisyncTracker = true;" +
-                        "setInterval(function() {" +
-                        "  var v = document.querySelector('video');" +
-                        "  if(v) {" +
-                        "    if(!v.__anisyncBound) {" +
-                        "      v.__anisyncBound = true;" +
-                        "      v.addEventListener('play', function(){ window.AniSyncAnimeBridge.sendEvent('play', v.currentTime, true); });" +
-                        "      v.addEventListener('pause', function(){ window.AniSyncAnimeBridge.sendEvent('pause', v.currentTime, false); });" +
-                        "      v.addEventListener('seeked', function(){ window.AniSyncAnimeBridge.sendEvent('seek', v.currentTime, !v.paused); });" +
-                        "    }" +
-                        "  }" +
-                        "}, 1000);" +
-                        "})()";
-                    view.evaluateJavascript(js, null);
-                }
+                
+                String js = "(function() {" +
+                    "if(window.__anisyncTracker) return;" +
+                    "window.__anisyncTracker = true;" +
+                    
+                    // Adblocker CSS for Dizibox (prevents freezes from popups!)
+                    "var s=document.createElement('style');" +
+                    "s.id='anisync-adblock';" +
+                    "s.textContent='" +
+                    "[class*=\"ad-\"],[class*=\"ads-\"],[id*=\"ad-\"],[id*=\"ads-\"]," +
+                    "[class*=\"banner\"],[class*=\"popup\"],[class*=\"reklam\"],[id*=\"reklam\"]," +
+                    ".adsbygoogle,ins.adsbygoogle,[class*=\"AdContainer\"],[class*=\"ad_wrapper\"]," +
+                    "div[data-ad],div[data-ads],iframe[src*=\"doubleclick\"],iframe[src*=\"googlesyndication\"]," +
+                    "[class*=\"overlay\"]:not(video):not([class*=\"player\"])," +
+                    "[class*=\"modal\"]:not([class*=\"player\"])" +
+                    "{display:none!important;height:0!important;overflow:hidden!important;pointer-events:none!important;}';" +
+                    "document.head.appendChild(s);" +
+                    
+                    // Popup blocker
+                    "window.open=function(u){if(u)window.location.href=u;return null;};" +
+                    "document.addEventListener('click',function(e){" +
+                    "  var t=e.target;" +
+                    "  while(t && t.tagName!=='A') t=t.parentElement;" +
+                    "  if(t&&t.tagName==='A'&&t.target==='_blank'&&t.href){" +
+                    "    if(t.href.indexOf('ad')>-1||t.href.indexOf('click')>-1||t.href.indexOf('track')>-1){" +
+                    "      e.preventDefault();e.stopPropagation();" +
+                    "    } else {" +
+                    "      e.preventDefault();window.location.href=t.href;" +
+                    "    }" +
+                    "  }" +
+                    "},true);" +
+                    
+                    // Iframe Extractor & Video Tracker
+                    "setInterval(function() {" +
+                    // Extract Video Iframe (Works for ALL providers: Molystream, Vidmoly, etc)
+                    "  var fs = document.querySelectorAll('iframe');" +
+                    "  for (var i=0; i<fs.length; i++) {" +
+                    "    var src = fs[i].src;" +
+                    "    if (src && src.startsWith('http') && !fs[i].__anisyncExtracted) {" +
+                    "      fs[i].__anisyncExtracted = true;" +
+                    "      var isVideoProvider = src.indexOf('video')>-1 || src.indexOf('player')>-1 || src.indexOf('embed')>-1 || src.indexOf('stream')>-1 || src.indexOf('vidmoly')>-1 || src.indexOf('tau')>-1;" +
+                    "      if (isVideoProvider && src.indexOf('dizibox') === -1) {" +
+                    "        window.location.href = src;" +
+                    "      }" +
+                    "    }" +
+                    "  }" +
+                    
+                    // Bind Video Events
+                    "  var v = document.querySelector('video');" +
+                    "  if(v) {" +
+                    "    if(!v.__anisyncBound) {" +
+                    "      v.__anisyncBound = true;" +
+                    "      v.addEventListener('play', function(){ window.AniSyncAnimeBridge.sendEvent('play', v.currentTime, true); });" +
+                    "      v.addEventListener('pause', function(){ window.AniSyncAnimeBridge.sendEvent('pause', v.currentTime, false); });" +
+                    "      v.addEventListener('seeked', function(){ window.AniSyncAnimeBridge.sendEvent('seek', v.currentTime, !v.paused); });" +
+                    "    }" +
+                    "    window.AniSyncAnimeBridge.sendEvent('timecheck', v.currentTime, !v.paused);" +
+                    "  }" +
+                    "}, 1000);" +
+                    "})()";
+                view.evaluateJavascript(js, null);
             }
         });
 
