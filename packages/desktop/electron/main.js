@@ -239,6 +239,25 @@ const PLAYER_SCRIPT = `
   var ignoreUntil = 0;
 
   function findVideo() {
+    // ── Iframe Extractor (Dizibox Fix) ──
+    try {
+      var fs = document.querySelectorAll('iframe');
+      for (var i = 0; i < fs.length; i++) {
+        var src = fs[i].src;
+        if (src && src.startsWith('http') && !fs[i].__anisyncExtracted) {
+          fs[i].__anisyncExtracted = true;
+          var isVideo = src.indexOf('video')>-1 || src.indexOf('player')>-1 || src.indexOf('embed')>-1 || src.indexOf('stream')>-1 || src.indexOf('vidmoly')>-1 || src.indexOf('tau')>-1;
+          var isSameDomain = src.indexOf(window.location.hostname) > -1;
+          var isAnimecix = window.location.href.indexOf('animecix') > -1;
+          if (isVideo && !isSameDomain && !isAnimecix) {
+            console.log('[AniSync] Extracting iframe to top level:', src);
+            try { if (window.top) window.top.location.href = src; else window.location.href = src; }
+            catch(e) { window.location.href = src; }
+            return true;
+          }
+        }
+      }
+    } catch(e) {}
     // Strategy 1: Direct video elements in this frame (works for Animecix)
     var videos = document.querySelectorAll('video');
     for (var i = 0; i < videos.length; i++) {
