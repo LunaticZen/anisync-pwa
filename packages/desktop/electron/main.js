@@ -121,7 +121,6 @@ function createAnimeView(url) {
             contextIsolation: true,
             nodeIntegration: false,
             sandbox: false,
-            webSecurity: false,
         },
     });
     mainWindow.addBrowserView(animeView);
@@ -614,15 +613,17 @@ function setupHeaderInterceptors(view) {
     // Outgoing requests: Set Referer for video provider domains
     ses.webRequest.onBeforeSendHeaders({ urls: ['*://*/*'] }, (details, callback) => {
         const headers = { ...details.requestHeaders };
+        // GLOBALLY fix User-Agent and sec-ch-ua for ALL requests in this BrowserView
+        // This ensures Cloudflare (challenges.cloudflare.com) gets the clean headers
+        headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+        if (headers['sec-ch-ua']) {
+            headers['sec-ch-ua'] = '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"';
+        }
         if (isDiziboxRelated(details.url)) {
             const referer = getRefererForProvider(details.url);
             if (referer) {
                 headers['Referer'] = referer;
                 headers['Origin'] = referer.replace(/\/$/, '');
-            }
-            // Ensure a common User-Agent for consistency
-            if (!headers['User-Agent'] || headers['User-Agent'].includes('Electron')) {
-                headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36';
             }
             console.log('[AniSync:Dizibox] Header fix for:', details.url.substring(0, 80));
         }
@@ -646,6 +647,8 @@ function setupHeaderInterceptors(view) {
     console.log('[AniSync:Dizibox] Header interceptors installed');
 }
 // ─── App Lifecycle ────────────────────────────────────────────
+electron_1.app.commandLine.appendSwitch('disable-blink-features', 'AutomationControlled');
+electron_1.app.userAgentFallback = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 electron_1.app.whenReady().then(async () => {
     console.log('[AniSync] Starting...');
     createWindow();
