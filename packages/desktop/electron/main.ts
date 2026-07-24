@@ -605,12 +605,15 @@ function setupHeaderInterceptors(view: BrowserView) {
     (details, callback) => {
       const headers = { ...details.requestHeaders };
 
-      // GLOBALLY fix User-Agent and sec-ch-ua for ALL requests in this BrowserView
-      // This ensures Cloudflare (challenges.cloudflare.com) gets the clean headers
-      headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
-      if (headers['sec-ch-ua']) {
-        headers['sec-ch-ua'] = '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"';
-      }
+      // Delete sec-ch-ua headers to avoid exposing Electron
+      // Avoid touching User-Agent here to prevent duplicate headers (user-agent vs User-Agent)
+      // which causes Cloudflare Turnstile infinite redirect loops.
+      // app.userAgentFallback handles the User-Agent globally anyway.
+      Object.keys(headers).forEach(key => {
+        if (key.toLowerCase().startsWith('sec-ch-ua')) {
+          delete headers[key];
+        }
+      });
 
       if (isDiziboxRelated(details.url)) {
         const referer = getRefererForProvider(details.url);
