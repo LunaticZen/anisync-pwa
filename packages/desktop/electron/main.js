@@ -67,17 +67,23 @@ function isDiziboxRelated(url) {
         return false;
     }
 }
-function getRefererForProvider(url) {
+let lastAnimeOrigin = "https://animecix.net/";
+function isUniversalVideoProvider(url) {
     try {
         const hostname = new URL(url).hostname;
-        // If this is a request to a video provider, set Referer to the provider's own origin
-        // so the provider thinks the request is coming from its own embed page
-        if (isDomainMatch(hostname, VIDEO_PROVIDER_DOMAINS)) {
-            return `https://${hostname}/`;
-        }
+        const lower = hostname.toLowerCase();
+        return lower.includes("video") || lower.includes("player") ||
+            lower.includes("embed") || lower.includes("stream") ||
+            lower.includes("vidmoly") || lower.includes("tau") ||
+            lower.includes("fembed") || lower.includes("mega") ||
+            lower.includes("mixdrop") || lower.includes("mp4upload") ||
+            lower.includes("ok.ru") || lower.includes("okru") ||
+            lower.includes("voe.sx") || lower.includes("dood") ||
+            isDomainMatch(hostname, VIDEO_PROVIDER_DOMAINS);
     }
-    catch { }
-    return null;
+    catch {
+        return false;
+    }
 }
 // ─── Main Window ──────────────────────────────────────────────
 function createWindow() {
@@ -126,6 +132,18 @@ function createAnimeView(url) {
     mainWindow.addBrowserView(animeView);
     updateAnimeViewBounds();
     animeView.webContents.loadURL(url);
+    animeView.webContents.on('did-navigate', (event, navUrl) => {
+        try {
+            lastAnimeOrigin = new URL(navUrl).origin + "/";
+        }
+        catch { }
+    });
+    animeView.webContents.on('did-navigate-in-page', (event, navUrl) => {
+        try {
+            lastAnimeOrigin = new URL(navUrl).origin + "/";
+        }
+        catch { }
+    });
     // Handle fullscreen enter/exit
     animeView.webContents.on('enter-html-full-screen', () => {
         if (!mainWindow || !animeView)
@@ -236,6 +254,15 @@ const PLAYER_SCRIPT = `
 (function() {
   if (window.__anisync_injected) return;
   window.__anisync_injected = true;
+
+  if (!window.__anisync_prototype_hooked) {
+    window.__anisync_prototype_hooked = true;
+    var origPlay = HTMLVideoElement.prototype.play;
+    HTMLVideoElement.prototype.play = function() { hookVideo(this); return origPlay.apply(this, arguments); };
+    var origPause = HTMLVideoElement.prototype.pause;
+    HTMLVideoElement.prototype.pause = function() { hookVideo(this); return origPause.apply(this, arguments); };
+  }
+
   var ignoreUntil = 0;
 
   function findVideo() {
@@ -666,20 +693,19 @@ function setupHeaderInterceptors(view) {
                 delete headers[key];
             }
         });
-        if (isDiziboxRelated(details.url)) {
-            const referer = getRefererForProvider(details.url);
-            if (referer) {
-                headers['Referer'] = referer;
-                headers['Origin'] = referer.replace(/\/$/, '');
+        if (isDiziboxRelated(details.url) || isUniversalVideoProvider(details.url)) {
+            if (lastAnimeOrigin) {
+                headers['Referer'] = lastAnimeOrigin;
+                headers['Origin'] = lastAnimeOrigin.replace(/\/$/, '');
             }
-            console.log('[AniSync:Dizibox] Header fix for:', details.url.substring(0, 80));
+            console.log('[AniSync:Header] Header fix for:', details.url.substring(0, 80));
         }
         callback({ requestHeaders: headers });
     });
     // Incoming responses: Strip blocking headers from video providers
     ses.webRequest.onHeadersReceived({ urls: ['*://*/*'] }, (details, callback) => {
         const headers = { ...details.responseHeaders };
-        if (isDiziboxRelated(details.url)) {
+        if (isDiziboxRelated(details.url) || isUniversalVideoProvider(details.url)) {
             // Remove headers that block iframe embedding
             delete headers['x-frame-options'];
             delete headers['X-Frame-Options'];
