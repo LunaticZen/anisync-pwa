@@ -1332,6 +1332,7 @@ public class MainActivity extends AppCompatActivity {
     private boolean isVideoProvider(String url) {
         if (url == null) return false;
         String lowerUrl = url.toLowerCase();
+        if (lowerUrl.contains("animecix") || lowerUrl.contains("dizibox") || lowerUrl.contains("dizipub") || lowerUrl.contains("diziwatch")) return false;
         return lowerUrl.contains("video") || lowerUrl.contains("player") ||
                lowerUrl.contains("embed") || lowerUrl.contains("stream") ||
                lowerUrl.contains("vidmoly") || lowerUrl.contains("tau") ||
