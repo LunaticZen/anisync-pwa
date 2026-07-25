@@ -575,7 +575,7 @@ public class MainActivity extends AppCompatActivity {
             public void doUpdateVisitedHistory(WebView view, String url, boolean isReload) {
                 super.doUpdateVisitedHistory(view, url, isReload);
                 // Also notify on history pushes (SPA navigation inside the anime site)
-                if (mainWebView != null && !isVideoProvider(url)) {
+                if (mainWebView != null) {
                     mainWebView.post(() -> {
                         mainWebView.evaluateJavascript(
                             "if(window.__anisyncUrlChanged) window.__anisyncUrlChanged('" + url + "');", 
@@ -589,6 +589,15 @@ public class MainActivity extends AppCompatActivity {
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
                 appLog("Anime page loaded: " + url);
+                
+                if (mainWebView != null) {
+                    mainWebView.post(() -> {
+                        mainWebView.evaluateJavascript(
+                            "if(window.__anisyncUrlChanged) window.__anisyncUrlChanged('" + url + "');",
+                            null
+                        );
+                    });
+                }
 
                 // Track page loads for periodic memory cleanup
                 animePageLoadCount++;
