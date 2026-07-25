@@ -698,7 +698,7 @@ public class MainActivity extends AppCompatActivity {
                         "        isVideoProvider = inWList;" +
                         "      }" +
                         "      if (isVideoProvider && !isMainUrl) {" +
-                        "        if(window.AniSyncAnimeBridge && window.AniSyncAnimeBridge.extractPlayer) { window.AniSyncAnimeBridge.extractPlayer(src, window.location.href); } else { window.location.href = src; }" +
+                        "        window.location.href = src;" +
                         "        break;" +
                         "      }" +
                         "    }" +
