@@ -269,6 +269,12 @@ public class MainActivity extends AppCompatActivity {
                     });
                 }
             }
+            @android.webkit.JavascriptInterface
+            public void extractPlayer(String url) {
+                runOnUiThread(() -> {
+                    if (animeWebView != null) animeWebView.loadUrl(url);
+                });
+            }
         }, "AniSyncAnimeBridge");
 
         setupAnimeWebView();
@@ -685,9 +691,10 @@ public class MainActivity extends AppCompatActivity {
                         "        for(var j=0; j<wList.length; j++) { if(src.indexOf(wList[j]) > -1) { inWList = true; break; } }" +
                         "        var isBigEnough = fs[i].clientWidth > 300 && fs[i].clientHeight > 150;" +
                         "        shouldExtract = inWList && isBigEnough && !isSameDomain;" +
+                        "        isVideoProvider = inWList;" +
                         "      }" +
-                        "      if (shouldExtract) {" +
-                        "        window.location.href = src;" +
+                        "      if (isVideoProvider && !isMainUrl) {" +
+                        "        if(window.AniSyncAnimeBridge && window.AniSyncAnimeBridge.extractPlayer) { window.AniSyncAnimeBridge.extractPlayer(src); } else { window.location.href = src; }" +
                         "      }" +
                         "    }" +
                         "  }" +
@@ -926,6 +933,12 @@ public class MainActivity extends AppCompatActivity {
                     });
                 }
             }
+            @android.webkit.JavascriptInterface
+            public void extractPlayer(String url) {
+                runOnUiThread(() -> {
+                    if (diziboxWebView != null) diziboxWebView.loadUrl(url);
+                });
+            }
         }, "AniSyncAnimeBridge");
 
         setupDiziboxWebView();
@@ -948,8 +961,13 @@ public class MainActivity extends AppCompatActivity {
         diziboxWebView.setWebViewClient(new WebViewClient() {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                String url = request.getUrl().toString();
                 String host = request.getUrl().getHost();
-                if (isAdDomain(host)) return true;
+                appLog("[Dizibox] shouldOverrideUrlLoading: " + url);
+                if (isAdDomain(host)) {
+                    appLog("[Dizibox] Blocked ad domain: " + host);
+                    return true;
+                }
                 return false;
             }
 
@@ -1026,7 +1044,7 @@ public class MainActivity extends AppCompatActivity {
                     "      var isMainUrl = src.indexOf('sezon')>-1 && src.indexOf('bolum')>-1;" +
                     "      if (isVideoProvider && (!isMainUrl || isInternalPlayer)) {" +
                     "        console.log('[Dizibox JS] EXECUTE EXTRACTION to: ' + src);" +
-                    "        window.location.href = src;" +
+                    "        if(window.AniSyncAnimeBridge && window.AniSyncAnimeBridge.extractPlayer) { window.AniSyncAnimeBridge.extractPlayer(src); } else { window.location.href = src; }" +
                     "      }" +
                     "    }" +
                     "  }" +
