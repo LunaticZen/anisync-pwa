@@ -77,6 +77,7 @@ public class MainActivity extends AppCompatActivity {
     private boolean isUniversalMode = true;
     private String lastAnimeOrigin = "https://animecix.net/";
     private String lastDiziboxOrigin = "https://www.dizibox.live/";
+    private String lastInjectedDiziboxUrl = null;
     private ValueCallback<Uri[]> fileUploadCallback;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
@@ -329,9 +330,6 @@ public class MainActivity extends AppCompatActivity {
                     if (url == null || url.isEmpty()) {
                         hideAnime();
                         hideDizibox();
-                    } else if (ENABLE_DIZIBOX_SUPPORT && (url.contains("dizibox.live") || url.contains("dizibox.vip") || url.contains("dizibox.pw") || url.contains("dizibox.com") || url.contains("dizibox.tv"))) {
-                        hideAnime();
-                        loadDizibox(url);
                     } else {
                         hideDizibox();
                         loadAnime(url);
@@ -936,20 +934,8 @@ public class MainActivity extends AppCompatActivity {
         diziboxWebView.setWebViewClient(new WebViewClient() {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-                if (!request.isForMainFrame()) return false;
-                String url = request.getUrl().toString();
                 String host = request.getUrl().getHost();
                 if (isAdDomain(host)) return true;
-                if (isVideoProvider(url)) {
-                    java.util.Map<String, String> reqHeaders = request.getRequestHeaders();
-                    if (reqHeaders == null || !reqHeaders.containsKey("Referer")) {
-                        java.util.Map<String, String> headers = new java.util.HashMap<>();
-                        if (reqHeaders != null) headers.putAll(reqHeaders);
-                        headers.put("Referer", lastDiziboxOrigin);
-                        view.loadUrl(url, headers);
-                        return true;
-                    }
-                }
                 return false;
             }
 
@@ -1135,6 +1121,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void loadAnime(String url) {
+        if (ENABLE_DIZIBOX_SUPPORT && url != null && url.contains("dizibox")) {
+            hideAnime();
+            loadDizibox(url);
+            return;
+        }
         appLog("Loading anime: " + url);
         try {
             Uri uri = Uri.parse(url);
