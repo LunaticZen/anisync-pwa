@@ -651,7 +651,8 @@ public class MainActivity extends AppCompatActivity {
                         "    window.AniSyncAnimeBridge.sendEvent(e.data.anisyncEvent, e.data.time, e.data.playing || false);" +
                         "  }" +
                         "});" +
-                        "if (!window.__anisync_prototype_hooked) {" +
+                        "var isKnownSiteInit = window.location.href.indexOf('animecix') > -1 || window.location.href.indexOf('dizibox') > -1 || window.location.href.indexOf('dizipub') > -1 || window.location.href.indexOf('diziwatch') > -1;" +
+                        "if (!window.__anisync_prototype_hooked && !isKnownSiteInit) {" +
                         "  window.__anisync_prototype_hooked = true;" +
                         "  var sendPrototypeEvent = function(v, type) { " +
                         "    if(window.AniSyncAnimeBridge) window.AniSyncAnimeBridge.sendEvent(type, v.currentTime, !v.paused);" +
