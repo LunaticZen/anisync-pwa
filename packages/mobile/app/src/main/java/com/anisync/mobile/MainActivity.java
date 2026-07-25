@@ -76,6 +76,7 @@ public class MainActivity extends AppCompatActivity {
     private boolean diziboxVisible = false;
     private boolean isUniversalMode = true;
     private String lastAnimeOrigin = "https://animecix.net/";
+    private String lastDiziboxOrigin = "https://www.dizibox.live/";
     private ValueCallback<Uri[]> fileUploadCallback;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
@@ -944,7 +945,7 @@ public class MainActivity extends AppCompatActivity {
                     if (reqHeaders == null || !reqHeaders.containsKey("Referer")) {
                         java.util.Map<String, String> headers = new java.util.HashMap<>();
                         if (reqHeaders != null) headers.putAll(reqHeaders);
-                        headers.put("Referer", "https://dizibox.tv/");
+                        headers.put("Referer", lastDiziboxOrigin);
                         view.loadUrl(url, headers);
                         return true;
                     }
@@ -1184,6 +1185,10 @@ public class MainActivity extends AppCompatActivity {
 
     private void loadDizibox(String url) {
         appLog("Loading Dizibox: " + url);
+        try {
+            Uri uri = Uri.parse(url);
+            lastDiziboxOrigin = uri.getScheme() + "://" + uri.getHost() + "/";
+        } catch (Exception e) {}
         diziboxVisible = true;
         diziboxWebView.setVisibility(View.VISIBLE);
 
