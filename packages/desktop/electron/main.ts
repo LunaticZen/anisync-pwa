@@ -258,16 +258,14 @@ const PLAYER_SCRIPT = `
         var src = fs[i].src;
         if (src && src.startsWith('http') && !fs[i].__anisyncExtracted) {
           fs[i].__anisyncExtracted = true;
-          if (isAnimecix) continue;
-          var isSameDomain = src.indexOf(window.location.hostname) > -1;
           
+          var isSameDomain = src.indexOf(window.location.hostname) > -1;
           var shouldExtract = false;
-          if (isDizibox) {
-             // Original loose rule for Dizibox
-             var isVideo = src.indexOf('video')>-1 || src.indexOf('player')>-1 || src.indexOf('embed')>-1 || src.indexOf('stream')>-1 || src.indexOf('vidmoly')>-1 || src.indexOf('tau')>-1;
-             shouldExtract = isVideo && !isSameDomain;
+          if (isKnownSite) {
+            var isVideoProvider = src.indexOf('video')>-1 || src.indexOf('player')>-1 || src.indexOf('embed')>-1 || src.indexOf('stream')>-1 || src.indexOf('vidmoly')>-1 || src.indexOf('tau')>-1;
+            var isAnimecixInternal = isAnimecix && src.indexOf('animecix') > -1;
+            shouldExtract = isVideoProvider && !isSameDomain && !isAnimecixInternal;
           } else {
-             // UNIVERSAL MODE: Strict Whitelist & Size Heuristics
              var wList = ['molystream', 'vidmoly', 'ok.ru', 'tau', 'fembed', 'mega', 'streamtape', 'mixdrop', 'mp4upload', 'okru', 'voe.sx', 'dood'];
              var inWList = false;
              for(var j=0; j<wList.length; j++) { if(src.indexOf(wList[j]) > -1) { inWList = true; break; } }

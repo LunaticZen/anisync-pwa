@@ -673,12 +673,12 @@ public class MainActivity extends AppCompatActivity {
                         "    var src = fs[i].src;" +
                         "    if (src && src.startsWith('http') && !fs[i].__anisyncExtracted) {" +
                         "      fs[i].__anisyncExtracted = true;" +
-                        "      if (isAnimecix) continue;" +
                         "      var isSameDomain = src.indexOf(window.location.hostname) > -1;" +
                         "      var shouldExtract = false;" +
-                        "      if (isDizibox) {" +
+                        "      if (isKnownSite) {" +
                         "        var isVideoProvider = src.indexOf('video')>-1 || src.indexOf('player')>-1 || src.indexOf('embed')>-1 || src.indexOf('stream')>-1 || src.indexOf('vidmoly')>-1 || src.indexOf('tau')>-1;" +
-                        "        shouldExtract = isVideoProvider && !isSameDomain;" +
+                        "        var isAnimecixInternal = isAnimecix && src.indexOf('animecix') > -1;" +
+                        "        shouldExtract = isVideoProvider && !isSameDomain && !isAnimecixInternal;" +
                         "      } else {" +
                         "        var wList = ['molystream', 'vidmoly', 'ok.ru', 'tau', 'fembed', 'mega', 'streamtape', 'mixdrop', 'mp4upload', 'okru', 'voe.sx', 'dood'];" +
                         "        var inWList = false;" +
