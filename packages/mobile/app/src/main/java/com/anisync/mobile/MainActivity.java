@@ -697,7 +697,7 @@ public class MainActivity extends AppCompatActivity {
                         "        shouldExtract = inWList && isBigEnough && !isSameDomain;" +
                         "        isVideoProvider = inWList;" +
                         "      }" +
-                        "      if (isVideoProvider && !isMainUrl) {" +
+                        "      if (shouldExtract) {" +
                         "        window.location.href = src;" +
                         "        break;" +
                         "      }" +
@@ -1181,6 +1181,12 @@ public class MainActivity extends AppCompatActivity {
             loadDizibox(url);
             return;
         }
+        if (animeWebView != null && url != null && url.equals(animeWebView.getUrl())) {
+            appLog("Ignoring loadAnime because URL is already current: " + url);
+            animeVisible = true;
+            animeWebView.setVisibility(View.VISIBLE);
+            return;
+        }
         appLog("Loading anime: " + url);
         try {
             Uri uri = Uri.parse(url);
@@ -1230,6 +1236,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void loadDizibox(String url) {
+        if (diziboxWebView != null && url != null && url.equals(diziboxWebView.getUrl())) {
+            appLog("Ignoring loadDizibox because URL is already current: " + url);
+            diziboxVisible = true;
+            diziboxWebView.setVisibility(View.VISIBLE);
+            return;
+        }
         appLog("Loading Dizibox: " + url);
         try {
             Uri uri = Uri.parse(url);
