@@ -1008,7 +1008,9 @@ public class MainActivity extends AppCompatActivity {
                     "    if (src && src.startsWith('http') && !fs[i].__anisyncExtracted) {" +
                     "      fs[i].__anisyncExtracted = true;" +
                     "      var isVideoProvider = src.indexOf('video')>-1 || src.indexOf('player')>-1 || src.indexOf('embed')>-1 || src.indexOf('stream')>-1 || src.indexOf('vidmoly')>-1 || src.indexOf('tau')>-1;" +
-                    "      if (isVideoProvider && src.indexOf('dizibox') === -1) {" +
+                    "      var isInternalPlayer = src.indexOf('dizibox')>-1 && src.indexOf('/player/')>-1;" +
+                    "      var isMainUrl = src.indexOf('sezon')>-1 && src.indexOf('bolum')>-1;" +
+                    "      if (isVideoProvider && (!isMainUrl || isInternalPlayer)) {" +
                     "        window.location.href = src;" +
                     "      }" +
                     "    }" +
@@ -1032,6 +1034,11 @@ public class MainActivity extends AppCompatActivity {
         });
 
         diziboxWebView.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public boolean onConsoleMessage(android.webkit.ConsoleMessage consoleMessage) {
+                appLog("[Dizibox JS] " + consoleMessage.message());
+                return true;
+            }
             @Override
             public void onShowCustomView(View view, CustomViewCallback callback) {
                 if (fullscreenCustomView != null) {
@@ -1351,6 +1358,7 @@ public class MainActivity extends AppCompatActivity {
     private boolean isVideoProvider(String url) {
         if (url == null) return false;
         String lowerUrl = url.toLowerCase();
+        if (lowerUrl.contains("dizibox") && lowerUrl.contains("/player/")) return true;
         if (lowerUrl.contains("animecix") || lowerUrl.contains("dizibox") || lowerUrl.contains("dizipub") || lowerUrl.contains("diziwatch")) return false;
         return lowerUrl.contains("video") || lowerUrl.contains("player") ||
                lowerUrl.contains("embed") || lowerUrl.contains("stream") ||
