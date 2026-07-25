@@ -74,6 +74,7 @@ public class MainActivity extends AppCompatActivity {
     private FrameLayout frameContainer; // Reused across rotations to prevent black screen
     private boolean animeVisible = false;
     private boolean diziboxVisible = false;
+    private boolean isUniversalMode = true;
     private String lastAnimeOrigin = "https://animecix.net/";
     private ValueCallback<Uri[]> fileUploadCallback;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
@@ -641,8 +642,8 @@ public class MainActivity extends AppCompatActivity {
                         "    window.AniSyncAnimeBridge.sendEvent(e.data.anisyncEvent, e.data.time, e.data.playing || false);" +
                         "  }" +
                         "});" +
-                        "var isKnownSiteInit = window.location.href.indexOf('animecix') > -1 || window.location.href.indexOf('dizibox') > -1 || window.location.href.indexOf('dizipub') > -1 || window.location.href.indexOf('diziwatch') > -1;" +
-                        "if (!window.__anisync_prototype_hooked && !isKnownSiteInit) {" +
+                        "var isUniversalModeFlag = " + isUniversalMode + ";" +
+                        "if (!window.__anisync_prototype_hooked && isUniversalModeFlag) {" +
                         "  window.__anisync_prototype_hooked = true;" +
                         "  var sendPrototypeEvent = function(v, type) { " +
                         "    if(window.AniSyncAnimeBridge) window.AniSyncAnimeBridge.sendEvent(type, v.currentTime, !v.paused);" +
@@ -655,7 +656,8 @@ public class MainActivity extends AppCompatActivity {
                         "}" +
                         "setInterval(function() {" +
                         "  var loc = window.location.href;" +
-                        "  var isAnimecix = loc.indexOf('animecix') > -1;" +
+                        "  var isUniversalModeFlag = " + isUniversalMode + ";" +
+                        "  var isAnimecix = loc.indexOf('animecix') > -1 || (!isUniversalModeFlag && loc.indexOf('tau.video') > -1);" +
                         "  var isDizibox = loc.indexOf('dizibox') > -1 || loc.indexOf('dizipub') > -1 || loc.indexOf('diziwatch') > -1;" +
                         "  var isKnownSite = isAnimecix || isDizibox;" +
                         "  var fs = document.querySelectorAll('iframe');" +
@@ -682,7 +684,7 @@ public class MainActivity extends AppCompatActivity {
                         "    }" +
                         "  }" +
                         "  var v = document.querySelector('video');" +
-                        "  var isValidUniversal = isKnownSite || (v && !v.muted && (isNaN(v.duration) || v.duration > 600));" +
+                        "  var isValidUniversal = !isUniversalModeFlag || (v && !v.muted && (isNaN(v.duration) || v.duration > 600));" +
                         "  if (v && isValidUniversal && !v.__anisyncAttached) {" +
                         "    v.__anisyncAttached = true;" +
                         "    var send = function(type) { " +
@@ -1098,7 +1100,13 @@ public class MainActivity extends AppCompatActivity {
         appLog("Loading anime: " + url);
         try {
             Uri uri = Uri.parse(url);
-            lastAnimeOrigin = uri.getScheme() + "://" + uri.getHost() + "/";
+            String host = uri.getHost();
+            if (host != null && (host.contains("animecix") || host.contains("dizibox") || host.contains("dizipub") || host.contains("diziwatch"))) {
+                isUniversalMode = false;
+            } else {
+                isUniversalMode = true;
+            }
+            lastAnimeOrigin = uri.getScheme() + "://" + host + "/";
         } catch (Exception e) {}
         animeVisible = true;
         animeWebView.setVisibility(View.VISIBLE);
