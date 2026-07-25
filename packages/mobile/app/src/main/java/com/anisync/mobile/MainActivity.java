@@ -695,6 +695,7 @@ public class MainActivity extends AppCompatActivity {
                         "      }" +
                         "      if (isVideoProvider && !isMainUrl) {" +
                         "        if(window.AniSyncAnimeBridge && window.AniSyncAnimeBridge.extractPlayer) { window.AniSyncAnimeBridge.extractPlayer(src); } else { window.location.href = src; }" +
+                        "        break;" +
                         "      }" +
                         "    }" +
                         "  }" +
@@ -1040,11 +1041,12 @@ public class MainActivity extends AppCompatActivity {
                     "    if (src && src.startsWith('http') && fs[i].__anisyncExtracted !== src) {" +
                     "      fs[i].__anisyncExtracted = src;" +
                     "      var isVideoProvider = src.indexOf('video')>-1 || src.indexOf('player')>-1 || src.indexOf('embed')>-1 || src.indexOf('stream')>-1 || src.indexOf('vidmoly')>-1 || src.indexOf('tau')>-1;" +
-                    "      var isInternalPlayer = src.indexOf('dizibox')>-1 && src.indexOf('/player/')>-1;" +
+                    "      var isInternalPlayer = src.indexOf('dizibox')>-1 && src.indexOf('/player/')>-1 && src.indexOf('convert.php')===-1;" +
                     "      var isMainUrl = src.indexOf('sezon')>-1 && src.indexOf('bolum')>-1;" +
                     "      if (isVideoProvider && (!isMainUrl || isInternalPlayer)) {" +
                     "        console.log('[Dizibox JS] EXECUTE EXTRACTION to: ' + src);" +
                     "        if(window.AniSyncAnimeBridge && window.AniSyncAnimeBridge.extractPlayer) { window.AniSyncAnimeBridge.extractPlayer(src); } else { window.location.href = src; }" +
+                    "        break;" +
                     "      }" +
                     "    }" +
                     "  }" +
