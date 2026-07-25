@@ -428,6 +428,7 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                if (!request.isForMainFrame()) return false;
                 String url = request.getUrl().toString();
                 if (!url.contains("anisync") && !url.contains("onrender.com") && !url.startsWith("about:")) {
                     loadAnime(url);
@@ -764,6 +765,7 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                if (!request.isForMainFrame()) return false;
                 String url = request.getUrl().toString();
                 String host = request.getUrl().getHost();
                 if (isAdDomain(host))
@@ -940,6 +942,7 @@ public class MainActivity extends AppCompatActivity {
         diziboxWebView.setWebViewClient(new WebViewClient() {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                if (!request.isForMainFrame()) return false;
                 String host = request.getUrl().getHost();
                 if (isAdDomain(host)) return true;
                 
