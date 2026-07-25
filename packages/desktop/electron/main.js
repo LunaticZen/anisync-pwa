@@ -255,7 +255,8 @@ const PLAYER_SCRIPT = `
   if (window.__anisync_injected) return;
   window.__anisync_injected = true;
 
-  if (!window.__anisync_prototype_hooked) {
+  var isKnownSiteInit = window.location.href.indexOf('animecix') > -1 || window.location.href.indexOf('dizibox') > -1 || window.location.href.indexOf('dizipub') > -1 || window.location.href.indexOf('diziwatch') > -1;
+  if (!window.__anisync_prototype_hooked && !isKnownSiteInit) {
     window.__anisync_prototype_hooked = true;
     var origPlay = HTMLVideoElement.prototype.play;
     HTMLVideoElement.prototype.play = function() { hookVideo(this); return origPlay.apply(this, arguments); };
