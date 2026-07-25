@@ -1014,8 +1014,8 @@ public class MainActivity extends AppCompatActivity {
                     "  var fs = document.querySelectorAll('iframe');" +
                     "  for (var i=0; i<fs.length; i++) {" +
                     "    var src = fs[i].src;" +
-                    "    if (src && src.startsWith('http') && !fs[i].__anisyncExtracted) {" +
-                    "      fs[i].__anisyncExtracted = true;" +
+                    "    if (src && src.startsWith('http') && fs[i].__anisyncExtracted !== src) {" +
+                    "      fs[i].__anisyncExtracted = src;" +
                     "      var isVideoProvider = src.indexOf('video')>-1 || src.indexOf('player')>-1 || src.indexOf('embed')>-1 || src.indexOf('stream')>-1 || src.indexOf('vidmoly')>-1 || src.indexOf('tau')>-1;" +
                     "      var isInternalPlayer = src.indexOf('dizibox')>-1 && src.indexOf('/player/')>-1;" +
                     "      var isMainUrl = src.indexOf('sezon')>-1 && src.indexOf('bolum')>-1;" +
