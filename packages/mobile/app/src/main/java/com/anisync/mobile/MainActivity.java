@@ -567,16 +567,6 @@ public class MainActivity extends AppCompatActivity {
                 super.onPageStarted(view, url, favicon);
                 appLog("Anime page loading: " + url);
 
-                // Notify React about URL change so mobile host can sync URL
-                if (mainWebView != null) {
-                    mainWebView.post(() -> {
-                        mainWebView.evaluateJavascript(
-                            "if(window.__anisyncUrlChanged) window.__anisyncUrlChanged('" + url + "');", 
-                            null
-                        );
-                    });
-                }
-
                 // Force WebView redraw during page load
                 forceWebViewRedraw(view);
             }
@@ -585,7 +575,7 @@ public class MainActivity extends AppCompatActivity {
             public void doUpdateVisitedHistory(WebView view, String url, boolean isReload) {
                 super.doUpdateVisitedHistory(view, url, isReload);
                 // Also notify on history pushes (SPA navigation inside the anime site)
-                if (mainWebView != null) {
+                if (mainWebView != null && !isVideoProvider(url)) {
                     mainWebView.post(() -> {
                         mainWebView.evaluateJavascript(
                             "if(window.__anisyncUrlChanged) window.__anisyncUrlChanged('" + url + "');", 
