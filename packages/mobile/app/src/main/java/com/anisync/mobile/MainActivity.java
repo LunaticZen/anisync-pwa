@@ -1020,6 +1020,7 @@ public class MainActivity extends AppCompatActivity {
                     "      var isInternalPlayer = src.indexOf('dizibox')>-1 && src.indexOf('/player/')>-1;" +
                     "      var isMainUrl = src.indexOf('sezon')>-1 && src.indexOf('bolum')>-1;" +
                     "      if (isVideoProvider && (!isMainUrl || isInternalPlayer)) {" +
+                    "        console.log('[Dizibox JS] EXECUTE EXTRACTION to: ' + src);" +
                     "        window.location.href = src;" +
                     "      }" +
                     "    }" +
