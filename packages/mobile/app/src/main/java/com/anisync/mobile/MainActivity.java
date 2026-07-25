@@ -806,6 +806,11 @@ public class MainActivity extends AppCompatActivity {
 
         animeWebView.setWebChromeClient(new WebChromeClient() {
             @Override
+            public boolean onJsBeforeUnload(WebView view, String url, String message, android.webkit.JsResult result) {
+                result.confirm();
+                return true;
+            }
+            @Override
             public void onShowCustomView(View view, CustomViewCallback callback) {
                 if (fullscreenCustomView != null) {
                     callback.onCustomViewHidden();
@@ -1047,6 +1052,11 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public boolean onConsoleMessage(android.webkit.ConsoleMessage consoleMessage) {
                 appLog("[Dizibox JS] " + consoleMessage.message());
+                return true;
+            }
+            @Override
+            public boolean onJsBeforeUnload(WebView view, String url, String message, android.webkit.JsResult result) {
+                result.confirm();
                 return true;
             }
             @Override
