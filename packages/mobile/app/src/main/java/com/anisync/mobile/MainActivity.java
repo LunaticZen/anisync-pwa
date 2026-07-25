@@ -935,14 +935,47 @@ public class MainActivity extends AppCompatActivity {
         diziboxWebView.setWebViewClient(new WebViewClient() {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                if (!request.isForMainFrame()) return false;
+                String url = request.getUrl().toString();
                 String host = request.getUrl().getHost();
                 if (isAdDomain(host)) return true;
+                if (isVideoProvider(url)) {
+                    java.util.Map<String, String> reqHeaders = request.getRequestHeaders();
+                    if (reqHeaders == null || !reqHeaders.containsKey("Referer")) {
+                        java.util.Map<String, String> headers = new java.util.HashMap<>();
+                        if (reqHeaders != null) headers.putAll(reqHeaders);
+                        headers.put("Referer", "https://dizibox.tv/");
+                        view.loadUrl(url, headers);
+                        return true;
+                    }
+                }
                 return false;
+            }
+
+            @Override
+            public void doUpdateVisitedHistory(WebView view, String url, boolean isReload) {
+                super.doUpdateVisitedHistory(view, url, isReload);
+                if (mainWebView != null && !isVideoProvider(url)) {
+                    mainWebView.post(() -> {
+                        mainWebView.evaluateJavascript(
+                            "if(window.__anisyncUrlChanged) window.__anisyncUrlChanged('" + url + "');", 
+                            null
+                        );
+                    });
+                }
             }
 
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
+                if (mainWebView != null && !isVideoProvider(url)) {
+                    mainWebView.post(() -> {
+                        mainWebView.evaluateJavascript(
+                            "if(window.__anisyncUrlChanged) window.__anisyncUrlChanged('" + url + "');", 
+                            null
+                        );
+                    });
+                }
                 
                 String js = "(function() {" +
                     "if(window.__anisyncTracker) return;" +
@@ -960,6 +993,10 @@ public class MainActivity extends AppCompatActivity {
                     "[class*=\"modal\"]:not([class*=\"player\"])" +
                     "{display:none!important;height:0!important;overflow:hidden!important;pointer-events:none!important;}';" +
                     "document.head.appendChild(s);" +
+                    // Full-screen video CSS
+                    "var s2=document.createElement('style');" +
+                    "s2.textContent='video{object-fit:contain!important;max-width:100%!important;max-height:100%!important;}';" +
+                    "document.head.appendChild(s2);" +
                     
                     // Popup blocker
                     "window.open=function(u){if(u)window.location.href=u;return null;};" +
