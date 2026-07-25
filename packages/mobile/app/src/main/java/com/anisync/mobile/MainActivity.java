@@ -270,9 +270,13 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
             @android.webkit.JavascriptInterface
-            public void extractPlayer(String url) {
+            public void extractPlayer(String url, String referer) {
                 runOnUiThread(() -> {
-                    if (animeWebView != null) animeWebView.loadUrl(url);
+                    if (animeWebView != null) {
+                        java.util.Map<String, String> headers = new java.util.HashMap<>();
+                        if (referer != null && !referer.isEmpty()) headers.put("Referer", referer);
+                        animeWebView.loadUrl(url, headers);
+                    }
                 });
             }
         }, "AniSyncAnimeBridge");
@@ -694,7 +698,7 @@ public class MainActivity extends AppCompatActivity {
                         "        isVideoProvider = inWList;" +
                         "      }" +
                         "      if (isVideoProvider && !isMainUrl) {" +
-                        "        if(window.AniSyncAnimeBridge && window.AniSyncAnimeBridge.extractPlayer) { window.AniSyncAnimeBridge.extractPlayer(src); } else { window.location.href = src; }" +
+                        "        if(window.AniSyncAnimeBridge && window.AniSyncAnimeBridge.extractPlayer) { window.AniSyncAnimeBridge.extractPlayer(src, window.location.href); } else { window.location.href = src; }" +
                         "        break;" +
                         "      }" +
                         "    }" +
@@ -935,9 +939,13 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
             @android.webkit.JavascriptInterface
-            public void extractPlayer(String url) {
+            public void extractPlayer(String url, String referer) {
                 runOnUiThread(() -> {
-                    if (diziboxWebView != null) diziboxWebView.loadUrl(url);
+                    if (diziboxWebView != null) {
+                        java.util.Map<String, String> headers = new java.util.HashMap<>();
+                        if (referer != null && !referer.isEmpty()) headers.put("Referer", referer);
+                        diziboxWebView.loadUrl(url, headers);
+                    }
                 });
             }
         }, "AniSyncAnimeBridge");
@@ -1045,7 +1053,7 @@ public class MainActivity extends AppCompatActivity {
                     "      var isMainUrl = src.indexOf('sezon')>-1 && src.indexOf('bolum')>-1;" +
                     "      if (isVideoProvider && (!isMainUrl || isInternalPlayer)) {" +
                     "        console.log('[Dizibox JS] EXECUTE EXTRACTION to: ' + src);" +
-                    "        if(window.AniSyncAnimeBridge && window.AniSyncAnimeBridge.extractPlayer) { window.AniSyncAnimeBridge.extractPlayer(src); } else { window.location.href = src; }" +
+                    "        if(window.AniSyncAnimeBridge && window.AniSyncAnimeBridge.extractPlayer) { window.AniSyncAnimeBridge.extractPlayer(src, window.location.href); } else { window.location.href = src; }" +
                     "        break;" +
                     "      }" +
                     "    }" +
