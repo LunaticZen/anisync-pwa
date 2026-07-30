@@ -40,8 +40,6 @@ export class AnimecixAdapter implements SiteAdapter {
                     const vids = doc.querySelectorAll('video');
                     if (vids.length > 0) {
                         console.log('[AniSync] AnimecixAdapter: Video found in IFRAME:', iframes[i].src ? iframes[i].src.substring(0, 60) : 'no-src');
-                        // Make iframe full screen for host
-                        iframes[i].setAttribute('style', 'position:fixed!important;top:0!important;left:0!important;width:100vw!important;height:100vh!important;z-index:2147483647!important;border:none!important;background:#000!important;');
                         return vids[0];
                     }
 
@@ -54,8 +52,6 @@ export class AnimecixAdapter implements SiteAdapter {
                             const innerVids = innerDoc.querySelectorAll('video');
                             if (innerVids.length > 0) {
                                 console.log('[AniSync] AnimecixAdapter: Video found in NESTED IFRAME');
-                                iframes[i].setAttribute('style', 'position:fixed!important;top:0!important;left:0!important;width:100vw!important;height:100vh!important;z-index:2147483647!important;border:none!important;background:#000!important;');
-                                innerIframes[k].setAttribute('style', 'position:fixed!important;top:0!important;left:0!important;width:100vw!important;height:100vh!important;z-index:2147483647!important;border:none!important;background:#000!important;');
                                 return innerVids[0];
                             }
                         } catch(e) {}
