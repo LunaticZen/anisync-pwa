@@ -6,10 +6,35 @@ export class AnimecixAdapter implements SiteAdapter {
     }
 
     extractIframe(): boolean {
-        // We DO NOT extract iframes for Animecix.
-        // As noted in DIZIBOX_SYNC_NOTES.md, Animecix uses same-origin iframes
-        // which can be accessed directly via fs[i].contentDocument.querySelector('video').
-        // Extracting them breaks the sync logic and UI.
+        // On PC, main.ts injects script into all sub-frames natively.
+        const isElectron = navigator.userAgent.toLowerCase().includes('electron');
+        if (isElectron) return false;
+
+        try {
+            const fs = document.querySelectorAll('iframe');
+            for (let i = 0; i < fs.length; i++) {
+                const src = fs[i].src;
+                if (src && src.startsWith('http') && !(fs[i] as any).__anisyncExtracted) {
+                    (fs[i] as any).__anisyncExtracted = true;
+                    
+                    const isSameDomain = src.indexOf(window.location.hostname) > -1;
+                    const isVideoProvider = src.indexOf('video')>-1 || src.indexOf('player')>-1 || src.indexOf('embed')>-1 || src.indexOf('stream')>-1 || src.indexOf('vidmoly')>-1 || src.indexOf('tau')>-1;
+                    const isAnimecixInternal = src.indexOf('animecix') > -1;
+                    const shouldExtract = isVideoProvider && !isSameDomain && !isAnimecixInternal;
+
+                    if (shouldExtract) {
+                        console.log('[AniSync] AnimecixAdapter extracting iframe to top level:', src);
+                        try { 
+                            if (window.top) window.top.location.href = src; 
+                            else window.location.href = src; 
+                        } catch(e) { 
+                            window.location.href = src; 
+                        }
+                        return true;
+                    }
+                }
+            }
+        } catch(e) {}
         return false;
     }
 
@@ -40,6 +65,8 @@ export class AnimecixAdapter implements SiteAdapter {
                     const vids = doc.querySelectorAll('video');
                     if (vids.length > 0) {
                         console.log('[AniSync] AnimecixAdapter: Video found in IFRAME:', iframes[i].src ? iframes[i].src.substring(0, 60) : 'no-src');
+                        // Make iframe full screen for host
+                        iframes[i].setAttribute('style', 'position:fixed!important;top:0!important;left:0!important;width:100vw!important;height:100vh!important;z-index:2147483647!important;border:none!important;background:#000!important;');
                         return vids[0];
                     }
 
@@ -52,6 +79,8 @@ export class AnimecixAdapter implements SiteAdapter {
                             const innerVids = innerDoc.querySelectorAll('video');
                             if (innerVids.length > 0) {
                                 console.log('[AniSync] AnimecixAdapter: Video found in NESTED IFRAME');
+                                iframes[i].setAttribute('style', 'position:fixed!important;top:0!important;left:0!important;width:100vw!important;height:100vh!important;z-index:2147483647!important;border:none!important;background:#000!important;');
+                                innerIframes[k].setAttribute('style', 'position:fixed!important;top:0!important;left:0!important;width:100vw!important;height:100vh!important;z-index:2147483647!important;border:none!important;background:#000!important;');
                                 return innerVids[0];
                             }
                         } catch(e) {}
