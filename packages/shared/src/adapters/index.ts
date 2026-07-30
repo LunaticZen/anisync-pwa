@@ -26,9 +26,13 @@ import { UniversalAdapter } from './UniversalAdapter';
             try { time = pWin.jwplayer().getPosition(); } catch(e) {}
         }
 
-        // Mobile Fallback
-        if ((window as any).AniSyncBridge?.sendEvent) {
-            (window as any).AniSyncBridge.sendEvent(type, time);
+        // Mobile (Java) Bridge
+        if ((window as any).AniSyncAnimeBridge) {
+            (window as any).AniSyncAnimeBridge.sendEvent(type, time, !v.paused);
+        }
+        // Mobile CORS Bypass (Iframe to Parent)
+        else if (window.parent && window !== window.parent && (window as any).__mobileVideoTime !== undefined) {
+            window.parent.postMessage({ anisyncEvent: type, time: time, playing: !v.paused }, '*');
         }
         // Desktop (Electron) Fallback
         else {
