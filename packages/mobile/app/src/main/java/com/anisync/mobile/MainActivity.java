@@ -629,12 +629,12 @@ public class MainActivity extends AppCompatActivity {
         "{display:none!important;height:0!important;overflow:hidden!important;}';" +
         "document.head.appendChild(s);" +
         // Popup blocker & navigator: redirect new windows to current frame
-        "window.open=function(u){if(u)window.location.href=u;return null;};" +
+        "window.open=function(u){if(u && u!=='about:blank' && u.indexOf('javascript:')===-1)window.location.href=u;return null;};" +
         "document.addEventListener('click',function(e){" +
         "  var t=e.target;" +
         "  while(t && t.tagName!=='A') t=t.parentElement;" +
         "  if(t&&t.tagName==='A'&&t.target==='_blank'&&t.href){" +
-        "    if(t.href.indexOf('ad')>-1||t.href.indexOf('click')>-1||t.href.indexOf('track')>-1){" +
+        "    if(t.href.indexOf('ad')>-1||t.href.indexOf('click')>-1||t.href.indexOf('track')>-1||t.href==='about:blank'||t.href.indexOf('javascript:')>-1){" +
         "      e.preventDefault();e.stopPropagation();" +
         "    } else {" +
         "      e.preventDefault();window.location.href=t.href;" +
@@ -975,12 +975,12 @@ view.evaluateJavascript(cssInjects + syncInjects, null);
                     "document.head.appendChild(s2);" +
                     
                     // Popup blocker
-                    "window.open=function(u){if(u)window.location.href=u;return null;};" +
+                    "window.open=function(u){if(u && u!=='about:blank' && u.indexOf('javascript:')===-1)window.location.href=u;return null;};" +
                     "document.addEventListener('click',function(e){" +
                     "  var t=e.target;" +
                     "  while(t && t.tagName!=='A') t=t.parentElement;" +
                     "  if(t&&t.tagName==='A'&&t.target==='_blank'&&t.href){" +
-                    "    if(t.href.indexOf('ad')>-1||t.href.indexOf('click')>-1||t.href.indexOf('track')>-1){" +
+                    "    if(t.href.indexOf('ad')>-1||t.href.indexOf('click')>-1||t.href.indexOf('track')>-1||t.href==='about:blank'||t.href.indexOf('javascript:')>-1){" +
                     "      e.preventDefault();e.stopPropagation();" +
                     "    } else {" +
                     "      e.preventDefault();window.location.href=t.href;" +
