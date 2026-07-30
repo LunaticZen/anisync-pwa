@@ -173,6 +173,10 @@ import { UniversalAdapter } from './UniversalAdapter';
                         continue;
                     }
                     
+                    // Ensure we never remove a video player or its wrapper
+                    if (el.tagName === 'VIDEO' || el.tagName === 'IFRAME') continue;
+                    if (el.querySelector('video') || el.querySelector('iframe')) continue;
+                    
                     const style = window.getComputedStyle(el);
                     if (style.position === 'absolute' || style.position === 'fixed') {
                         if (style.zIndex !== 'auto' && parseInt(style.zIndex) > 50) {
