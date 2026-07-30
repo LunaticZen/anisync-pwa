@@ -41,19 +41,19 @@ export class UniversalAdapter implements SiteAdapter {
     }
 
     findVideoElement(): HTMLVideoElement | null {
-        const videos = document.querySelectorAll('video');
-        for (let i = 0; i < videos.length; i++) {
-            const v = videos[i];
-            const isValidUniversal = !v.muted && (isNaN(v.duration) || v.duration > 600);
-            if (isValidUniversal && (v.readyState > 0 || v.src || v.currentSrc)) {
-                return v;
+        // 1. Check direct video tags
+        const directVideos = document.querySelectorAll('video');
+        if (directVideos.length > 0) {
+            for (let i = 0; i < directVideos.length; i++) {
+                const v = directVideos[i];
+                // Wait for video to have metadata before judging it, unless it's the only video and playing
+                const isDurationValid = v.duration > 600 || v.duration === Infinity;
+                if (!v.muted && (isDurationValid || (v.readyState > 0 && isNaN(v.duration)))) {
+                    return v;
+                }
             }
-        }
-        if (videos.length > 0) {
-            const v2 = videos[0];
-            const isValidUniversal2 = !v2.muted && (isNaN(v2.duration) || v2.duration > 600);
-            if (isValidUniversal2) {
-                return v2;
+            if (directVideos.length === 1 && directVideos[0].src && !directVideos[0].muted) {
+                return directVideos[0];
             }
         }
         return null;

@@ -80,28 +80,25 @@ import { hookVideo, hookPrototypes } from './VideoHooker';
         return false;
     }
 
-    function startSearch() {
-        let attempts = 0;
-        const pi = setInterval(function() {
-            attempts++;
-            if (findAndHookVideo()) {
-                clearInterval(pi);
-            }
-            if (attempts > 120) clearInterval(pi);
-        }, 1000);
+    function initAniSync() {
+        findAndHookVideo();
+        setTimeout(findAndHookVideo, 1000);
+        setTimeout(findAndHookVideo, 3000);
+        setTimeout(findAndHookVideo, 5000);
         
+        // Catch videos that have their src updated later
+        setInterval(findAndHookVideo, 1000);
+
         try {
-            const o = new MutationObserver(function() { 
-                if (findAndHookVideo()) o.disconnect(); 
+            const observer = new MutationObserver(function() { 
+                findAndHookVideo(); 
             });
-            o.observe(document.documentElement || document.body, { childList: true, subtree: true });
+            observer.observe(document.documentElement || document.body, { childList: true, subtree: true });
         } catch(e) {}
     }
 
     (window as any).__anisync_find_video = function() {
-        if (!findAndHookVideo()) {
-            startSearch();
-        }
+        initAniSync();
         return true;
     };
 })();

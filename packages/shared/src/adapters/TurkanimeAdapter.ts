@@ -45,13 +45,16 @@ export class TurkanimeAdapter implements SiteAdapter {
         if (directVideos.length > 0) {
             for (let i = 0; i < directVideos.length; i++) {
                 const v = directVideos[i];
-                // Ignore muted or very short ad videos
-                if (!v.muted && (isNaN(v.duration) || v.duration > 600) && (v.readyState > 0 || v.src || v.currentSrc)) {
+                // Wait for video to have metadata before judging it, unless it's the only video and playing
+                const isDurationValid = v.duration > 600 || v.duration === Infinity;
+                if (!v.muted && (isDurationValid || (v.readyState > 0 && isNaN(v.duration)))) {
                     return v;
                 }
             }
-            // Fallback to the first video if no valid one is found yet, but only if it's the only one
-            if (directVideos.length === 1) return directVideos[0];
+            // Fallback: If there's exactly one video, and it has a valid src, and it's not muted, we might hook it if we are on the player iframe.
+            if (directVideos.length === 1 && directVideos[0].src && !directVideos[0].muted) {
+                return directVideos[0];
+            }
         }
 
         const isElectron = navigator.userAgent.toLowerCase().includes('electron');
@@ -75,13 +78,18 @@ export class TurkanimeAdapter implements SiteAdapter {
                                 if (innerVids.length > 0) {
                                     for (let k = 0; k < innerVids.length; k++) {
                                         const v = innerVids[k];
-                                        if (!v.muted && (isNaN(v.duration) || v.duration > 600)) {
+                                        const isDurationValid = v.duration > 600 || v.duration === Infinity;
+                                        if (!v.muted && (isDurationValid || (v.readyState > 0 && isNaN(v.duration)))) {
                                             console.log('[AniSync] TurkanimeAdapter: Video found in NESTED IFRAME:', innerIframes[j].src);
                                             innerIframes[j].setAttribute('style', 'position:fixed!important;top:0!important;left:0!important;width:100vw!important;height:100vh!important;z-index:2147483647!important;border:none!important;background:#000!important;');
                                             return v;
                                         }
                                     }
-                                    if (innerVids.length === 1) return innerVids[0];
+                                    if (innerVids.length === 1 && innerVids[0].src && !innerVids[0].muted) {
+                                        console.log('[AniSync] TurkanimeAdapter: Fallback Video found in NESTED IFRAME:', innerIframes[j].src);
+                                        innerIframes[j].setAttribute('style', 'position:fixed!important;top:0!important;left:0!important;width:100vw!important;height:100vh!important;z-index:2147483647!important;border:none!important;background:#000!important;');
+                                        return innerVids[0];
+                                    }
                                 }
                             }
                         } catch(e) {}
@@ -91,13 +99,18 @@ export class TurkanimeAdapter implements SiteAdapter {
                     if (vids.length > 0) {
                         for (let k = 0; k < vids.length; k++) {
                             const v = vids[k];
-                            if (!v.muted && (isNaN(v.duration) || v.duration > 600)) {
+                            const isDurationValid = v.duration > 600 || v.duration === Infinity;
+                            if (!v.muted && (isDurationValid || (v.readyState > 0 && isNaN(v.duration)))) {
                                 console.log('[AniSync] TurkanimeAdapter: Video found in IFRAME:', iframes[i].src ? iframes[i].src.substring(0, 60) : 'no-src');
                                 iframes[i].setAttribute('style', 'position:fixed!important;top:0!important;left:0!important;width:100vw!important;height:100vh!important;z-index:2147483647!important;border:none!important;background:#000!important;');
                                 return v;
                             }
                         }
-                        if (vids.length === 1) return vids[0];
+                        if (vids.length === 1 && vids[0].src && !vids[0].muted) {
+                            console.log('[AniSync] TurkanimeAdapter: Fallback Video found in IFRAME:', iframes[i].src ? iframes[i].src.substring(0, 60) : 'no-src');
+                            iframes[i].setAttribute('style', 'position:fixed!important;top:0!important;left:0!important;width:100vw!important;height:100vh!important;z-index:2147483647!important;border:none!important;background:#000!important;');
+                            return vids[0];
+                        }
                     }
                 } catch(e) {}
             }
