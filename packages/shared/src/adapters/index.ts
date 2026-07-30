@@ -38,30 +38,32 @@ import { UniversalAdapter } from './UniversalAdapter';
         console.log('[AniSync] Video HOOKED in:', window.location.href.substring(0, 80));
         (window as any).__anisync_has_video = true;
 
+        const pWin = (v.ownerDocument && v.ownerDocument.defaultView) ? (v.ownerDocument.defaultView as any) : (window as any);
+
         (window as any).__anisync_api = {
             play: function() { 
                 ignoreUntil = Date.now() + 1000; 
-                if (typeof (window as any).jwplayer !== 'undefined') {
-                    try { (window as any).jwplayer().play(); } catch(e) { v.play(); }
+                if (typeof pWin.jwplayer !== 'undefined') {
+                    try { pWin.jwplayer().play(); } catch(e) { v.play(); }
                 } else v.play(); 
             },
             pause: function() { 
                 ignoreUntil = Date.now() + 1000; 
-                if (typeof (window as any).jwplayer !== 'undefined') {
-                    try { (window as any).jwplayer().pause(); } catch(e) { v.pause(); }
+                if (typeof pWin.jwplayer !== 'undefined') {
+                    try { pWin.jwplayer().pause(); } catch(e) { v.pause(); }
                 } else v.pause(); 
             },
             seek: function(time: number) { 
                 ignoreUntil = Date.now() + 1000; 
-                if (typeof (window as any).jwplayer !== 'undefined') {
-                    try { (window as any).jwplayer().seek(time); } catch(e) { v.currentTime = time; }
+                if (typeof pWin.jwplayer !== 'undefined') {
+                    try { pWin.jwplayer().seek(time); } catch(e) { v.currentTime = time; }
                 } else v.currentTime = time; 
             },
             getState: function() { 
-                if (typeof (window as any).jwplayer !== 'undefined') {
+                if (typeof pWin.jwplayer !== 'undefined') {
                     try {
-                        const state = (window as any).jwplayer().getState();
-                        return { state: (state === 'playing' || state === 'buffering') ? 'playing' : 'paused', time: (window as any).jwplayer().getPosition() || v.currentTime };
+                        const state = pWin.jwplayer().getState();
+                        return { state: (state === 'playing' || state === 'buffering') ? 'playing' : 'paused', time: pWin.jwplayer().getPosition() || v.currentTime };
                     } catch(e) {}
                 }
                 return { state: v.paused ? 'paused' : 'playing', time: v.currentTime }; 
@@ -78,9 +80,9 @@ import { UniversalAdapter } from './UniversalAdapter';
         v.addEventListener('seeked', () => sendEvent('seek', v));
         
         // Listen to jwplayer events if available
-        if (typeof (window as any).jwplayer !== 'undefined') {
+        if (typeof pWin.jwplayer !== 'undefined') {
             try {
-                const jw = (window as any).jwplayer();
+                const jw = pWin.jwplayer();
                 jw.on('play', () => sendEvent('play', v));
                 jw.on('pause', () => sendEvent('pause', v));
                 jw.on('seek', (e: any) => { v.currentTime = e.offset; sendEvent('seek', v); });
