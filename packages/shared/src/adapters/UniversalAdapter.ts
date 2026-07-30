@@ -46,14 +46,11 @@ export class UniversalAdapter implements SiteAdapter {
         if (directVideos.length > 0) {
             for (let i = 0; i < directVideos.length; i++) {
                 const v = directVideos[i];
-                // Wait for video to have metadata before judging it, unless it's the only video and playing
+                // Wait for video to have metadata before judging it
                 const isDurationValid = v.duration > 600 || v.duration === Infinity;
                 if (!v.muted && (isDurationValid || (v.readyState > 0 && isNaN(v.duration)))) {
                     return v;
                 }
-            }
-            if (directVideos.length === 1 && directVideos[0].src && !directVideos[0].muted) {
-                return directVideos[0];
             }
         }
         return null;
