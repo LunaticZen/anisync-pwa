@@ -7,6 +7,8 @@ export class UniversalAdapter implements SiteAdapter {
     }
 
     extractIframe(): boolean {
+        const isElectron = navigator.userAgent.toLowerCase().includes('electron');
+        if (isElectron) return false;
         try {
             const fs = document.querySelectorAll('iframe');
             for (let i = 0; i < fs.length; i++) {

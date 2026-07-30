@@ -6,6 +6,10 @@ export class AnimecixAdapter implements SiteAdapter {
     }
 
     extractIframe(): boolean {
+        // On PC, main.ts injects script into all sub-frames natively.
+        const isElectron = navigator.userAgent.toLowerCase().includes('electron');
+        if (isElectron) return false;
+
         try {
             const fs = document.querySelectorAll('iframe');
             for (let i = 0; i < fs.length; i++) {
@@ -35,7 +39,7 @@ export class AnimecixAdapter implements SiteAdapter {
     }
 
     findVideoElement(): HTMLVideoElement | null {
-        // 1. Direct video elements
+        // 1. Direct video elements (always works on PC because of native sub-frame injection)
         const directVideos = document.querySelectorAll('video');
         if (directVideos.length > 0) {
             for (let i = 0; i < directVideos.length; i++) {
@@ -47,7 +51,10 @@ export class AnimecixAdapter implements SiteAdapter {
             return directVideos[0];
         }
 
-        // 2. Scan iframes for tau/vidmoly
+        const isElectron = navigator.userAgent.toLowerCase().includes('electron');
+        if (isElectron) return null; // Let Electron's native sub-frame injection handle it
+
+        // 2. Scan iframes for tau/vidmoly (ONLY FOR MOBILE, as per DIZIBOX_SYNC_NOTES.md where same-origin works)
         try {
             const iframes = document.querySelectorAll('iframe');
             for (let i = 0; i < iframes.length; i++) {
