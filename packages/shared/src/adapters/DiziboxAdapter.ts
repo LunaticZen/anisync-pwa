@@ -2,7 +2,7 @@ import { SiteAdapter } from './BaseAdapter';
 
 export class DiziboxAdapter implements SiteAdapter {
     match(url: string): boolean {
-        return url.indexOf('dizibox') > -1 || url.indexOf('dizipub') > -1 || url.indexOf('diziwatch') > -1;
+        return url.indexOf('dizibox') > -1 || url.indexOf('dizipub') > -1 || url.indexOf('diziwatch') > -1 || url.indexOf('molystream') > -1;
     }
 
     findVideoElement(): HTMLVideoElement | null {
