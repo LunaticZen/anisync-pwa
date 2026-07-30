@@ -18,16 +18,21 @@ import { UniversalAdapter } from './UniversalAdapter';
 
     let ignoreUntil = 0;
 
-    function sendEvent(type: string, v: HTMLVideoElement) {
+    function sendEvent(type: string, v: HTMLVideoElement, pWin?: any) {
         if (Date.now() < ignoreUntil) return;
+
+        let time = v.currentTime;
+        if (pWin && typeof pWin.jwplayer !== 'undefined') {
+            try { time = pWin.jwplayer().getPosition(); } catch(e) {}
+        }
 
         // Mobile Fallback
         if ((window as any).AniSyncBridge?.sendEvent) {
-            (window as any).AniSyncBridge.sendEvent(type, v.currentTime);
+            (window as any).AniSyncBridge.sendEvent(type, time);
         }
         // Desktop (Electron) Fallback
         else {
-            (window as any).__anisync_event = { type: type, time: v.currentTime, ts: Date.now() };
+            (window as any).__anisync_event = { type: type, time: time, ts: Date.now() };
         }
     }
 
@@ -75,17 +80,17 @@ import { UniversalAdapter } from './UniversalAdapter';
             }
         };
 
-        v.addEventListener('play', () => sendEvent('play', v));
-        v.addEventListener('pause', () => sendEvent('pause', v));
-        v.addEventListener('seeked', () => sendEvent('seek', v));
+        v.addEventListener('play', () => sendEvent('play', v, pWin));
+        v.addEventListener('pause', () => sendEvent('pause', v, pWin));
+        v.addEventListener('seeked', () => sendEvent('seek', v, pWin));
         
         // Listen to jwplayer events if available
         if (typeof pWin.jwplayer !== 'undefined') {
             try {
                 const jw = pWin.jwplayer();
-                jw.on('play', () => sendEvent('play', v));
-                jw.on('pause', () => sendEvent('pause', v));
-                jw.on('seek', (e: any) => { v.currentTime = e.offset; sendEvent('seek', v); });
+                jw.on('play', () => sendEvent('play', v, pWin));
+                jw.on('pause', () => sendEvent('pause', v, pWin));
+                jw.on('seek', (e: any) => { v.currentTime = e.offset; sendEvent('seek', v, pWin); });
             } catch(e) {}
         }
 
