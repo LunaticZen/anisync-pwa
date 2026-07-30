@@ -2246,3 +2246,19 @@ Kullanıcı, v1.2.0 'Fortress' güvenlik güncellemesinden sonra **PC üzerinden
 * **Güncelleme Yolu:** Yapılan tüm yeni güncellemeler ve derlemeler doğrudan aşağıdaki dizin içine yapılacaktır:
   C:\Users\emin\Desktop\anisyncproject\anisync\packages\desktop\release\win-unpacked
 * **Kullanım:** Uygulama her zaman bu klasörün içindeki AniSync.exe dosyası çalıştırılarak kullanılmalıdır (Masaüstündeki eski tekli .exe dosyaları tamamen iptal edilmiştir).
+
+## ⚠️ KRİTİK MİMARİ NOTLARI (BOZULMAMASI GEREKENLER)
+1. **Dizibox İç İçe (Nested) Iframe Yapısı:** 
+   - Dizibox, `king.php` (aynı kökenli) içinde `molystream` (farklı kökenli) barındırır.
+   - **Masaüstü (PC):** `main.ts` tüm iframelere yerel (native) sızdığı için `extractIframe` KAPALI OLMALIDIR (return false). Aksi takdirde UI bozulur.
+   - **Mobil:** Android WebView farklı kökenli (cross-origin) iframe'e sızamaz. Bu nedenle `DiziboxAdapter` İÇİNDE `extractIframe` yazılarak SADECE `molystream` iframe'i tespit edilip `window.location.href = innerSrc;` yöntemiyle en tepeye (top level) çekilmelidir.
+   - **Adaptör Eşleşmesi (Match):** `DiziboxAdapter` içerisindeki `match()` kuralı mutlaka `molystream` kelimesini içermelidir! Aksi halde `UniversalAdapter` devreye girer ve süresi belirsiz HLS videolarını reklam sanıp engeller.
+
+2. **Animecix Yapısı:**
+   - **Masaüstü (PC):** Tıpkı Dizibox gibi `extractIframe` KAPALI olmalıdır (return false). Native injection çalışmaktadır.
+   - **Mobil:** Animecix player iframe'leri (TAU, Vidmoly vs.) kendi sitesi üzerinden sunulduğu için Android WebView bu frame'lere erişebilir (CORS takılmaz). Bu yüzden `extractIframe` mobilde bile gereksizdir! Yalnızca aynı kökenli iframe'lerin içindeki `<video>` etiketini `contentDocument.querySelector('video')` ile taramak yeterlidir.
+
+3. **Türkanime.tv (ALUCARD):**
+   - Türkanime'de fansub ve player seçimi olduğu için sayfa yüklenir yüklenmez (hemen) `extractIframe` ÇALIŞMAMALIDIR! Eğer çalışırsa kullanıcı seçim yapamadan ekran kararır (flickering/git-gel hatası).
+   - Masaüstünde `extractIframe` her zaman kapalı kalır.
+   - Mobilde ise, yalnızca video URL'sinde `video, player, embed, stream, ok.ru, alucard` vs. varsa extract işlemi tetiklenmelidir.

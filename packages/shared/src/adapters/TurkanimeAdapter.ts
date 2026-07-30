@@ -19,7 +19,7 @@ export class TurkanimeAdapter implements SiteAdapter {
                 const src = fs[i].src;
                 if (src && src.startsWith('http') && !(fs[i] as any).__anisyncExtracted) {
                     const isSameDomain = src.indexOf(window.location.hostname) > -1;
-                    const isVideoProvider = src.indexOf('video')>-1 || src.indexOf('player')>-1 || src.indexOf('embed')>-1 || src.indexOf('stream')>-1 || src.indexOf('vidmoly')>-1 || src.indexOf('tau')>-1 || src.indexOf('ok.ru')>-1 || src.indexOf('mail.ru')>-1 || src.indexOf('sibnet')>-1;
+                    const isVideoProvider = src.indexOf('video')>-1 || src.indexOf('player')>-1 || src.indexOf('embed')>-1 || src.indexOf('stream')>-1 || src.indexOf('vidmoly')>-1 || src.indexOf('tau')>-1 || src.indexOf('ok.ru')>-1 || src.indexOf('mail.ru')>-1 || src.indexOf('sibnet')>-1 || src.indexOf('alucard')>-1;
                     const shouldExtract = isVideoProvider && !isSameDomain;
 
                     if (shouldExtract) {

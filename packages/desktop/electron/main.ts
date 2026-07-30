@@ -51,6 +51,7 @@ function isUniversalVideoProvider(url: string): boolean {
            lower.includes("mixdrop") || lower.includes("mp4upload") ||
            lower.includes("ok.ru") || lower.includes("okru") ||
            lower.includes("voe.sx") || lower.includes("dood") ||
+           lower.includes("alucard") ||
            isDomainMatch(hostname, VIDEO_PROVIDER_DOMAINS);
   } catch { return false; }
 }
