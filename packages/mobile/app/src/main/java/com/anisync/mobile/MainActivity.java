@@ -625,9 +625,7 @@ public class MainActivity extends AppCompatActivity {
         "[class*=\\\"ad-\\\"],[class*=\\\"ads-\\\"],[id*=\\\"ad-\\\"],[id*=\\\"ads-\\\"]," +
         "[class*=\\\"banner\\\"],[class*=\\\"popup\\\"],[class*=\\\"reklam\\\"],[id*=\\\"reklam\\\"]," +
         ".adsbygoogle,ins.adsbygoogle,[class*=\\\"AdContainer\\\"],[class*=\\\"ad_wrapper\\\"]," +
-        "div[data-ad],div[data-ads],iframe[src*=\\\"doubleclick\\\"],iframe[src*=\\\"googlesyndication\\\"]," +
-        "[class*=\\\"overlay\\\"]:not(video):not([class*=\\\"player\\\"])," +
-        "[class*=\\\"modal\\\"]:not([class*=\\\"player\\\"])" +
+        "div[data-ad],div[data-ads],iframe[src*=\\\"doubleclick\\\"],iframe[src*=\\\"googlesyndication\\\"]" +
         "{display:none!important;height:0!important;overflow:hidden!important;}';" +
         "document.head.appendChild(s);" +
         // Popup blocker & navigator: redirect new windows to current frame
