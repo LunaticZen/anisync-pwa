@@ -3,48 +3,107 @@ import { AnimecixAdapter } from './AnimecixAdapter';
 import { DiziboxAdapter } from './DiziboxAdapter';
 import { TurkanimeAdapter } from './TurkanimeAdapter';
 import { UniversalAdapter } from './UniversalAdapter';
-import { hookVideo, hookPrototypes } from './VideoHooker';
 
 (function() {
     if ((window as any).__anisync_injected) return;
     (window as any).__anisync_injected = true;
 
-    // Ad-blocker CSS
-    const s = document.createElement('style');
-    s.id = 'anisync-adblock';
-    s.textContent = `
-    [class*="ad-"],[class*="ads-"],[id*="ad-"],[id*="ads-"],
-    [class*="banner"],[class*="popup"],[class*="reklam"],[id*="reklam"],
-    .adsbygoogle,ins.adsbygoogle,[class*="AdContainer"],[class*="ad_wrapper"],
-    div[data-ad],div[data-ads],iframe[src*="doubleclick"],iframe[src*="googlesyndication"],
-    [class*="overlay"]:not(video):not([class*="player"]),
-    [class*="modal"]:not([class*="player"])
-    {display:none!important;height:0!important;overflow:hidden!important;}
-    `;
-    document.head.appendChild(s);
+    console.log('[AniSync] Injection script started in:', window.location.href.substring(0, 80));
 
-    // Popup blocker & navigator
-    window.open = function(u) { if(u) window.location.href = u; return null; };
-    document.addEventListener('click', function(e) {
-        let t = e.target as HTMLElement;
-        while(t && t.tagName !== 'A') t = t.parentElement as HTMLElement;
-        if(t && t.tagName === 'A' && (t as HTMLAnchorElement).target === '_blank' && (t as HTMLAnchorElement).href) {
-            const href = (t as HTMLAnchorElement).href.toLowerCase();
-            if(href.indexOf('ad')>-1 || href.indexOf('click')>-1 || href.indexOf('track')>-1) {
-                e.preventDefault(); e.stopPropagation();
-            } else {
-                e.preventDefault(); window.location.href = href;
-            }
+    // Wait until the DOM is somewhat ready
+    if (!document.body) {
+        setTimeout(() => (window as any).__anisync_find_video && (window as any).__anisync_find_video(), 500);
+        return;
+    }
+
+    let ignoreUntil = 0;
+
+    function sendEvent(type: string, v: HTMLVideoElement) {
+        if (Date.now() < ignoreUntil) return;
+
+        // Mobile Fallback
+        if ((window as any).AniSyncBridge?.sendEvent) {
+            (window as any).AniSyncBridge.sendEvent(type, v.currentTime);
         }
-    }, true);
+        // Desktop (Electron) Fallback
+        else {
+            (window as any).__anisync_event = { type: type, time: v.currentTime, ts: Date.now() };
+        }
+    }
 
-    // Video letterbox CSS
-    const s2 = document.createElement('style');
-    s2.textContent = 'video{object-fit:contain!important;max-width:100%!important;max-height:100%!important;}';
-    document.head.appendChild(s2);
+    function hookVideo(v: HTMLVideoElement) {
+        if ((v as any).__anisync_hooked) return;
+        (v as any).__anisync_hooked = true;
 
-    // Hook prototypes early in case video elements are created dynamically
-    hookPrototypes(hookVideo);
+        console.log('[AniSync] Video HOOKED in:', window.location.href.substring(0, 80));
+        (window as any).__anisync_has_video = true;
+
+        (window as any).__anisync_api = {
+            play: function() { 
+                ignoreUntil = Date.now() + 1000; 
+                if (typeof (window as any).jwplayer !== 'undefined') {
+                    try { (window as any).jwplayer().play(); } catch(e) { v.play(); }
+                } else v.play(); 
+            },
+            pause: function() { 
+                ignoreUntil = Date.now() + 1000; 
+                if (typeof (window as any).jwplayer !== 'undefined') {
+                    try { (window as any).jwplayer().pause(); } catch(e) { v.pause(); }
+                } else v.pause(); 
+            },
+            seek: function(time: number) { 
+                ignoreUntil = Date.now() + 1000; 
+                if (typeof (window as any).jwplayer !== 'undefined') {
+                    try { (window as any).jwplayer().seek(time); } catch(e) { v.currentTime = time; }
+                } else v.currentTime = time; 
+            },
+            getState: function() { 
+                if (typeof (window as any).jwplayer !== 'undefined') {
+                    try {
+                        const state = (window as any).jwplayer().getState();
+                        return { state: (state === 'playing' || state === 'buffering') ? 'playing' : 'paused', time: (window as any).jwplayer().getPosition() || v.currentTime };
+                    } catch(e) {}
+                }
+                return { state: v.paused ? 'paused' : 'playing', time: v.currentTime }; 
+            },
+            getEvent: function() { 
+                const ev = (window as any).__anisync_event; 
+                (window as any).__anisync_event = null; 
+                return ev; 
+            }
+        };
+
+        v.addEventListener('play', () => sendEvent('play', v));
+        v.addEventListener('pause', () => sendEvent('pause', v));
+        v.addEventListener('seeked', () => sendEvent('seek', v));
+        
+        // Listen to jwplayer events if available
+        if (typeof (window as any).jwplayer !== 'undefined') {
+            try {
+                const jw = (window as any).jwplayer();
+                jw.on('play', () => sendEvent('play', v));
+                jw.on('pause', () => sendEvent('pause', v));
+                jw.on('seek', (e: any) => { v.currentTime = e.offset; sendEvent('seek', v); });
+            } catch(e) {}
+        }
+
+        // Monitor video element removal
+        setInterval(function() {
+            try {
+                let stillExists = false;
+                if (document.body && document.body.contains(v)) { stillExists = true; }
+                if (!stillExists && v.ownerDocument && v.ownerDocument.body) {
+                    stillExists = v.ownerDocument.body.contains(v);
+                }
+                if (!stillExists) {
+                    console.log('[AniSync] Video removed from DOM, unhooking');
+                    (window as any).__anisync_has_video = false;
+                    delete (window as any).__anisync_api;
+                    (v as any).__anisync_hooked = false;
+                }
+            } catch(e) {}
+        }, 2000);
+    }
 
     function findAndHookVideo() {
         const loc = window.location.href;
@@ -65,7 +124,7 @@ import { hookVideo, hookPrototypes } from './VideoHooker';
 
         if (!activeAdapter) return false;
 
-        // 1. Iframe Extraction Phase
+        // 1. Extraction Phase (For Mobile Cross-Origin iframes)
         if (activeAdapter.extractIframe && activeAdapter.extractIframe()) {
             return true; // Extraction handled (will redirect window)
         }
@@ -90,8 +149,8 @@ import { hookVideo, hookPrototypes } from './VideoHooker';
         setInterval(findAndHookVideo, 1000);
 
         try {
-            const observer = new MutationObserver(function() { 
-                findAndHookVideo(); 
+            const observer = new MutationObserver(function() {
+                findAndHookVideo();
             });
             observer.observe(document.documentElement || document.body, { childList: true, subtree: true });
         } catch(e) {}
