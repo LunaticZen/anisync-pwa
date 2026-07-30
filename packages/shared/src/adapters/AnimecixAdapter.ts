@@ -6,7 +6,31 @@ export class AnimecixAdapter implements SiteAdapter {
     }
 
     extractIframe(): boolean {
-        // Disabled iframe extraction to prevent black screens on modern Animecix players
+        try {
+            const fs = document.querySelectorAll('iframe');
+            for (let i = 0; i < fs.length; i++) {
+                const src = fs[i].src;
+                if (src && src.startsWith('http') && !(fs[i] as any).__anisyncExtracted) {
+                    (fs[i] as any).__anisyncExtracted = true;
+                    
+                    const isSameDomain = src.indexOf(window.location.hostname) > -1;
+                    const isVideoProvider = src.indexOf('video')>-1 || src.indexOf('player')>-1 || src.indexOf('embed')>-1 || src.indexOf('stream')>-1 || src.indexOf('vidmoly')>-1 || src.indexOf('tau')>-1;
+                    const isAnimecixInternal = src.indexOf('animecix') > -1;
+                    const shouldExtract = isVideoProvider && !isSameDomain && !isAnimecixInternal;
+
+                    if (shouldExtract) {
+                        console.log('[AniSync] AnimecixAdapter extracting iframe to top level:', src);
+                        try { 
+                            if (window.top) window.top.location.href = src; 
+                            else window.location.href = src; 
+                        } catch(e) { 
+                            window.location.href = src; 
+                        }
+                        return true;
+                    }
+                }
+            }
+        } catch(e) {}
         return false;
     }
 

@@ -78,14 +78,30 @@ import { hookVideo, hookPrototypes } from './VideoHooker';
         return false;
     }
 
-    // Attempt immediately, and if fails, we could retry on DOM changes.
-    // However, original logic was executed on intervals/mutation observer from main.ts
-    // In original code, the entire PLAYER_SCRIPT was repeatedly injected or it didn't retry internally unless main.ts triggered it.
-    // Actually, in main.ts, executeJavaScript is called repeatedly until findVideo() returned true!
-    // But since this is a bundle, we need to return the boolean to the executeJavaScript caller.
-    // Wait, the injected script evaluates to the return value of findVideoAndHook().
-    (window as any).__anisync_find_video = findAndHookVideo;
+    function startSearch() {
+        let attempts = 0;
+        const pi = setInterval(function() {
+            attempts++;
+            if (findAndHookVideo()) {
+                clearInterval(pi);
+            }
+            if (attempts > 120) clearInterval(pi);
+        }, 1000);
+        
+        try {
+            const o = new MutationObserver(function() { 
+                if (findAndHookVideo()) o.disconnect(); 
+            });
+            o.observe(document.documentElement || document.body, { childList: true, subtree: true });
+        } catch(e) {}
+    }
+
+    (window as any).__anisync_find_video = function() {
+        if (!findAndHookVideo()) {
+            startSearch();
+        }
+        return true;
+    };
 })();
 
-// Execute immediately and return the result to Electron's executeJavaScript
 (window as any).__anisync_find_video();
