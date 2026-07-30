@@ -11,28 +11,45 @@ export class TurkanimeAdapter implements SiteAdapter {
         const isElectron = navigator.userAgent.toLowerCase().includes('electron');
         if (isElectron) return false;
 
-        // On Mobile, we do need to extract cross-origin iframes (like ok.ru, vidmoly) to bypass CORS.
-        // However, we should only extract if a video player is actually selected.
+        // On Mobile, extract cross-origin iframes OR nested player iframes (like ALUCARD)
         try {
             const fs = document.querySelectorAll('iframe');
             for (let i = 0; i < fs.length; i++) {
                 const src = fs[i].src;
-                if (src && src.startsWith('http') && !(fs[i] as any).__anisyncExtracted) {
-                    const isSameDomain = src.indexOf(window.location.hostname) > -1;
-                    const isVideoProvider = src.indexOf('video')>-1 || src.indexOf('player')>-1 || src.indexOf('embed')>-1 || src.indexOf('stream')>-1 || src.indexOf('vidmoly')>-1 || src.indexOf('tau')>-1 || src.indexOf('ok.ru')>-1 || src.indexOf('mail.ru')>-1 || src.indexOf('sibnet')>-1 || src.indexOf('alucard')>-1;
-                    const shouldExtract = isVideoProvider && !isSameDomain;
-
-                    if (shouldExtract) {
-                        (fs[i] as any).__anisyncExtracted = true;
-                        console.log('[AniSync] TurkanimeAdapter extracting iframe to top level:', src);
-                        try { 
-                            if (window.top) window.top.location.href = src; 
-                            else window.location.href = src; 
-                        } catch(e) { 
-                            window.location.href = src; 
+                if (!src || !src.startsWith('http')) continue;
+                
+                const isSameDomain = src.indexOf(window.location.hostname) > -1;
+                const isVideoProvider = src.indexOf('video')>-1 || src.indexOf('player')>-1 || src.indexOf('embed')>-1 || src.indexOf('stream')>-1 || src.indexOf('vidmoly')>-1 || src.indexOf('tau')>-1 || src.indexOf('ok.ru')>-1 || src.indexOf('mail.ru')>-1 || src.indexOf('sibnet')>-1 || src.indexOf('alucard')>-1;
+                const isPlayerDirect = src.indexOf('/player/') > -1 || src.indexOf('alucard') > -1;
+                
+                // If it's a cross-origin video provider OR a direct player iframe, extract it immediately!
+                if (isVideoProvider && (!isSameDomain || isPlayerDirect) && !(fs[i] as any).__anisyncExtracted) {
+                    (fs[i] as any).__anisyncExtracted = true;
+                    console.log('[AniSync] TurkanimeAdapter extracting iframe to top level:', src);
+                    try { if (window.top) window.top.location.href = src; else window.location.href = src; } catch(e) { window.location.href = src; }
+                    return true;
+                }
+                
+                // If it's a same-domain embed, look INSIDE it for the actual player iframe!
+                if (isSameDomain && isVideoProvider) {
+                    try {
+                        const doc = fs[i].contentDocument || (fs[i].contentWindow && fs[i].contentWindow?.document);
+                        if (doc) {
+                            const innerFs = doc.querySelectorAll('iframe');
+                            for (let j = 0; j < innerFs.length; j++) {
+                                const innerSrc = innerFs[j].src;
+                                if (innerSrc && innerSrc.startsWith('http') && !(innerFs[j] as any).__anisyncExtracted) {
+                                    const innerIsPlayerDirect = innerSrc.indexOf('/player/') > -1 || innerSrc.indexOf('alucard') > -1;
+                                    if (innerIsPlayerDirect) {
+                                        (innerFs[j] as any).__anisyncExtracted = true;
+                                        console.log('[AniSync] TurkanimeAdapter extracting nested player iframe to top level:', innerSrc);
+                                        try { if (window.top) window.top.location.href = innerSrc; else window.location.href = innerSrc; } catch(e) { window.location.href = innerSrc; }
+                                        return true;
+                                    }
+                                }
+                            }
                         }
-                        return true;
-                    }
+                    } catch(e) {}
                 }
             }
         } catch(e) {}
