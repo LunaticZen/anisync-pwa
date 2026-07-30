@@ -2262,3 +2262,34 @@ Kullanıcı, v1.2.0 'Fortress' güvenlik güncellemesinden sonra **PC üzerinden
    - Türkanime'de fansub ve player seçimi olduğu için sayfa yüklenir yüklenmez (hemen) `extractIframe` ÇALIŞMAMALIDIR! Eğer çalışırsa kullanıcı seçim yapamadan ekran kararır (flickering/git-gel hatası).
    - Masaüstünde `extractIframe` her zaman kapalı kalır.
    - Mobilde ise, yalnızca video URL'sinde `video, player, embed, stream, ok.ru, alucard` vs. varsa extract işlemi tetiklenmelidir.
+
+## ⚠️ 30 TEMMUZ 2026: TÜRKAINIME VE ANIMECIX REFAKTÖRÜ, YAPILAN HATALAR VE ÇIKARILAN DERSLER (POST-MORTEM)
+
+### Neler Yaşandı ve Neler Denendi?
+Bu oturumda `inject.js` içerisindeki spagetti kodu modüler hale getirmek için adaptörler (`AnimecixAdapter`, `TurkanimeAdapter`, vb.) oluşturulurken çok sayıda zincirleme hata yapıldı. Türkanime için yapılan özelleştirmeler, sorunsuz çalışan Animecix'i ve ortak altyapıyı tamamen bozdu.
+
+### ❌ Yapılan Hatalar, Sebepleri ve Yapılmaması Gerekenler
+
+1. **Türkanime Kodlanırken Animecix'in Bozulması (extractIframe Hatası)**
+   * **Neden Bozdum?** Eski `AnimecixAdapter` içinde `vidmoly` ve `tau` gibi iframeleri mobil için dışarı çıkaran (extract) çalışan bir kod vardı. Ancak ben, yukarıdaki "Animecix'te extractIframe gereksizdir" notunu **yanlış ve aşırı katı yorumlayarak**, halihazırda çalışan bu çıkarma işlemini `AnimecixAdapter.ts` içinden sildim. 
+   * **Ne Oldu?** Animecix'teki `vidmoly` gibi cross-origin (farklı kökenli) videolar mobilde WebView tarafından yakalanamamaya başladı ve videoları tam ekrana oturtan `position:fixed` kodları da silindiği için, kullanıcı **siyah ekran** görmeye başladı. "Zaten sorun yoktu" denen Animecix, Türkanime uğruna çökmüş oldu.
+   * **Çözüm:** `AnimecixAdapter` eski haline (çalıştığı onaylanan commit'e) birebir restore edildi.
+   * **KURAL:** Bir platform (Türkanime) için yeni bir altyapı kurulurken veya dokümantasyon yorumlanırken, **daha önce sorunsuz çalıştığı onaylanmış kod parçaları (diğer platformların ayarları) asla silinmemeli veya "temizlik" adına refaktör edilmemelidir.** Dokümantasyonla mevcut çalışan kod çelişiyorsa, **çalışan koda (gerçekliğe) sadık kalınmalıdır.**
+
+2. **Gereksiz Agresif CSS ve JS Reklam Engelleyiciler (Animecix Siyah Ekran / Tıklanamama)**
+   * **Neden Bozdum?** Türkanime'deki ekranda asılı kalan reklamları engellemek için `MainActivity.java` ve `index.ts` içine agresif reklam temizleyiciler ekledim. `[class*="modal"] { display: none !important; }` CSS'i ve z-index kontrolü yapan bir JS `setInterval` yazdım.
+   * **Ne Oldu?** Animecix'in kendi video oynatıcısı zaten bir "modal" içinde çalışıyordu. Reklam sanıp Animecix'in orijinal video oynatıcısını gizledim (veya sildim). Kullanıcı "Şimdi İzle'ye basınca ekran gri oluyor, video gelmiyor" diyerek isyan etti.
+   * **Çözüm:** CSS engellemelerinden `modal` ve `overlay` çıkarıldı, JS ile element silen koda ise `if (!isAnimecix)` şartı eklendi.
+   * **KURAL:** Ortak (shared) bir CSS veya JS engelleyici yazılırken ASLA jenerik class isimleri (`modal`, `overlay`, `popup`) tüm siteler için gizlenmemelidir. Bu tür müdahaleler siteye özel (Site-Specific) yapılmalıdır.
+
+3. **Popup Blocker'ın "about:blank" Faciası**
+   * **Neden Bozdum?** Yeni sekmelerde (target="_blank") açılan reklamları engellemek için `window.open` fonksiyonunu ezip `window.location.href = url` şeklinde aynı pencereye yönlendirdim.
+   * **Ne Oldu?** Görünmez reklam tıklamaları `window.open('about:blank')` tetiklediği için, uygulamamız koskoca Android WebView'ı doğrudan `about:blank` sayfasına (bembeyaz veya simsiyah boş ekrana) yönlendirdi. Kullanıcı "Hiçbir şey olmuyor, siyah ekranda kalıyor" dedi.
+   * **Çözüm:** `window.open` ezme işlemine `if (u && u !== 'about:blank' && u.indexOf('javascript:') === -1)` şartı eklendi. Böylece sahte reklam yönlendirmeleri yutuldu ve ana ekran korundu.
+   * **KURAL:** WebView içinde `window.open` intercept (araya girme) işlemi yaparken, `about:blank` ve `javascript:` URL'leri her zaman istisna tutulmalı ve sadece `null` döndürülerek engellenmelidir; asla `window.location.href` ile ana WebView bu içi boş sayfalara yönlendirilmemelidir.
+
+4. **JavaScript Köprüsü İsim Hatası (Senkronizasyonun Kopması)**
+   * **Neden Bozdum?** JS kodlarını modüler yapıya (`index.ts`) taşırken, mobilden Java'ya olay (play/pause/seek) gönderen fonksiyonu (`sendEvent`) yeniden yazdım. Bunu yaparken eski çalışan koddaki köprü ismini (`AniSyncAnimeBridge`) yanlışlıkla kısaltıp `AniSyncBridge` yazdım.
+   * **Ne Oldu?** Uygulamanın `animeWebView` bileşeninde `AniSyncBridge` tanımlı olmadığı için, mobilde durdurma veya sarma tuşlarına basıldığında bu komutlar Java'ya ve oradan da PC'ye iletilemedi ("Video sync yok şu an" hatası).
+   * **Çözüm:** `index.ts` içindeki köprü çağrısı tekrar `AniSyncAnimeBridge` olarak düzeltildi ve iç içe iframe'ler için gereken `postMessage` geri çağrısı da eklendi.
+   * **KURAL:** `evaluateJavascript` üzerinden çağrılacak Android arayüzleri (Interface/Bridge isimleri), `MainActivity.java` içindeki `@JavascriptInterface` tanımlamaları kontrol edilmeden (ezbere) değiştirilmemeli veya yeniden yazılmamalıdır. Yanlış harf, tüm senkronizasyonun çökmesi demektir.
