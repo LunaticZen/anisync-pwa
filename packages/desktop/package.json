@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "concurrently \"vite\" \"tsc -w -p electron/tsconfig.json\" \"wait-on http://localhost:5173 && electron .\"",
     "dev:renderer": "vite",
-    "build": "vite build && tsc -p electron/tsconfig.json",
+    "build": "vite build && tsc -p electron/tsconfig.json && node build-adapters.js",
     "electron:dev": "electron .",
     "package": "electron-builder --win",
     "package:linux": "electron-builder --linux",
@@ -38,6 +38,7 @@
     "concurrently": "^8.2.0",
     "electron": "30.5.1",
     "electron-builder": "^26.15.3",
+    "esbuild": "^0.28.1",
     "png-to-ico": "^3.0.1",
     "rimraf": "^5.0.0",
     "sharp": "^0.34.5",

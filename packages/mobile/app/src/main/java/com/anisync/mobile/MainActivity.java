@@ -615,114 +615,56 @@ public class MainActivity extends AppCompatActivity {
                 // PERF: All JS injections consolidated into single evaluateJavascript call
                 // to reduce IPC overhead. Guard flag prevents duplicate injection.
                 // MutationObserver REMOVED — CSS !important handles all video elements.
-                String allInjects = "(function(){" +
-                        "if(window.__anisyncInjected)return;" +
-                        "window.__anisyncInjected=true;" +
-                        // Ad-blocker CSS
-                        "var s=document.createElement('style');" +
-                        "s.id='anisync-adblock';" +
-                        "s.textContent='" +
-                        "[class*=\\\"ad-\\\"],[class*=\\\"ads-\\\"],[id*=\\\"ad-\\\"],[id*=\\\"ads-\\\"]," +
-                        "[class*=\\\"banner\\\"],[class*=\\\"popup\\\"],[class*=\\\"reklam\\\"],[id*=\\\"reklam\\\"]," +
-                        ".adsbygoogle,ins.adsbygoogle,[class*=\\\"AdContainer\\\"],[class*=\\\"ad_wrapper\\\"]," +
-                        "div[data-ad],div[data-ads],iframe[src*=\\\"doubleclick\\\"],iframe[src*=\\\"googlesyndication\\\"]," +
-                        "[class*=\\\"overlay\\\"]:not(video):not([class*=\\\"player\\\"])," +
-                        "[class*=\\\"modal\\\"]:not([class*=\\\"player\\\"])" +
-                        "{display:none!important;height:0!important;overflow:hidden!important;}';" +
-                        "document.head.appendChild(s);" +
-                        // Popup blocker & navigator: redirect new windows to current frame
-                        "window.open=function(u){if(u)window.location.href=u;return null;};" +
-                        "document.addEventListener('click',function(e){" +
-                        "  var t=e.target;" +
-                        "  while(t && t.tagName!=='A') t=t.parentElement;" +
-                        "  if(t&&t.tagName==='A'&&t.target==='_blank'&&t.href){" +
-                        "    if(t.href.indexOf('ad')>-1||t.href.indexOf('click')>-1||t.href.indexOf('track')>-1){" +
-                        "      e.preventDefault();e.stopPropagation();" +
-                        "    } else {" +
-                        "      e.preventDefault();window.location.href=t.href;" +
-                        "    }" +
-                        "  }" +
-                        "},true);" +
-                        // Video letterbox CSS (no MutationObserver — CSS !important is sufficient)
-                        "var s2=document.createElement('style');" +
-                        "s2.textContent='video{object-fit:contain!important;max-width:100%!important;max-height:100%!important;}';" +
-                        "document.head.appendChild(s2);" +
-                        // CORS Bypass: Bridge state from iframe to React app
-                        (ENABLE_CROSS_ORIGIN_SYNC ? 
-                        "window.__mobileVideoTime = 0;" +
-                        "window.__mobileVideoPlaying = false;" +
-                        "window.addEventListener('message', function(e) {" +
-                        "  if (e.data && e.data.anisyncState) {" +
-                        "    window.__mobileVideoTime = e.data.time;" +
-                        "    window.__mobileVideoPlaying = e.data.playing;" +
-                        "  }" +
-                        "  if (e.data && e.data.anisyncEvent && window.AniSyncAnimeBridge) {" +
-                        "    window.AniSyncAnimeBridge.sendEvent(e.data.anisyncEvent, e.data.time, e.data.playing || false);" +
-                        "  }" +
-                        "});" +
-                        "var isUniversalModeFlag = " + isUniversalMode + ";" +
-                        "if (!window.__anisync_prototype_hooked && isUniversalModeFlag) {" +
-                        "  window.__anisync_prototype_hooked = true;" +
-                        "  var sendPrototypeEvent = function(v, type) { " +
-                        "    if(window.AniSyncAnimeBridge) window.AniSyncAnimeBridge.sendEvent(type, v.currentTime, !v.paused);" +
-                        "    else if(window.parent) window.parent.postMessage({ anisyncEvent: type, time: v.currentTime, playing: !v.paused }, '*');" +
-                        "  };" +
-                        "  var origPlay = HTMLVideoElement.prototype.play;" +
-                        "  HTMLVideoElement.prototype.play = function() { sendPrototypeEvent(this, 'play'); return origPlay.apply(this, arguments); };" +
-                        "  var origPause = HTMLVideoElement.prototype.pause;" +
-                        "  HTMLVideoElement.prototype.pause = function() { sendPrototypeEvent(this, 'pause'); return origPause.apply(this, arguments); };" +
-                        "}" +
-                        "setInterval(function() {" +
-                        "  var loc = window.location.href;" +
-                        "  var isUniversalModeFlag = " + isUniversalMode + ";" +
-                        "  var isAnimecix = loc.indexOf('animecix') > -1 || (!isUniversalModeFlag && loc.indexOf('tau.video') > -1);" +
-                        "  var isDizibox = loc.indexOf('dizibox') > -1 || loc.indexOf('dizipub') > -1 || loc.indexOf('diziwatch') > -1;" +
-                        "  var isKnownSite = isAnimecix || isDizibox;" +
-                        "  var fs = document.querySelectorAll('iframe');" +
-                        "  for (var i=0; i<fs.length; i++) {" +
-                        "    var src = fs[i].src;" +
-                        "    if (src && src.startsWith('http') && !fs[i].__anisyncExtracted) {" +
-                        "      fs[i].__anisyncExtracted = true;" +
-                        "      var isSameDomain = src.indexOf(window.location.hostname) > -1;" +
-                        "      var shouldExtract = false;" +
-                        "      if (isKnownSite) {" +
-                        "        var isVideoProvider = src.indexOf('video')>-1 || src.indexOf('player')>-1 || src.indexOf('embed')>-1 || src.indexOf('stream')>-1 || src.indexOf('vidmoly')>-1 || src.indexOf('tau')>-1;" +
-                        "        var isAnimecixInternal = isAnimecix && src.indexOf('animecix') > -1;" +
-                        "        shouldExtract = isVideoProvider && !isSameDomain && !isAnimecixInternal;" +
-                        "      } else {" +
-                        "        var wList = ['molystream', 'vidmoly', 'ok.ru', 'tau', 'fembed', 'mega', 'streamtape', 'mixdrop', 'mp4upload', 'okru', 'voe.sx', 'dood'];" +
-                        "        var inWList = false;" +
-                        "        for(var j=0; j<wList.length; j++) { if(src.indexOf(wList[j]) > -1) { inWList = true; break; } }" +
-                        "        var isBigEnough = fs[i].clientWidth > 300 && fs[i].clientHeight > 150;" +
-                        "        shouldExtract = inWList && isBigEnough && !isSameDomain;" +
-                        "        isVideoProvider = inWList;" +
-                        "      }" +
-                        "      if (shouldExtract) {" +
-                        "        window.location.href = src;" +
-                        "        break;" +
-                        "      }" +
-                        "    }" +
-                        "  }" +
-                        "  var v = document.querySelector('video');" +
-                        "  var isValidUniversal = !isUniversalModeFlag || (v && !v.muted && (isNaN(v.duration) || v.duration > 600));" +
-                        "  if (v && isValidUniversal && !v.__anisyncAttached) {" +
-                        "    v.__anisyncAttached = true;" +
-                        "    var send = function(type) { " +
-                        "      if(window.AniSyncAnimeBridge) window.AniSyncAnimeBridge.sendEvent(type, v.currentTime, !v.paused);" +
-                        "      else if(window.parent) window.parent.postMessage({ anisyncEvent: type, time: v.currentTime, playing: !v.paused }, '*');" +
-                        "    };" +
-                        "    v.addEventListener('play', function(){ send('play'); });" +
-                        "    v.addEventListener('pause', function(){ send('pause'); });" +
-                        "    v.addEventListener('seeked', function(){ send('seek'); });" +
-                        "  }" +
-                        "  if (v) {" +
-                        "    var type = 'timecheck';" +
-                        "    if(window.AniSyncAnimeBridge) window.AniSyncAnimeBridge.sendEvent(type, v.currentTime, !v.paused);" +
-                        "    else if(window.parent) window.parent.postMessage({ anisyncEvent: type, time: v.currentTime, playing: !v.paused }, '*');" +
-                        "  }" +
-                        "}, 1000);" : "") +
-                        "})();";
-                view.evaluateJavascript(allInjects, null);
+                String cssInjects = "(function(){" +
+        "if(window.__anisyncCssInjected)return;" +
+        "window.__anisyncCssInjected=true;" +
+        // Ad-blocker CSS
+        "var s=document.createElement('style');" +
+        "s.id='anisync-adblock';" +
+        "s.textContent='" +
+        "[class*=\\\"ad-\\\"],[class*=\\\"ads-\\\"],[id*=\\\"ad-\\\"],[id*=\\\"ads-\\\"]," +
+        "[class*=\\\"banner\\\"],[class*=\\\"popup\\\"],[class*=\\\"reklam\\\"],[id*=\\\"reklam\\\"]," +
+        ".adsbygoogle,ins.adsbygoogle,[class*=\\\"AdContainer\\\"],[class*=\\\"ad_wrapper\\\"]," +
+        "div[data-ad],div[data-ads],iframe[src*=\\\"doubleclick\\\"],iframe[src*=\\\"googlesyndication\\\"]," +
+        "[class*=\\\"overlay\\\"]:not(video):not([class*=\\\"player\\\"])," +
+        "[class*=\\\"modal\\\"]:not([class*=\\\"player\\\"])" +
+        "{display:none!important;height:0!important;overflow:hidden!important;}';" +
+        "document.head.appendChild(s);" +
+        // Popup blocker & navigator: redirect new windows to current frame
+        "window.open=function(u){if(u)window.location.href=u;return null;};" +
+        "document.addEventListener('click',function(e){" +
+        "  var t=e.target;" +
+        "  while(t && t.tagName!=='A') t=t.parentElement;" +
+        "  if(t&&t.tagName==='A'&&t.target==='_blank'&&t.href){" +
+        "    if(t.href.indexOf('ad')>-1||t.href.indexOf('click')>-1||t.href.indexOf('track')>-1){" +
+        "      e.preventDefault();e.stopPropagation();" +
+        "    } else {" +
+        "      e.preventDefault();window.location.href=t.href;" +
+        "    }" +
+        "  }" +
+        "},true);" +
+        // Video letterbox CSS
+        "var s2=document.createElement('style');" +
+        "s2.textContent='video{object-fit:contain!important;max-width:100%!important;max-height:100%!important;}';" +
+        "document.head.appendChild(s2);" +
+        "})();";
+
+String syncInjects = "";
+if (ENABLE_CROSS_ORIGIN_SYNC) {
+    try {
+        java.io.InputStream is = getAssets().open("inject.js");
+        int size = is.available();
+        byte[] buffer = new byte[size];
+        is.read(buffer);
+        is.close();
+        syncInjects = new String(buffer, "UTF-8");
+        // Add CORS bypass variables expected by cross-origin iframes
+        syncInjects = "window.__mobileVideoTime=0;window.__mobileVideoPlaying=false;window.addEventListener('message',function(e){if(e.data&&e.data.anisyncState){window.__mobileVideoTime=e.data.time;window.__mobileVideoPlaying=e.data.playing;}if(e.data&&e.data.anisyncEvent&&window.AniSyncAnimeBridge){window.AniSyncAnimeBridge.sendEvent(e.data.anisyncEvent,e.data.time,e.data.playing||false);}});" + syncInjects;
+    } catch (java.io.IOException e) {
+        e.printStackTrace();
+    }
+}
+view.evaluateJavascript(cssInjects + syncInjects, null);
 
                 // Debounced redraw — cancel previous pending redraws first
                 mainHandler.removeCallbacks(pendingRedraw);

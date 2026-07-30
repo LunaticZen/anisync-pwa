@@ -10,7 +10,8 @@
     "clean": "rimraf dist"
   },
   "devDependencies": {
-    "typescript": "^5.4.0",
-    "rimraf": "^5.0.0"
+    "esbuild": "^0.28.1",
+    "rimraf": "^5.0.0",
+    "typescript": "^5.4.0"
   }
 }
