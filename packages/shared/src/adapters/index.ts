@@ -155,41 +155,45 @@ import { UniversalAdapter } from './UniversalAdapter';
         // Catch videos that have their src updated later
         setInterval(findAndHookVideo, 1000);
         
+        const isAnimecix = window.location.href.indexOf('animecix') > -1;
+        
         // Remove click-jack popunder ad overlays that get stuck when window.open is blocked
-        setInterval(function() {
-            try {
-                const els = document.querySelectorAll('div, a');
-                for (let i = 0; i < els.length; i++) {
-                    const el = els[i];
-                    if (!el.getBoundingClientRect) continue;
-                    
-                    const className = (el.className || '').toString().toLowerCase();
-                    const id = (el.id || '').toString().toLowerCase();
-                    
-                    // Ignore legit player elements
-                    if (className.includes('jw') || id.includes('jw') || 
-                        className.includes('vjs') || className.includes('plyr') ||
-                        className.includes('plyr') || className.includes('art')) {
-                        continue;
-                    }
-                    
-                    // Ensure we never remove a video player or its wrapper
-                    if (el.tagName === 'VIDEO' || el.tagName === 'IFRAME') continue;
-                    if (el.querySelector('video') || el.querySelector('iframe')) continue;
-                    
-                    const style = window.getComputedStyle(el);
-                    if (style.position === 'absolute' || style.position === 'fixed') {
-                        if (style.zIndex !== 'auto' && parseInt(style.zIndex) > 50) {
-                            const rect = el.getBoundingClientRect();
-                            if (rect.width > window.innerWidth * 0.7 && rect.height > window.innerHeight * 0.7) {
-                                console.log('[AniSync] Removed stuck ad overlay:', el);
-                                el.remove();
+        if (!isAnimecix) {
+            setInterval(function() {
+                try {
+                    const els = document.querySelectorAll('div, a');
+                    for (let i = 0; i < els.length; i++) {
+                        const el = els[i];
+                        if (!el.getBoundingClientRect) continue;
+                        
+                        const className = (el.className || '').toString().toLowerCase();
+                        const id = (el.id || '').toString().toLowerCase();
+                        
+                        // Ignore legit player elements
+                        if (className.includes('jw') || id.includes('jw') || 
+                            className.includes('vjs') || className.includes('plyr') ||
+                            className.includes('plyr') || className.includes('art')) {
+                            continue;
+                        }
+                        
+                        // Ensure we never remove a video player or its wrapper
+                        if (el.tagName === 'VIDEO' || el.tagName === 'IFRAME') continue;
+                        if (el.querySelector('video') || el.querySelector('iframe')) continue;
+                        
+                        const style = window.getComputedStyle(el);
+                        if (style.position === 'absolute' || style.position === 'fixed') {
+                            if (style.zIndex !== 'auto' && parseInt(style.zIndex) > 50) {
+                                const rect = el.getBoundingClientRect();
+                                if (rect.width > window.innerWidth * 0.7 && rect.height > window.innerHeight * 0.7) {
+                                    console.log('[AniSync] Removed stuck ad overlay:', el);
+                                    el.remove();
+                                }
                             }
                         }
                     }
-                }
-            } catch(e) {}
-        }, 1000);
+                } catch(e) {}
+            }, 1000);
+        }
 
         try {
             const observer = new MutationObserver(function() {
