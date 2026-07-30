@@ -8,6 +8,40 @@ import { hookVideo, hookPrototypes } from './VideoHooker';
     if ((window as any).__anisync_injected) return;
     (window as any).__anisync_injected = true;
 
+    // Ad-blocker CSS
+    const s = document.createElement('style');
+    s.id = 'anisync-adblock';
+    s.textContent = `
+    [class*="ad-"],[class*="ads-"],[id*="ad-"],[id*="ads-"],
+    [class*="banner"],[class*="popup"],[class*="reklam"],[id*="reklam"],
+    .adsbygoogle,ins.adsbygoogle,[class*="AdContainer"],[class*="ad_wrapper"],
+    div[data-ad],div[data-ads],iframe[src*="doubleclick"],iframe[src*="googlesyndication"],
+    [class*="overlay"]:not(video):not([class*="player"]),
+    [class*="modal"]:not([class*="player"])
+    {display:none!important;height:0!important;overflow:hidden!important;}
+    `;
+    document.head.appendChild(s);
+
+    // Popup blocker & navigator
+    window.open = function(u) { if(u) window.location.href = u; return null; };
+    document.addEventListener('click', function(e) {
+        let t = e.target as HTMLElement;
+        while(t && t.tagName !== 'A') t = t.parentElement as HTMLElement;
+        if(t && t.tagName === 'A' && (t as HTMLAnchorElement).target === '_blank' && (t as HTMLAnchorElement).href) {
+            const href = (t as HTMLAnchorElement).href.toLowerCase();
+            if(href.indexOf('ad')>-1 || href.indexOf('click')>-1 || href.indexOf('track')>-1) {
+                e.preventDefault(); e.stopPropagation();
+            } else {
+                e.preventDefault(); window.location.href = href;
+            }
+        }
+    }, true);
+
+    // Video letterbox CSS
+    const s2 = document.createElement('style');
+    s2.textContent = 'video{object-fit:contain!important;max-width:100%!important;max-height:100%!important;}';
+    document.head.appendChild(s2);
+
     // Hook prototypes early in case video elements are created dynamically
     hookPrototypes(hookVideo);
 

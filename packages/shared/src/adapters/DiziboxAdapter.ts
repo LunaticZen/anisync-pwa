@@ -27,10 +27,11 @@ export class DiziboxAdapter implements SiteAdapter {
                     const doc = iframes[i].contentDocument || (iframes[i].contentWindow && iframes[i].contentWindow?.document);
                     if (!doc) continue;
 
-                    // Look for videos in this iframe
                     const vids = doc.querySelectorAll('video');
                     if (vids.length > 0) {
                         console.log('[AniSync] Video found in IFRAME contentDocument:', iframes[i].src ? iframes[i].src.substring(0, 60) : 'no-src');
+                        // Make parent iframe full screen
+                        iframes[i].setAttribute('style', 'position:fixed!important;top:0!important;left:0!important;width:100vw!important;height:100vh!important;z-index:2147483647!important;border:none!important;background:#000!important;');
                         return vids[0];
                     }
 
@@ -43,6 +44,9 @@ export class DiziboxAdapter implements SiteAdapter {
                             const innerVids = innerDoc.querySelectorAll('video');
                             if (innerVids.length > 0) {
                                 console.log('[AniSync] Video found in NESTED IFRAME (2 levels deep)');
+                                // Make both inner and outer iframes full screen
+                                iframes[i].setAttribute('style', 'position:fixed!important;top:0!important;left:0!important;width:100vw!important;height:100vh!important;z-index:2147483647!important;border:none!important;background:#000!important;');
+                                innerIframes[k].setAttribute('style', 'position:fixed!important;top:0!important;left:0!important;width:100vw!important;height:100vh!important;z-index:2147483647!important;border:none!important;background:#000!important;');
                                 return innerVids[0];
                             }
                         } catch(e) {}
