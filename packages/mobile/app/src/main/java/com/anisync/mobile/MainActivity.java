@@ -801,13 +801,21 @@ view.evaluateJavascript(cssInjects + syncInjects, null);
                         LinearLayout.LayoutParams.MATCH_PARENT));
 
                 // ── Touch Forwarding: mainWebView sadece danmaku render eder,
-                // ── tüm dokunmatik olayları alttaki video player'a iletir
+                // ── sol taraftaki dokunmaları alttaki video player'a iletir,
+                // ── sağ tarafı (sohbet) kendi işler.
                 mainWebView.setOnTouchListener((v, event) -> {
                     if (fullscreenCustomView != null) {
-                        fullscreenCustomView.dispatchTouchEvent(event);
-                        return true; // Consumed by forwarding, WebView kendi touch'ını işlemez
+                        float x = event.getX();
+                        float width = v.getWidth();
+                        float chatWidthPx = 320 * getResources().getDisplayMetrics().density;
+                        float emptyWidth = Math.max(width * 0.55f, width - chatWidthPx);
+
+                        if (x < emptyWidth) {
+                            fullscreenCustomView.dispatchTouchEvent(event);
+                            return true; // Consumed by forwarding
+                        }
                     }
-                    return false; // Normal WebView davranışı
+                    return false; // Normal WebView davranışı (Sohbet vs)
                 });
 
                 // React'e fullscreen sinyali gönder
@@ -1057,8 +1065,15 @@ view.evaluateJavascript(cssInjects + syncInjects, null);
 
                 mainWebView.setOnTouchListener((v, event) -> {
                     if (fullscreenCustomView != null) {
-                        fullscreenCustomView.dispatchTouchEvent(event);
-                        return true;
+                        float x = event.getX();
+                        float width = v.getWidth();
+                        float chatWidthPx = 320 * getResources().getDisplayMetrics().density;
+                        float emptyWidth = Math.max(width * 0.55f, width - chatWidthPx);
+
+                        if (x < emptyWidth) {
+                            fullscreenCustomView.dispatchTouchEvent(event);
+                            return true;
+                        }
                     }
                     return false;
                 });
@@ -1289,6 +1304,22 @@ view.evaluateJavascript(cssInjects + syncInjects, null);
                 rootLayout.addView(frameContainer, new LinearLayout.LayoutParams(
                         LinearLayout.LayoutParams.MATCH_PARENT,
                         LinearLayout.LayoutParams.MATCH_PARENT));
+                        
+                // TOUCH FORWARDING FOR LANDSCAPE:
+                // Chat is on the right side. Left side is transparent.
+                // Forward touches on the left side to the video so Host can play/pause/seek.
+                mainWebView.setOnTouchListener((v, event) -> {
+                    float x = event.getX();
+                    float width = v.getWidth();
+                    float chatWidthPx = 320 * getResources().getDisplayMetrics().density;
+                    float emptyWidth = Math.max(width * 0.55f, width - chatWidthPx);
+                    
+                    if (x < emptyWidth) {
+                        activeVideoWebView.dispatchTouchEvent(event);
+                        return true; // Consumed by video
+                    }
+                    return false; // Handled by React UI
+                });
             }
         } else {
             rootLayout.setOrientation(LinearLayout.VERTICAL);
