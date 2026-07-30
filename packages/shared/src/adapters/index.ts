@@ -1,6 +1,7 @@
 import { SiteAdapter } from './BaseAdapter';
 import { AnimecixAdapter } from './AnimecixAdapter';
 import { DiziboxAdapter } from './DiziboxAdapter';
+import { TurkanimeAdapter } from './TurkanimeAdapter';
 import { UniversalAdapter } from './UniversalAdapter';
 import { hookVideo, hookPrototypes } from './VideoHooker';
 
@@ -50,6 +51,7 @@ import { hookVideo, hookPrototypes } from './VideoHooker';
         const adapters: SiteAdapter[] = [
             new AnimecixAdapter(),
             new DiziboxAdapter(),
+            new TurkanimeAdapter(),
             new UniversalAdapter() // Always keep Universal last as fallback
         ];
 
