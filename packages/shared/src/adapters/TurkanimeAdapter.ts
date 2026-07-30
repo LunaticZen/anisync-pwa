@@ -45,11 +45,13 @@ export class TurkanimeAdapter implements SiteAdapter {
         if (directVideos.length > 0) {
             for (let i = 0; i < directVideos.length; i++) {
                 const v = directVideos[i];
-                if (v.readyState > 0 || v.src || v.currentSrc) {
+                // Ignore muted or very short ad videos
+                if (!v.muted && (isNaN(v.duration) || v.duration > 600) && (v.readyState > 0 || v.src || v.currentSrc)) {
                     return v;
                 }
             }
-            return directVideos[0];
+            // Fallback to the first video if no valid one is found yet, but only if it's the only one
+            if (directVideos.length === 1) return directVideos[0];
         }
 
         const isElectron = navigator.userAgent.toLowerCase().includes('electron');
@@ -63,11 +65,39 @@ export class TurkanimeAdapter implements SiteAdapter {
                     const doc = iframes[i].contentDocument || (iframes[i].contentWindow && iframes[i].contentWindow?.document);
                     if (!doc) continue;
 
+                    // Check for nested iframes (like turkanime.tv/embed -> turkanime.tv/player)
+                    const innerIframes = doc.querySelectorAll('iframe');
+                    for (let j = 0; j < innerIframes.length; j++) {
+                        try {
+                            const innerDoc = innerIframes[j].contentDocument || (innerIframes[j].contentWindow && innerIframes[j].contentWindow?.document);
+                            if (innerDoc) {
+                                const innerVids = innerDoc.querySelectorAll('video');
+                                if (innerVids.length > 0) {
+                                    for (let k = 0; k < innerVids.length; k++) {
+                                        const v = innerVids[k];
+                                        if (!v.muted && (isNaN(v.duration) || v.duration > 600)) {
+                                            console.log('[AniSync] TurkanimeAdapter: Video found in NESTED IFRAME:', innerIframes[j].src);
+                                            innerIframes[j].setAttribute('style', 'position:fixed!important;top:0!important;left:0!important;width:100vw!important;height:100vh!important;z-index:2147483647!important;border:none!important;background:#000!important;');
+                                            return v;
+                                        }
+                                    }
+                                    if (innerVids.length === 1) return innerVids[0];
+                                }
+                            }
+                        } catch(e) {}
+                    }
+
                     const vids = doc.querySelectorAll('video');
                     if (vids.length > 0) {
-                        console.log('[AniSync] TurkanimeAdapter: Video found in IFRAME:', iframes[i].src ? iframes[i].src.substring(0, 60) : 'no-src');
-                        iframes[i].setAttribute('style', 'position:fixed!important;top:0!important;left:0!important;width:100vw!important;height:100vh!important;z-index:2147483647!important;border:none!important;background:#000!important;');
-                        return vids[0];
+                        for (let k = 0; k < vids.length; k++) {
+                            const v = vids[k];
+                            if (!v.muted && (isNaN(v.duration) || v.duration > 600)) {
+                                console.log('[AniSync] TurkanimeAdapter: Video found in IFRAME:', iframes[i].src ? iframes[i].src.substring(0, 60) : 'no-src');
+                                iframes[i].setAttribute('style', 'position:fixed!important;top:0!important;left:0!important;width:100vw!important;height:100vh!important;z-index:2147483647!important;border:none!important;background:#000!important;');
+                                return v;
+                            }
+                        }
+                        if (vids.length === 1) return vids[0];
                     }
                 } catch(e) {}
             }
