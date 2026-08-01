@@ -721,8 +721,18 @@ view.evaluateJavascript(cssInjects + syncInjects, null);
                 if (!request.isForMainFrame()) return false;
                 String url = request.getUrl().toString();
                 String host = request.getUrl().getHost();
+                
+                String currentUrl = view.getUrl() != null ? view.getUrl().toString() : "";
+                
                 if (isAdDomain(host))
                     return true;
+                    
+                // Defeat frame busters on Turkanime: block top-level navigations to video providers
+                if (currentUrl.contains("turkanime") && isVideoProvider(url)) {
+                    appLog("Blocked frame-buster to " + url);
+                    return true; // Block it
+                }
+                
                 if (isVideoProvider(url)) {
                     java.util.Map<String, String> reqHeaders = request.getRequestHeaders();
                     if (reqHeaders == null || !reqHeaders.containsKey("Referer")) {
