@@ -145,7 +145,7 @@ public class MainActivity extends AppCompatActivity {
             "pushground.com", "trafficstars.com", "clickadu.com",
             "hilltopads.net", "a-ads.com", "adsterra.com",
             "vidmoly.me", "vidmoly.to",
-            "turkanime.co", "hdvid.fun", "streamtape.com",
+            "hdvid.fun", "streamtape.com",
             "mixdrop.co", "dooood.com", "upstream.to",
             "apexsec.co", "cpmstar.com", "ad-maven.com",
             "admaven.com", "monetag.com", "onclicka.com",
@@ -727,8 +727,9 @@ view.evaluateJavascript(cssInjects + syncInjects, null);
                 if (isAdDomain(host))
                     return true;
                     
-                // Defeat frame busters on Turkanime: block top-level navigations to video providers
-                if (currentUrl.contains("turkanime") && isVideoProvider(url)) {
+                // Defeat frame busters on Turkanime: block top-level navigations to EXTERNAL video providers
+                // But allow turkanime's own internal navigation (e.g. turkanime.tv/embed/...)
+                if (currentUrl.contains("turkanime") && isVideoProvider(url) && !url.contains("turkanime")) {
                     appLog("Blocked frame-buster to " + url);
                     return true; // Block it
                 }
@@ -1400,7 +1401,8 @@ view.evaluateJavascript(cssInjects + syncInjects, null);
         if (url == null) return false;
         String lowerUrl = url.toLowerCase();
         if (lowerUrl.contains("dizibox") && lowerUrl.contains("/player/")) return true;
-        if (lowerUrl.contains("animecix") || lowerUrl.contains("dizibox") || lowerUrl.contains("dizipub") || lowerUrl.contains("diziwatch")) return false;
+        // TurkAnime's own pages contain 'video' and 'embed' in URLs but are NOT video providers
+        if (lowerUrl.contains("animecix") || lowerUrl.contains("dizibox") || lowerUrl.contains("dizipub") || lowerUrl.contains("diziwatch") || lowerUrl.contains("turkanime")) return false;
         return lowerUrl.contains("video") || lowerUrl.contains("player") ||
                lowerUrl.contains("embed") || lowerUrl.contains("stream") ||
                lowerUrl.contains("vidmoly") || lowerUrl.contains("tau") ||
