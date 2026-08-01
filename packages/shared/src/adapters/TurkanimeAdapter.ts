@@ -10,64 +10,68 @@ export class TurkanimeAdapter implements SiteAdapter {
         const isElectron = navigator.userAgent.toLowerCase().includes('electron');
         if (isElectron) return false;
 
-        // TurkAnime has a 2-stage iframe chain:
-        // Stage 1: turkanime.tv/video/... page → contains turkanime.tv/embed/#/url/... iframe
-        // Stage 2: turkanime.tv/embed/... page → Vue SPA loads real video provider iframe (sibnet, mail.ru, ok.ru, etc.)
+        // TurkAnime iframe chain:
+        //   turkanime.tv/video/... page
+        //     └─ iframe: turkanime.tv/embed/#/url/ENCRYPTED (same-origin, DOM accessible)
+        //         └─ iframe: sibnet.ru/... or mail.ru/... (cross-origin)
         //
-        // We extract each stage separately. The setInterval in index.ts will call us again
-        // after each navigation.
+        // CRITICAL: Do NOT extract the turkanime embed iframe itself!
+        // The embed SPA needs to stay inside the parent page to decrypt video data.
+        // Instead, we look INSIDE the same-origin embed iframe to find the real
+        // video provider iframe, then extract THAT directly.
 
         const loc = window.location.href;
-        const isVideoPage = loc.indexOf('/video/') > -1;
-        const isEmbedPage = loc.indexOf('/embed/') > -1;
 
         try {
             const iframes = document.querySelectorAll('iframe');
             for (let i = 0; i < iframes.length; i++) {
-                const src = iframes[i].src;
-                if (!src || !src.startsWith('http') || (iframes[i] as any).__anisyncExtracted) continue;
-                (iframes[i] as any).__anisyncExtracted = true;
+                const iframe = iframes[i];
+                const src = iframe.src || '';
+                if (!src) continue;
 
-                if (isVideoPage) {
-                    // Stage 1: On the video page, find the turkanime embed iframe and navigate to it
-                    const isTurkanimeEmbed = src.indexOf('turkanime') > -1 && src.indexOf('/embed/') > -1;
-                    if (isTurkanimeEmbed) {
-                        console.log('[AniSync] TurkanimeAdapter Stage 1: Extracting embed iframe:', src.substring(0, 80));
-                        try { 
-                            if (window.top) window.top.location.href = src; 
-                            else window.location.href = src; 
-                        } catch(e) { 
-                            window.location.href = src; 
+                // Look inside same-origin turkanime embed iframe for the real video provider
+                if (src.indexOf('turkanime') > -1 && src.indexOf('/embed/') > -1) {
+                    try {
+                        const embedDoc = iframe.contentDocument || (iframe.contentWindow && iframe.contentWindow.document);
+                        if (!embedDoc) continue; // Not loaded yet or cross-origin — wait for next iteration
+
+                        // Search for nested video provider iframes inside the embed
+                        const nestedIframes = embedDoc.querySelectorAll('iframe');
+                        for (let j = 0; j < nestedIframes.length; j++) {
+                            const nestedSrc = nestedIframes[j].src || '';
+                            if (!nestedSrc || nestedSrc.indexOf('turkanime') > -1) continue;
+                            if ((nestedIframes[j] as any).__anisyncExtracted) continue;
+                            (nestedIframes[j] as any).__anisyncExtracted = true;
+
+                            // Check if this is a known video provider
+                            const providerKeywords = [
+                                'sibnet', 'mail.ru', 'ok.ru', 'vidmoly', 'mp4upload', 'voe',
+                                'uqload', 'streamlare', 'dood', 'highload', 'hdvid',
+                                'mixdrop', 'streamtape', 'fembed', 'myvi.ru', 'rutube',
+                                'sendvid', 'dailymotion', 'youtube'
+                            ];
+                            let isProvider = false;
+                            for (let k = 0; k < providerKeywords.length; k++) {
+                                if (nestedSrc.indexOf(providerKeywords[k]) > -1) { isProvider = true; break; }
+                            }
+
+                            if (isProvider) {
+                                console.log('[AniSync] TurkanimeAdapter: Extracting provider from embed:', nestedSrc.substring(0, 80));
+                                try {
+                                    if (window.top) window.top.location.href = nestedSrc;
+                                    else window.location.href = nestedSrc;
+                                } catch(e) {
+                                    window.location.href = nestedSrc;
+                                }
+                                return true;
+                            }
                         }
-                        return true;
+                    } catch(e) {
+                        // Embed iframe DOM not accessible yet — will retry on next interval
                     }
-                }
-
-                if (isEmbedPage) {
-                    // Stage 2: On the embed page (Vue SPA), find the real video provider iframe
-                    // Known providers: sibnet.ru, my.mail.ru, ok.ru, vidmoly, mp4upload, voe, uqload, etc.
-                    const isSameDomain = src.indexOf('turkanime') > -1;
-                    if (isSameDomain) continue; // Skip turkanime's own internal iframes
-
-                    // Check if this is a known video provider or has video-related keywords
-                    const providerKeywords = ['sibnet', 'mail.ru', 'ok.ru', 'vidmoly', 'mp4upload', 'voe', 
-                                              'uqload', 'streamlare', 'dood', 'highload', 'hdvid', 
-                                              'mixdrop', 'streamtape', 'fembed', 'video', 'player', 'embed'];
-                    let isProvider = false;
-                    for (let j = 0; j < providerKeywords.length; j++) {
-                        if (src.indexOf(providerKeywords[j]) > -1) { isProvider = true; break; }
-                    }
-
-                    if (isProvider) {
-                        console.log('[AniSync] TurkanimeAdapter Stage 2: Extracting video provider iframe:', src.substring(0, 80));
-                        try { 
-                            if (window.top) window.top.location.href = src; 
-                            else window.location.href = src; 
-                        } catch(e) { 
-                            window.location.href = src; 
-                        }
-                        return true;
-                    }
+                    // Do NOT mark the embed iframe as extracted — we need to keep checking
+                    // until the SPA decrypts and loads the real provider iframe
+                    continue;
                 }
             }
         } catch(e) {}
@@ -76,7 +80,7 @@ export class TurkanimeAdapter implements SiteAdapter {
     }
 
     findVideoElement(): HTMLVideoElement | null {
-        // 1. Direct video elements (works on PC natively, and on mobile after extraction)
+        // 1. Direct video elements (works after extraction or on PC with native injection)
         const directVideos = document.querySelectorAll('video');
         if (directVideos.length > 0) {
             for (let i = 0; i < directVideos.length; i++) {
@@ -85,8 +89,8 @@ export class TurkanimeAdapter implements SiteAdapter {
                     return v;
                 }
             }
-            // If we found videos but none are ready yet, return the first one
-            if (directVideos.length > 0) return directVideos[0];
+            // Return first video as fallback if any exist
+            return directVideos[0];
         }
 
         const isElectron = navigator.userAgent.toLowerCase().includes('electron');
@@ -123,7 +127,7 @@ export class TurkanimeAdapter implements SiteAdapter {
                 } catch(e) {}
             }
         } catch(e) {}
-        
+
         return null;
     }
 }
