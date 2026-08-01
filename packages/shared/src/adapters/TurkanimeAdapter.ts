@@ -2,7 +2,9 @@ import { SiteAdapter } from './BaseAdapter';
 
 export class TurkanimeAdapter implements SiteAdapter {
     match(url: string): boolean {
-        return url.indexOf('turkanime.tv') > -1 || url.indexOf('turkanime.co') > -1;
+        // Suspended: fallback to UniversalAdapter for now
+        return false;
+        // return url.indexOf('turkanime.tv') > -1 || url.indexOf('turkanime.co') > -1;
     }
 
     extractIframe(): boolean {
