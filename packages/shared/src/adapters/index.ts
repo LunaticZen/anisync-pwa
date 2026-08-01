@@ -10,6 +10,32 @@ import { UniversalAdapter } from './UniversalAdapter';
 
     console.log('[AniSync] Injection script started in:', window.location.href.substring(0, 80));
 
+    // Frame Buster Protector: Add sandbox to cross-origin video iframes to prevent them from redirecting the top window
+    try {
+        const isElectron = navigator.userAgent.toLowerCase().includes('electron');
+        // On Mobile, Turkanime suffers from Vidmoly 404 frame-busters
+        if (!isElectron && (window.location.href.indexOf('turkanime') > -1)) {
+            const sandboxIframes = () => {
+                const iframes = document.querySelectorAll('iframe');
+                for (let i = 0; i < iframes.length; i++) {
+                    const iframe = iframes[i];
+                    const src = iframe.src || '';
+                    if (src.indexOf('vidmoly') > -1 || src.indexOf('tau') > -1 || src.indexOf('ok.ru') > -1 || src.indexOf('mail.ru') > -1 || src.indexOf('sibnet') > -1) {
+                        if (iframe.getAttribute('sandbox') !== 'allow-scripts allow-same-origin allow-forms allow-popups') {
+                            iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-popups');
+                            console.log('[AniSync] Frame-Buster Protector: Sandboxed iframe', src.substring(0, 50));
+                        }
+                    }
+                }
+            };
+            
+            sandboxIframes(); // Run immediately for existing ones
+            
+            const observer = new MutationObserver(() => { sandboxIframes(); });
+            observer.observe(document.documentElement, { childList: true, subtree: true });
+        }
+    } catch(e) {}
+
     // Wait until the DOM is somewhat ready
     if (!document.body) {
         setTimeout(() => (window as any).__anisync_find_video && (window as any).__anisync_find_video(), 500);
