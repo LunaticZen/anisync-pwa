@@ -58,7 +58,7 @@ import java.util.Set;
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "AniSync";
-    private static final String SERVER_URL = "https://anisync-9z1z.onrender.com/?v=6";
+    private static final String SERVER_URL = "https://anisync.site/?v=6";
     private static final int FILE_CHOOSER_REQUEST = 1001;
 
     // Mobil video senkronizasyonunu (CORS bypass - HTML Interception) açıp kapatan ana şalter
@@ -440,7 +440,7 @@ public class MainActivity extends AppCompatActivity {
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 if (!request.isForMainFrame()) return false;
                 String url = request.getUrl().toString();
-                if (!url.contains("anisync") && !url.contains("onrender.com") && !url.startsWith("about:")) {
+                if (!url.contains("anisync") && !url.startsWith("about:")) {
                     loadAnime(url);
                     return true;
                 }
