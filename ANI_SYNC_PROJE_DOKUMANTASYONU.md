@@ -2320,3 +2320,18 @@ Bu oturumda `inject.js` içerisindeki spagetti kodu modüler hale getirmek için
    * **Sebep:** `mainWebView` tam ekranda video üstüne transparan overlay olarak yerleştiriliyor (danmaku için). Eski kodda touch forwarding sadece ekranın SOL tarafına uygulanıyordu (`x < emptyWidth`). SAĞ taraf (sohbet alanı) ise `mainWebView`'in kendisine bırakılıyordu. Video player'ın tam ekran çıkış butonu sağ alt köşede olduğu için dokunma mainWebView tarafından yutuluyordu ve alttaki video player'a hiç iletilmiyordu.
    * **Çözüm:** Tam ekran sırasında mainWebView'in `onTouchListener`'ı değiştirilerek TÜM dokunmaları alttaki `fullscreenCustomView`'a iletmesi sağlandı. Sol/sağ ayrımı kaldırıldı. Bu düzeltme hem `animeWebView` hem de `diziboxWebView` için uygulandı.
    * **KURAL:** Tam ekran video overlay'ında mainWebView HİÇBİR dokunmayı kendi işlememeli, tamamını alttaki video player'a iletmelidir. Aksi halde video player'ın kontrolleri (play/pause, seek bar, fullscreen toggle) çalışmaz.
+
+## ⚠️ HDFilmCehennemi Adaptörü (hdfilmcehennemi.nl)
+
+### Yapı
+- **Domain:** `hdfilmcehennemi.nl` (ayrıca `.com`, `.cx`, `.pw` gibi ayna domainler)
+- **Film URL:** `https://www.hdfilmcehennemi.nl/{film-slug}/`
+- **Dizi URL:** `https://www.hdfilmcehennemi.nl/dizi/{slug}/sezon-{N}/bolum-{N}/`
+- **Video Player:** Cross-origin iframe (closeload.com, rapidrame.com vb.)
+- **Kaynak Seçimi:** `button.alternative-link` butonları ile farklı player kaynakları
+
+### Kurallar
+1. **Masaüstü (PC):** Electron tüm alt frame'lere native injection yapar → `extractIframe` her zaman `return false`. Video direkt olarak bulunur.
+2. **Mobil:** Cross-origin iframe (closeload, rapidrame vb.) `contentDocument` ile erişilemez → `extractIframe` ile video provider iframe'i top-level'a çıkarılır.
+3. **URL Eşleşmesi:** `match()` fonksiyonunda sadece `hdfilmcehennemi` kelimesi aranır, böylece tüm domain varyantları (.nl, .com, .cx vb.) otomatik yakalanır.
+4. **Adaptör Sırası:** `index.ts` içinde `HDFilmCehennemiAdapter`, `UniversalAdapter`'dan ÖNCE gelmelidir. Aksi halde UniversalAdapter devreye girer ve sorunlara yol açar.
