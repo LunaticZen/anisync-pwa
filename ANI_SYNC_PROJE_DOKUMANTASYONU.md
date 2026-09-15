@@ -2314,3 +2314,9 @@ Bu oturumda `inject.js` içerisindeki spagetti kodu modüler hale getirmek için
      5. Fonksiyon `return` ile sonlanır — URL navigasyonu YAPILMAZ.
    * Tam ekranda DEĞİLKEN geri tuşu eskisi gibi çalışmaya devam eder (animeWebView'da goBack veya hardwareBackPress event).
    * **KURAL:** `onBackPressed()` metodunda her zaman ilk kontrol tam ekran video durumu olmalıdır. Tam ekran aktifken URL navigasyonu kesinlikle tetiklenmemelidir.
+
+8. **Tam Ekran Video Çıkış Butonunun Çalışmaması (Touch Forwarding Hatası)**
+   * **Sorun:** Tam ekran video izlerken, video player'ın kendi tam ekran çıkış butonuna (genelde sağ alt köşe) basılamıyordu. Kullanıcı tam ekrana girip çıkamıyordu.
+   * **Sebep:** `mainWebView` tam ekranda video üstüne transparan overlay olarak yerleştiriliyor (danmaku için). Eski kodda touch forwarding sadece ekranın SOL tarafına uygulanıyordu (`x < emptyWidth`). SAĞ taraf (sohbet alanı) ise `mainWebView`'in kendisine bırakılıyordu. Video player'ın tam ekran çıkış butonu sağ alt köşede olduğu için dokunma mainWebView tarafından yutuluyordu ve alttaki video player'a hiç iletilmiyordu.
+   * **Çözüm:** Tam ekran sırasında mainWebView'in `onTouchListener`'ı değiştirilerek TÜM dokunmaları alttaki `fullscreenCustomView`'a iletmesi sağlandı. Sol/sağ ayrımı kaldırıldı. Bu düzeltme hem `animeWebView` hem de `diziboxWebView` için uygulandı.
+   * **KURAL:** Tam ekran video overlay'ında mainWebView HİÇBİR dokunmayı kendi işlememeli, tamamını alttaki video player'a iletmelidir. Aksi halde video player'ın kontrolleri (play/pause, seek bar, fullscreen toggle) çalışmaz.

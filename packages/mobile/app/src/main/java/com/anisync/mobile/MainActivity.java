@@ -810,21 +810,14 @@ view.evaluateJavascript(cssInjects + syncInjects, null);
                         LinearLayout.LayoutParams.MATCH_PARENT));
 
                 // ── Touch Forwarding: mainWebView sadece danmaku render eder,
-                // ── sol taraftaki dokunmaları alttaki video player'a iletir,
-                // ── sağ tarafı (sohbet) kendi işler.
+                // ── TÜM dokunmaları alttaki video player'a iletir.
+                // ── Bu sayede video player'ın kendi tam ekran çıkış butonu çalışır.
                 mainWebView.setOnTouchListener((v, event) -> {
                     if (fullscreenCustomView != null) {
-                        float x = event.getX();
-                        float width = v.getWidth();
-                        float chatWidthPx = 320 * getResources().getDisplayMetrics().density;
-                        float emptyWidth = Math.max(width * 0.55f, width - chatWidthPx);
-
-                        if (x < emptyWidth) {
-                            fullscreenCustomView.dispatchTouchEvent(event);
-                            return true; // Consumed by forwarding
-                        }
+                        fullscreenCustomView.dispatchTouchEvent(event);
+                        return true; // Consumed by forwarding
                     }
-                    return false; // Normal WebView davranışı (Sohbet vs)
+                    return false; // Normal WebView davranışı
                 });
 
                 // React'e fullscreen sinyali gönder
@@ -1074,15 +1067,8 @@ view.evaluateJavascript(cssInjects + syncInjects, null);
 
                 mainWebView.setOnTouchListener((v, event) -> {
                     if (fullscreenCustomView != null) {
-                        float x = event.getX();
-                        float width = v.getWidth();
-                        float chatWidthPx = 320 * getResources().getDisplayMetrics().density;
-                        float emptyWidth = Math.max(width * 0.55f, width - chatWidthPx);
-
-                        if (x < emptyWidth) {
-                            fullscreenCustomView.dispatchTouchEvent(event);
-                            return true;
-                        }
+                        fullscreenCustomView.dispatchTouchEvent(event);
+                        return true;
                     }
                     return false;
                 });
