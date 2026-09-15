@@ -1431,6 +1431,47 @@ view.evaluateJavascript(cssInjects + syncInjects, null);
 
     @Override
     public void onBackPressed() {
+        // 1. If fullscreen video is active, exit fullscreen instead of navigating back
+        if (fullscreenCustomView != null && fullscreenCallback != null) {
+            appLog("Back pressed during fullscreen — exiting fullscreen");
+            // Trigger the WebChromeClient's onHideCustomView which handles all cleanup
+            fullscreenCallback.onCustomViewHidden();
+            fullscreenCustomView = null;
+            fullscreenCallback = null;
+            
+            // Restore normal layout
+            if (mainWebView.getParent() != null) {
+                ((ViewGroup) mainWebView.getParent()).removeView(mainWebView);
+            }
+            rootLayout.removeAllViews();
+            
+            if (animeWebView != null) {
+                animeWebView.setVisibility(animeVisible ? View.VISIBLE : View.GONE);
+            }
+            if (diziboxWebView != null) {
+                diziboxWebView.setVisibility(diziboxVisible ? View.VISIBLE : View.GONE);
+            }
+            
+            mainWebView.setOnTouchListener(null);
+            applyLayout();
+            
+            // Xiaomi: staged redraws after fullscreen exit
+            if (isXiaomiDevice) {
+                mainHandler.postDelayed(pendingRedraw, 200);
+                mainHandler.postDelayed(pendingAnimeRedraw, 500);
+                mainHandler.postDelayed(pendingRedraw, 1000);
+            }
+            
+            // React'e fullscreen bitti sinyali
+            mainWebView.evaluateJavascript(
+                "window.__anisyncSetFullscreen && window.__anisyncSetFullscreen(false)", null);
+            
+            // Restore system UI to edge-to-edge
+            WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+            return;
+        }
+        
+        // 2. Normal back navigation
         if (animeVisible && animeWebView.canGoBack()) {
             animeWebView.goBack();
         } else if (mainWebView != null) {

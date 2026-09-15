@@ -2303,3 +2303,14 @@ Bu oturumda `inject.js` içerisindeki spagetti kodu modüler hale getirmek için
    * **Neden Bozdum / Neden Değiştirildi?** Daha önce uygulamanın ana URL'si `https://anisync-9z1z.onrender.com/?v=6` gibi geçici Render domainlerine bağlıydı. Ancak Render ücretsiz hesaplarında bakiye bitince sunucuyu yeni bir hesaba taşıdığımızda bu geçici domain değişmekteydi. Domain değişince mobil uygulamanın (`MainActivity.java`) içindeki URL hardcoded olduğu için eski URL'de kalıyor, mobil uygulama çöküyordu ve her defasında uygulamayı yeni domainle baştan derlemek zorunluluğu doğuyordu.
    * **Yapılması Gereken Çözüm:** Uygulama Render vb. geçici sunucularda barındırılsa dahi, her zaman sabit bir özel alan adı (custom domain) olan `https://anisync.site` üzerinden yayınlanacaktır. Mobil uygulamada (`MainActivity.java` içindeki `SERVER_URL`) ve masaüstü uygulamasında (socket bağlantılarında) **HER ZAMAN `https://anisync.site` KULLANILACAKTIR.**
    * **KURAL:** Bundan sonra mobil APK derlenirken veya herhangi bir ortam değişkeni (env) ayarlanırken asla geçici Render domainleri (`onrender.com` vs.) kullanılmamalıdır. Her zaman sabit alan adı olan `https://anisync.site` hedef alınarak derleme (build/assembleDebug) işlemleri yapılmalıdır.
+
+7. **Tam Ekran Video İzlerken Android Geri Tuşu Davranışı**
+   * **Sorun:** Mobilde video izlerken oynatıcının tam ekran butonuna basıldığında video tam ekrana geçiyordu, ancak Android'in geri tuşuna basıldığında tam ekrandan çıkmak yerine bir önceki URL'ye gidiyordu. Bu durum kullanıcıyı tam ekranda sıkıştırıyor veya videoyu kaybetmesine neden oluyordu.
+   * **Çözüm:** `onBackPressed()` metodunun EN BAŞINA `fullscreenCustomView != null` kontrolü eklendi. Eğer bir tam ekran video aktifse:
+     1. Önce `fullscreenCallback.onCustomViewHidden()` çağrılarak tam ekran kapatılır.
+     2. Normal layout geri yüklenir (`applyLayout()`).
+     3. React'e `window.__anisyncSetFullscreen(false)` sinyali gönderilir.
+     4. System UI edge-to-edge moduna döner.
+     5. Fonksiyon `return` ile sonlanır — URL navigasyonu YAPILMAZ.
+   * Tam ekranda DEĞİLKEN geri tuşu eskisi gibi çalışmaya devam eder (animeWebView'da goBack veya hardwareBackPress event).
+   * **KURAL:** `onBackPressed()` metodunda her zaman ilk kontrol tam ekran video durumu olmalıdır. Tam ekran aktifken URL navigasyonu kesinlikle tetiklenmemelidir.
