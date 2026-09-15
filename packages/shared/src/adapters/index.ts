@@ -115,13 +115,42 @@ import { UniversalAdapter } from './UniversalAdapter';
         v.addEventListener('pause', () => sendEvent('pause', v, pWin));
         v.addEventListener('seeked', () => sendEvent('seek', v, pWin));
         
+        // Robust seek detection: detect large time jumps via timeupdate
+        // Some players (JWPlayer on mobile WebView) may not fire native 'seeked' event reliably
+        let lastKnownTime = 0;
+        v.addEventListener('timeupdate', () => {
+            const now = v.currentTime;
+            if (lastKnownTime > 0 && Math.abs(now - lastKnownTime) > 3) {
+                sendEvent('seek', v, pWin);
+            }
+            lastKnownTime = now;
+        });
+
         // Listen to jwplayer events if available
         if (typeof pWin.jwplayer !== 'undefined') {
             try {
                 const jw = pWin.jwplayer();
                 jw.on('play', () => sendEvent('play', v, pWin));
                 jw.on('pause', () => sendEvent('pause', v, pWin));
-                jw.on('seek', (e: any) => { v.currentTime = e.offset; sendEvent('seek', v, pWin); });
+                // JW 'seek' fires BEFORE seek completes — use e.offset directly
+                jw.on('seek', (e: any) => {
+                    if (Date.now() < ignoreUntil) return;
+                    const targetTime = e.offset || e.position || v.currentTime;
+                    // Mobile (Java) Bridge
+                    if ((window as any).AniSyncAnimeBridge) {
+                        (window as any).AniSyncAnimeBridge.sendEvent('seek', targetTime, !v.paused);
+                    }
+                    // Mobile CORS Bypass (Iframe to Parent)
+                    else if (window.parent && window !== window.parent && (window as any).__mobileVideoTime !== undefined) {
+                        window.parent.postMessage({ anisyncEvent: 'seek', time: targetTime, playing: !v.paused }, '*');
+                    }
+                    // Desktop (Electron)
+                    else {
+                        (window as any).__anisync_event = { type: 'seek', time: targetTime, ts: Date.now() };
+                    }
+                });
+                // JW 'seeked' fires AFTER seek completes — belt-and-suspenders
+                jw.on('seeked', () => sendEvent('seek', v, pWin));
             } catch(e) {}
         }
 
