@@ -1143,7 +1143,7 @@ view.evaluateJavascript(cssInjects + syncInjects, null);
         try {
             Uri uri = Uri.parse(url);
             String host = uri.getHost();
-            if (host != null && (host.contains("animecix") || host.contains("dizibox") || host.contains("dizipub") || host.contains("diziwatch"))) {
+            if (host != null && (host.contains("animecix") || host.contains("dizibox") || host.contains("dizipub") || host.contains("diziwatch") || host.contains("hdfilmcehennemi"))) {
                 isUniversalMode = false;
             } else {
                 isUniversalMode = true;
@@ -1388,7 +1388,7 @@ view.evaluateJavascript(cssInjects + syncInjects, null);
         String lowerUrl = url.toLowerCase();
         if (lowerUrl.contains("dizibox") && lowerUrl.contains("/player/")) return true;
         // TurkAnime's own pages contain 'video' and 'embed' in URLs but are NOT video providers
-        if (lowerUrl.contains("animecix") || lowerUrl.contains("dizibox") || lowerUrl.contains("dizipub") || lowerUrl.contains("diziwatch") || lowerUrl.contains("turkanime")) return false;
+        if (lowerUrl.contains("animecix") || lowerUrl.contains("dizibox") || lowerUrl.contains("dizipub") || lowerUrl.contains("diziwatch") || lowerUrl.contains("turkanime") || lowerUrl.contains("hdfilmcehennemi")) return false;
         return lowerUrl.contains("video") || lowerUrl.contains("player") ||
                lowerUrl.contains("embed") || lowerUrl.contains("stream") ||
                lowerUrl.contains("vidmoly") || lowerUrl.contains("tau") ||
