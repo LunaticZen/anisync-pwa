@@ -82,8 +82,12 @@ export async function saveMessage(data: {
   if (isSpam(data.userId, sanitized)) return null;
 
   // Rate limit check
-  const allowed = await checkChatRateLimit(data.userId);
-  if (!allowed) return null;
+  try {
+    const allowed = await checkChatRateLimit(data.userId);
+    if (!allowed) return null;
+  } catch (err) {
+    console.log("[Chat] Rate limit check failed, allowing message");
+  }
 
   const msgId = crypto.randomUUID();
   const message = {

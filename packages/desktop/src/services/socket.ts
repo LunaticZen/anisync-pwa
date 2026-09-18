@@ -321,7 +321,7 @@ export function connectSocket(username: string): TypedSocket {
 
   // ── Room Theme ──
   (socket as any).on('room:theme-changed', (data: any) => {
-    useRoomStore.getState().setTheme(data.themeId);
+    useRoomStore.getState().setTheme(data.theme || data.themeId);
   });
 
   // ── Force Leave: called by Android native on app close ──
