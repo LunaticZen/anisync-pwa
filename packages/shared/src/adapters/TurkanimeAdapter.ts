@@ -20,7 +20,7 @@ export class TurkanimeAdapter implements SiteAdapter {
         // Instead, we look INSIDE the same-origin embed iframe to find the real
         // video provider iframe, then extract THAT directly.
 
-        const loc = window.location.href;
+        // const loc = window.location.href;
 
         try {
             const iframes = document.querySelectorAll('iframe');

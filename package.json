@@ -21,7 +21,9 @@
     "docker:down": "docker-compose down",
     "db:migrate": "npx prisma migrate dev --schema=packages/server/prisma/schema.prisma",
     "db:generate": "npx prisma generate --schema=packages/server/prisma/schema.prisma",
-    "clean": "rimraf packages/*/dist packages/desktop/release"
+    "clean": "rimraf packages/*/dist packages/desktop/release",
+    "start": "node packages/server/dist/index.js",
+    "start": "node packages/server/dist/index.js"
   },
   "engines": {
     "node": ">=20.0.0"

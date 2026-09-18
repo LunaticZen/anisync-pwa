@@ -219,6 +219,10 @@ export async function generateInviteLink(roomId: string, _inviterId: string): Pr
   return room.code; // Just return the room code
 }
 
+export function getRoom(roomId: string) {
+  return rooms.get(roomId);
+}
+
 // ─── Helpers ──────────────────────────────────────────────────
 
 async function getRoomSyncState(roomId: string): Promise<SyncState> {

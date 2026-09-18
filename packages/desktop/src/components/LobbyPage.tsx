@@ -15,19 +15,7 @@ export default function LobbyPage() {
   const [publicRooms, setPublicRooms] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Reactive bridge detection — Samsung WebView sometimes delays interface exposure
-  const [hasBridge, setHasBridge] = useState(() => typeof (window as any).AniSyncBridge !== 'undefined');
-  useEffect(() => {
-    if (hasBridge) return;
-    const check = setInterval(() => {
-      if (typeof (window as any).AniSyncBridge !== 'undefined') {
-        setHasBridge(true);
-        clearInterval(check);
-      }
-    }, 500);
-    const stop = setTimeout(() => clearInterval(check), 10000);
-    return () => { clearInterval(check); clearTimeout(stop); };
-  }, [hasBridge]);
+
 
   useEffect(() => {
     loadPublicRooms();
@@ -77,21 +65,7 @@ export default function LobbyPage() {
             </div>
           </div>
           <div className="lobby__actions">
-            {/* Log copy button — only on APK */}
-            {/* Log copy button — only on APK */}
-            {hasBridge && (
-              <button className="btn btn--ghost btn--sm" onClick={() => {
-                try {
-                  (window as any).AniSyncBridge.copyLogs();
-                  useUIStore.getState().addToast({ type: 'success', title: 'APK logları kopyalandı', message: 'Panoya yapıştırabilirsin' });
-                } catch(e) {
-                  useUIStore.getState().addToast({ type: 'error', title: 'Hata', message: 'Loglar kopyalanamadı' });
-                }
-              }} title="APK hata loglarını kopyala" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
-                Loglar
-              </button>
-            )}
+
             <button className="btn btn--secondary btn--sm" onClick={handleLogout}>Çıkış</button>
             <button className="btn btn--secondary" onClick={() => setShowJoin(true)}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3" /></svg>
@@ -216,6 +190,7 @@ function RoomCard({ room }: { room: any }) {
 
 function CreateRoomModal({ onClose }: { onClose: () => void }) {
   const [name, setName] = useState('');
+  const [videoUrl, setVideoUrl] = useState('');
   const [isPublic, setIsPublic] = useState(true);
   const [password, setPassword] = useState('');
   const [maxMembers, setMaxMembers] = useState(10);
@@ -231,10 +206,14 @@ function CreateRoomModal({ onClose }: { onClose: () => void }) {
       isPublic,
       password: password || undefined,
       maxMembers,
+      videoUrl: videoUrl.trim() || undefined,
     }, (res) => {
       setLoading(false);
       if (res.success && res.room) {
         useRoomStore.getState().setRoom(res.room);
+        if (videoUrl.trim()) {
+          useSyncStore.getState().setCurrentUrl(videoUrl.trim());
+        }
         useUIStore.getState().setView('room');
         useUIStore.getState().addToast({ type: 'success', title: 'Oda oluşturuldu!' });
         onClose();
@@ -272,6 +251,12 @@ function CreateRoomModal({ onClose }: { onClose: () => void }) {
               onChange={e => setPassword(e.target.value)} placeholder="Oda şifresi" />
           </div>
         )}
+
+        <div className="form-group">
+          <label className="form-label">MP4 Video URL (Opsiyonel)</label>
+          <input className="form-input" type="url" value={videoUrl}
+            onChange={e => setVideoUrl(e.target.value)} placeholder="https://example.com/video.mp4" />
+        </div>
 
         <div className="form-group">
           <label className="form-label">Maks Üye: {maxMembers}</label>

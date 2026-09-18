@@ -158,7 +158,7 @@ export function getBufferingUsers(roomId: string): string[] {
 
 // ─── Authorization ────────────────────────────────────────────
 
-async function isAuthorized(roomId: string, userId: string, _state: SyncState): Promise<boolean> {
+async function isAuthorized(_roomId: string, _userId: string, _state: SyncState): Promise<boolean> {
   // ALLOW ANYONE TO CONTROL THE ROOM
   // The user requested that mobile users (even guests) should be able to control the video.
   return true;

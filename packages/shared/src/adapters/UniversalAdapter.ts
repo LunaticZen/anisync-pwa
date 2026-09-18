@@ -1,7 +1,7 @@
 import { SiteAdapter } from './BaseAdapter';
 
 export class UniversalAdapter implements SiteAdapter {
-    match(url: string): boolean {
+    match(_url: string): boolean {
         // Universal adapter runs if no specific adapter matched
         return true;
     }

@@ -220,6 +220,12 @@ function registerSyncHandlers(socket: TypedSocket) {
         generation: result.generation,
         originUserId: socket.data.userId,
         serverTimestamp: Date.now(),
+  });
+
+  socket.on('sync:url-changed', (data) => {
+    io!.to(data.roomId).emit('sync:url-changed', {
+      url: data.url, originUserId: socket.data.userId, serverTimestamp: Date.now(),
+    });
       });
     }
   });
@@ -290,9 +296,7 @@ function registerSyncHandlers(socket: TypedSocket) {
 function registerChatHandlers(socket: TypedSocket) {
   socket.on('chat:message', async (data) => {
     const message = await chatService.saveMessage({
-      roomId: data.roomId,
-      userId: socket.data.userId,
-      text: data.text,
+      roomId: data.roomId, userId: socket.data.userId, username: socket.data.username, text: data.text,
       type: data.type,
       bubbleTheme: data.bubbleTheme,
     });

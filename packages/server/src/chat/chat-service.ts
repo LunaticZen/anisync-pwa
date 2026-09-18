@@ -1,16 +1,24 @@
 // ═══════════════════════════════════════════════════════════════
-// Chat Service — Real-time Messaging & Moderation
+// Chat Service — Real-time Messaging & Moderation (In-Memory)
 // ═══════════════════════════════════════════════════════════════
 
-import { getDb } from '../db/client';
 import { getRedis } from '../redis/client';
 import { REDIS_KEYS } from '../config';
 import { JSDOM } from 'jsdom';
 import createDOMPurify from 'dompurify';
 import { MAX_MESSAGE_LENGTH, RATE_LIMITS } from '@anisync/shared';
+import * as crypto from 'crypto';
+import * as roomService from '../rooms/room-service';
 
 const window = new JSDOM('').window;
 const DOMPurify = createDOMPurify(window as any);
+
+// In-Memory Storage for chat messages
+const messagesByRoom = new Map<string, any[]>();
+
+export function clearRoomMessages(roomId: string) {
+  messagesByRoom.delete(roomId);
+}
 
 // ─── Spam Detection ───────────────────────────────────────────
 
@@ -62,12 +70,11 @@ export function sanitizeMessage(text: string): string {
 export async function saveMessage(data: {
   roomId: string;
   userId: string;
+  username: string; // Add username since we don't fetch from DB
   text: string;
   type?: string;
   bubbleTheme?: string;
 }) {
-  const db = getDb();
-
   const sanitized = sanitizeMessage(data.text);
   if (!sanitized) return null;
 
@@ -78,44 +85,40 @@ export async function saveMessage(data: {
   const allowed = await checkChatRateLimit(data.userId);
   if (!allowed) return null;
 
-  const user = await db.user.findUnique({
-    where: { id: data.userId },
-    select: { username: true, displayName: true, avatarUrl: true },
-  });
-  if (!user) return null;
-
-  const message = await db.message.create({
-    data: {
-      roomId: data.roomId,
-      userId: data.userId,
-      text: sanitized,
-      type: data.type ?? 'text',
-      bubbleTheme: data.bubbleTheme || null,
-    },
-  });
-
-  return {
-    id: message.id,
-    roomId: message.roomId,
-    userId: message.userId,
-    username: user.username,
-    displayName: user.displayName,
-    avatarUrl: user.avatarUrl,
-    text: message.text,
-    type: message.type as any,
-    reactions: JSON.parse(message.reactions as any),
-    createdAt: message.createdAt.toISOString(),
+  const msgId = crypto.randomUUID();
+  const message = {
+    id: msgId,
+    roomId: data.roomId,
+    userId: data.userId,
+    username: data.username,
+    displayName: data.username,
+    avatarUrl: null,
+    text: sanitized,
+    type: data.type ?? 'text',
+    reactions: [],
+    createdAt: new Date().toISOString(),
     editedAt: null,
-    bubbleTheme: message.bubbleTheme || undefined,
+    bubbleTheme: data.bubbleTheme || undefined,
   };
+
+  const roomMsgs = messagesByRoom.get(data.roomId) || [];
+  roomMsgs.push(message);
+  // Keep last 100 messages max
+  if (roomMsgs.length > 100) roomMsgs.shift();
+  messagesByRoom.set(data.roomId, roomMsgs);
+
+  return message;
 }
 
 export async function addReaction(messageId: string, userId: string, emoji: string) {
-  const db = getDb();
-  const message = await db.message.findUnique({ where: { id: messageId } });
-  if (!message) return null;
+  let foundMsg = null;
+  for (const msgs of messagesByRoom.values()) {
+    foundMsg = msgs.find(m => m.id === messageId);
+    if (foundMsg) break;
+  }
+  if (!foundMsg) return null;
 
-  const reactions = (message.reactions as unknown as any[]) ?? [];
+  const reactions = foundMsg.reactions ?? [];
   const existing = reactions.find((r: any) => r.emoji === emoji);
 
   if (existing) {
@@ -135,47 +138,40 @@ export async function addReaction(messageId: string, userId: string, emoji: stri
     reactions.push({ emoji, users: [userId], count: 1 });
   }
 
-  await db.message.update({ where: { id: messageId }, data: { reactions: reactions as any } });
+  foundMsg.reactions = reactions;
   return reactions;
 }
 
 export async function deleteMessage(messageId: string, userId: string, roomId: string) {
-  const db = getDb();
-  const message = await db.message.findUnique({ where: { id: messageId } });
-  if (!message) return false;
+  const roomMsgs = messagesByRoom.get(roomId);
+  if (!roomMsgs) return false;
+
+  const msgIdx = roomMsgs.findIndex(m => m.id === messageId);
+  if (msgIdx === -1) return false;
+  const message = roomMsgs[msgIdx];
 
   // Only author or host/mod can delete
   if (message.userId !== userId) {
-    const member = await db.roomMember.findUnique({
-      where: { userId_roomId: { userId, roomId } },
-    });
+    // Check if user is host or mod
+    const room = roomService.getRoom(roomId);
+    if (!room) return false;
+    const member = room.members.get(userId);
     if (!member || member.role === 'viewer') return false;
   }
 
-  await db.message.delete({ where: { id: messageId } });
+  roomMsgs.splice(msgIdx, 1);
   return true;
 }
 
 export async function getRoomMessages(roomId: string, limit = 50, before?: string) {
-  const db = getDb();
-  const where: any = { roomId };
+  const msgs = messagesByRoom.get(roomId) || [];
+  // For simplicity, returning the latest up to 'limit'
+  let result = [...msgs];
   if (before) {
-    const beforeMsg = await db.message.findUnique({ where: { id: before } });
-    if (beforeMsg) where.createdAt = { lt: beforeMsg.createdAt };
+    const idx = result.findIndex(m => m.id === before);
+    if (idx !== -1) {
+      result = result.slice(0, idx);
+    }
   }
-
-  const messages = await db.message.findMany({
-    where,
-    include: { user: { select: { username: true, displayName: true, avatarUrl: true } } },
-    orderBy: { createdAt: 'desc' },
-    take: limit,
-  });
-
-  return messages.reverse().map((m: any) => ({
-    id: m.id, roomId: m.roomId, userId: m.userId,
-    username: m.user.username, displayName: m.user.displayName,
-    avatarUrl: m.user.avatarUrl, text: m.text, type: m.type,
-    reactions: m.reactions ?? [], createdAt: m.createdAt.toISOString(),
-    editedAt: m.editedAt?.toISOString() ?? null,
-  }));
+  return result.slice(-limit);
 }
