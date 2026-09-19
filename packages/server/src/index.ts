@@ -4,6 +4,7 @@
 // ═══════════════════════════════════════════════════════════════
 
 import express from 'express';
+import path from 'path';
 import { createServer } from 'http';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -55,7 +56,16 @@ async function main() {
   // ── Routes ──
   app.use('/api', apiRoutes);
 
+
+  // ── Serve Frontend ──
+  const desktopDist = path.join(__dirname, '../../desktop/dist');
+  app.use(express.static(desktopDist));
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(desktopDist, 'index.html'));
+  });
+
   // ── Error Handler ──
+
   app.use(errorHandler);
 
   // ── Database Connection ──
