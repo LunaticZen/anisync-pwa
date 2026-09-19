@@ -60,7 +60,7 @@ async function main() {
   // ── Serve Frontend ──
   const desktopDist = path.join(__dirname, '../../desktop/dist');
   app.use(express.static(desktopDist));
-  app.get('*', (req, res) => {
+  app.get('*', (_req, res) => {
     res.sendFile(path.join(desktopDist, 'index.html'));
   });
 
