@@ -82,14 +82,19 @@ export default function RoomPage() {
       } catch { }
     }, 1000);
 
+    const isStale = (v: HTMLVideoElement) => {
+      const storeUrl = useSyncStore.getState().currentUrl;
+      return storeUrl && v.getAttribute('src') !== storeUrl;
+    };
+
     const onPlay = (d: any) => {
       if (d.originUserId === useAuthStore.getState().username) return;
       const v = videoRef.current;
-      if (!v) return;
+      if (!v || isStale(v)) return;
       if (Math.abs(v.currentTime - d.time) > 1.5) {
         ignoreUntil = Date.now() + 1500;
         ignoreSync.current = Date.now() + 1500;
-        v.currentTime = d.time;
+        try { v.currentTime = d.time; } catch (e) {}
       }
       ignoreUntil = Date.now() + 1500;
       ignoreSync.current = Date.now() + 1500;
@@ -99,11 +104,11 @@ export default function RoomPage() {
     const onPause = (d: any) => {
       if (d.originUserId === useAuthStore.getState().username) return;
       const v = videoRef.current;
-      if (!v) return;
+      if (!v || isStale(v)) return;
       if (Math.abs(v.currentTime - d.time) > 1.5) {
         ignoreUntil = Date.now() + 1500;
         ignoreSync.current = Date.now() + 1500;
-        v.currentTime = d.time;
+        try { v.currentTime = d.time; } catch (e) {}
       }
       ignoreUntil = Date.now() + 1500;
       ignoreSync.current = Date.now() + 1500;
@@ -113,23 +118,23 @@ export default function RoomPage() {
     const onSeek = (d: any) => {
       if (d.originUserId === useAuthStore.getState().username) return;
       const v = videoRef.current;
-      if (!v) return;
+      if (!v || isStale(v)) return;
       if (Math.abs(v.currentTime - d.time) > 1.5) {
         ignoreUntil = Date.now() + 1500;
         ignoreSync.current = Date.now() + 1500;
-        v.currentTime = d.time;
+        try { v.currentTime = d.time; } catch (e) {}
       }
     };
 
     const onTimecheck = (d: any) => {
       if (d.userId === useAuthStore.getState().username) return;
       const v = videoRef.current;
-      if (!v) return;
+      if (!v || isStale(v)) return;
       const drift = Math.abs(v.currentTime - d.time);
       if (drift > 5.0) {
         ignoreSync.current = Date.now() + 1500;
         ignoreUntil = Date.now() + 1500;
-        v.currentTime = d.time;
+        try { v.currentTime = d.time; } catch (e) {}
       }
       if (d.playing === true && v.paused) {
         ignoreSync.current = Date.now() + 1500;

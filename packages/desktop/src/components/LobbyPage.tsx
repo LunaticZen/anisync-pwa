@@ -285,6 +285,29 @@ function JoinRoomModal({ onClose }: { onClose: () => void }) {
   const [needsPassword, setNeedsPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [status, setStatus] = useState('');
+
+  useEffect(() => {
+    let socket = getSocket();
+    if (!socket) return;
+    const onApproved = (data: any) => {
+      useRoomStore.getState().setRoom(data.room);
+      if (data.syncState) useSyncStore.getState().setSyncState(data.syncState);
+      useUIStore.getState().setView('room');
+      onClose();
+    };
+    const onRejected = (data: any) => {
+      setError(data.reason || 'Katılma isteği reddedildi');
+      setStatus('');
+    };
+
+    (socket as any).on('room:join-approved', onApproved);
+    (socket as any).on('room:join-rejected', onRejected);
+    return () => {
+      (socket as any).off('room:join-approved', onApproved);
+      (socket as any).off('room:join-rejected', onRejected);
+    };
+  }, [onClose]);
 
   const handleJoin = () => {
     const socket = getSocket();
@@ -292,13 +315,15 @@ function JoinRoomModal({ onClose }: { onClose: () => void }) {
     setLoading(true);
     setError('');
 
-    socket.emit('room:join', { code: code.trim().toUpperCase(), password: password || undefined }, (res) => {
+    socket.emit('room:join', { code: code.trim().toUpperCase(), password: password || undefined }, (res: any) => {
       setLoading(false);
-      if (res.success && res.room) {
+      if (res.success && res.room && res.status === 'joined') {
         useRoomStore.getState().setRoom(res.room);
         if (res.syncState) useSyncStore.getState().setSyncState(res.syncState);
         useUIStore.getState().setView('room');
         onClose();
+      } else if (res.success && res.status === 'pending') {
+        setStatus('Host onayı bekleniyor...');
       } else {
         if (res.error?.includes('şifre') || res.error?.includes('PASSWORD')) {
           setNeedsPassword(true);
@@ -330,6 +355,13 @@ function JoinRoomModal({ onClose }: { onClose: () => void }) {
 
         {error && (
           <div style={{ color: 'var(--error)', fontSize: 13, marginBottom: 12, textAlign: 'center' }}>{error}</div>
+        )}
+        
+        {status && (
+          <div style={{ color: 'var(--primary)', fontSize: 13, marginBottom: 12, textAlign: 'center' }}>
+            <span style={{ display: 'inline-block', width: 8, height: 8, background: 'var(--primary)', borderRadius: '50%', marginRight: 6, animation: 'pulse 1.5s infinite' }}></span>
+            {status}
+          </div>
         )}
 
         <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>

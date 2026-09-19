@@ -3,8 +3,8 @@
 // Electron BrowserView placeholder, WebAnimeCard, URL input, empty state
 // ═══════════════════════════════════════════════════════════════
 
-import { useState, useEffect } from 'react';
-import { useRoomStore, useAuthStore, useUIStore } from '../../stores';
+import { useState, useEffect, useRef } from 'react';
+import { useRoomStore, useAuthStore, useUIStore, useSyncStore } from '../../stores';
 import { getSocket } from '../../services/socket';
 import { getTheme, type RoomMode } from './constants';
 
@@ -83,7 +83,55 @@ export function RoomVideoArea({
   const hostId = currentRoom?.hostId;
   const bgTertiary = activeTheme.isImage ? 'rgba(0,0,0,0.2)' : 'var(--bg-tertiary)';
 
-  // We now let the native HTML5 video element render on mobile devices as well.
+  const animeAreaRef = useRef<HTMLDivElement>(null);
+  const [isElectron, setIsElectron] = useState(false);
+  useEffect(() => { if ((window as any).ipcRenderer) setIsElectron(true); }, []);
+
+  useEffect(() => {
+    const syncBoundsToElectron = () => {
+      if (isElectron && animeAreaRef.current && currentUrl && (window as any).ipcRenderer) {
+        const rect = animeAreaRef.current.getBoundingClientRect();
+        (window as any).ipcRenderer.send('sync-video-bounds', {
+          x: Math.round(rect.x), y: Math.round(rect.y), width: Math.round(rect.width), height: Math.round(rect.height)
+        });
+      }
+    };
+    syncBoundsToElectron();
+    window.addEventListener('resize', syncBoundsToElectron);
+    return () => window.removeEventListener('resize', syncBoundsToElectron);
+  }, [isElectron, currentUrl]);
+
+  // Mobile modes: video is rendered natively if inside Capacitor Android app (hasBridge).
+  // If there is no bridge, they are using Safari/Chrome on mobile, so WE MUST RENDER the React video area!
+  const hasBridge = typeof (window as any).AniSyncBridge !== 'undefined';
+  if (hasBridge && isMobile && currentUrl && !showUrlInput) {
+    return null;
+  }
+
+  const applySync = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    const syncState = useSyncStore.getState().syncState;
+    if (syncState) {
+      try {
+        if (syncState.currentTime > 0 && Math.abs(v.currentTime - syncState.currentTime) > 1.0) {
+          v.currentTime = syncState.currentTime;
+        }
+        if (syncState.isPlaying) {
+          v.play().catch(() => {});
+        }
+      } catch (err) {
+        console.error('[RoomVideoArea] applySync error:', err);
+      }
+    }
+  };
+
+  useEffect(() => {
+    // Attempt sync immediately in case metadata is already loaded
+    if (currentUrl && videoRef.current && videoRef.current.readyState >= 1) {
+      applySync();
+    }
+  }, [currentUrl, videoRef]);
 
   const handlePlay = () => {
     if (Date.now() < ignoreSync.current) return;
@@ -157,21 +205,34 @@ export function RoomVideoArea({
 
       {/* Player Area */}
       {currentUrl ? (
-        <div style={{
-          flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: '#000', position: 'relative', minHeight: 0, minWidth: 0
-        }}>
-          <video
-            ref={videoRef}
-            src={currentUrl}
-            controls
-            playsInline
-            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-            onPlay={handlePlay}
-            onPause={handlePause}
-            onSeeked={handleSeeked}
-          />
-        </div>
+        isElectron ? (
+          <div ref={animeAreaRef} style={{
+            flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: '#000', position: 'relative', minHeight: 0, minWidth: 0, width: '100%', height: '100%'
+          }}>
+            <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', color: 'var(--text-secondary)' }}>
+              Video Oynatıcı Yükleniyor...
+            </div>
+          </div>
+        ) : (
+          <div style={{
+            flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: '#000', position: 'relative', minHeight: 0, minWidth: 0,
+            width: '100%', height: '100%'
+          }}>
+            <video
+              ref={videoRef}
+              src={currentUrl}
+              controls
+              playsInline
+              style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+              onPlay={handlePlay}
+              onPause={handlePause}
+              onSeeked={handleSeeked}
+              onLoadedMetadata={applySync}
+            />
+          </div>
+        )
       ) : (
         <div style={{
           padding: '24px 16px',

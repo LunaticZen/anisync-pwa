@@ -165,9 +165,13 @@ function MainMenu() {
   const handleRequestJoin = (room: any) => {
     const socket = getSocket();
     if (!socket) return;
-    (socket as any).emit('room:request-join', { roomId: room.id }, (res: any) => {
-      if (res.success) {
-        setPendingRoom({ ...room, hostName: res.hostName, roomName: res.roomName || room.name });
+    (socket as any).emit('room:join', { code: room.code }, (res: any) => {
+      if (res.success && res.status === 'pending') {
+        setPendingRoom({ ...room, hostName: room.hostName || res.hostName, roomName: room.name || res.roomName });
+      } else if (res.success && res.status === 'joined') {
+        useRoomStore.getState().setRoom(res.room);
+        if (res.syncState) useSyncStore.getState().setSyncState(res.syncState);
+        useUIStore.getState().setView('room');
       } else {
         useUIStore.getState().addToast({ type: 'error', title: 'Hata', message: res.error });
       }
@@ -338,7 +342,7 @@ function MainMenu() {
 
       {/* Modals */}
       {showCreate && <CreateRoomModal onClose={() => setShowCreate(false)} />}
-      {showJoin && <JoinRoomModal onClose={() => setShowJoin(false)} />}
+      {showJoin && <JoinRoomModal onClose={() => setShowJoin(false)} onPending={(room) => setPendingRoom(room)} />}
       {showProfile && <ProfileEditModal onClose={() => setShowProfile(false)} />}
       <div style={{ position: 'absolute', bottom: 8, left: 12, fontSize: 10, color: 'rgba(255,255,255,0.2)', pointerEvents: 'none', zIndex: 20 }}>v{APP_VERSION}</div>
     </div>
@@ -444,7 +448,7 @@ function CreateRoomModal({ onClose }: { onClose: () => void }) {
 // JOIN ROOM MODAL (code-based, no approval needed)
 // ═══════════════════════════════════════════════════════════════
 
-function JoinRoomModal({ onClose }: { onClose: () => void }) {
+function JoinRoomModal({ onClose, onPending }: { onClose: () => void, onPending?: (room: any) => void }) {
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -473,11 +477,14 @@ function JoinRoomModal({ onClose }: { onClose: () => void }) {
       setStatus('Odaya katılınıyor...');
       socket.emit('room:join', { code: code.trim().toUpperCase() }, (res: any) => {
         setLoading(false); setStatus('');
-        if (res.success && res.room) {
+        if (res.success && res.status === 'joined' && res.room) {
           useRoomStore.getState().setRoom(res.room);
           if (res.syncState) useSyncStore.getState().setSyncState(res.syncState);
           if (res.currentUrl) useSyncStore.getState().setCurrentUrl(res.currentUrl);
           useUIStore.getState().setView('room');
+          onClose();
+        } else if (res.success && res.status === 'pending') {
+          if (onPending) onPending({ id: res.roomId, name: res.roomName, hostName: res.hostId, hostId: res.hostId });
           onClose();
         } else { setError(res.error ?? 'Katılma başarısız'); }
       });

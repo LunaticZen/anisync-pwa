@@ -31,6 +31,7 @@ interface RoomData {
   maxMembers: number;
   settings: RoomSettings;
   members: Map<string, { username: string; role: string; joinedAt: string }>;
+  pendingMembers: Set<string>;
   createdAt: string;
   isActive: boolean;
   theme?: string;
@@ -83,6 +84,7 @@ export async function createRoom(hostId: string, data: {
     maxMembers: data.maxMembers ?? 10,
     settings,
     members: new Map([[hostId, { username: hostId, role: 'host', joinedAt: new Date().toISOString() }]]),
+    pendingMembers: new Set(),
     createdAt: new Date().toISOString(),
     isActive: true,
     theme: 'night',
@@ -99,7 +101,7 @@ export async function createRoom(hostId: string, data: {
   return formatRoomResponse(room, syncState);
 }
 
-export async function joinRoom(userId: string, code: string, password?: string) {
+export async function requestJoinRoom(userId: string, code: string, password?: string) {
   const roomId = codeToId.get(code.toUpperCase());
   if (!roomId) throw new RoomError('ROOM_NOT_FOUND', 'Oda bulunamadı');
 
@@ -107,10 +109,10 @@ export async function joinRoom(userId: string, code: string, password?: string) 
   if (!room || !room.isActive) throw new RoomError('ROOM_NOT_FOUND', 'Oda bulunamadı');
   if (room.members.size >= room.maxMembers) throw new RoomError('ROOM_FULL', 'Oda dolu');
 
-  // Already a member? Just return
+  // Already a member? Bypass approval
   if (room.members.has(userId)) {
     const syncState = await getRoomSyncState(roomId);
-    return { room: formatRoomResponse(room, syncState), syncState };
+    return { status: 'joined', room: formatRoomResponse(room, syncState), syncState };
   }
 
   // Password check
@@ -120,12 +122,37 @@ export async function joinRoom(userId: string, code: string, password?: string) 
     if (!valid) throw new RoomError('INVALID_PASSWORD', 'Yanlış şifre');
   }
 
-  // Add member
-  room.members.set(userId, { username: userId, role: 'viewer', joinedAt: new Date().toISOString() });
+  room.pendingMembers.add(userId);
+  return { status: 'pending', roomId: room.id, roomName: room.name, hostId: room.hostId };
+}
 
+export async function approveJoin(roomId: string, targetUserId: string, hostId: string) {
+  const room = rooms.get(roomId);
+  if (!room || !room.isActive) throw new RoomError('ROOM_NOT_FOUND', 'Oda bulunamadı');
+  if (room.hostId !== hostId) throw new RoomError('FORBIDDEN', 'Sadece host onaylayabilir');
+  if (room.members.size >= room.maxMembers) throw new RoomError('ROOM_FULL', 'Oda dolu');
+
+  room.pendingMembers.delete(targetUserId);
+  room.members.set(targetUserId, { username: targetUserId, role: 'viewer', joinedAt: new Date().toISOString() });
   const syncState = await getRoomSyncState(roomId);
-  console.log(`[Room] ${userId} joined ${room.name} (${code})`);
+  console.log(`[Room] ${targetUserId} approved and joined ${room.name}`);
   return { room: formatRoomResponse(room, syncState), syncState };
+}
+
+export function rejectJoin(roomId: string, targetUserId: string, hostId: string) {
+  const room = rooms.get(roomId);
+  if (!room || !room.isActive) throw new RoomError('ROOM_NOT_FOUND', 'Oda bulunamadı');
+  if (room.hostId !== hostId) throw new RoomError('FORBIDDEN', 'Sadece host onaylayabilir');
+
+  room.pendingMembers.delete(targetUserId);
+  console.log(`[Room] ${targetUserId} rejected from ${room.name}`);
+}
+
+export function cancelJoin(roomId: string, userId: string) {
+  const room = rooms.get(roomId);
+  if (room) {
+    room.pendingMembers.delete(userId);
+  }
 }
 
 export async function leaveRoom(userId: string, roomId: string): Promise<{ roomClosed: boolean; newHostId?: string }> {
