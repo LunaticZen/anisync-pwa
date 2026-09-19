@@ -189,6 +189,7 @@ export interface SyncState {
   activeSubtitle: string | null;
   activeQuality: string | null;
   anime: AnimeInfo | null;
+  currentUrl?: string | null;
 }
 
 export interface SyncEvent {

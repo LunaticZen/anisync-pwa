@@ -100,6 +100,20 @@ export async function processEpisodeChange(
   return updated;
 }
 
+export async function processUrlChangeEvent(
+  roomId: string, userId: string, url: string
+): Promise<SyncState | null> {
+  const state = await getRoomState(roomId);
+  if (!await isAuthorized(roomId, userId, state)) return null;
+
+  const updated = await updateRoomState(roomId, {
+    currentUrl: url, currentTime: 0, isPlaying: false,
+    generation: state.generation + 1,
+  });
+
+  return updated;
+}
+
 // ─── Drift Detection ──────────────────────────────────────────
 
 export async function checkAndCorrectDrift(

@@ -220,14 +220,26 @@ function registerSyncHandlers(socket: TypedSocket) {
         generation: result.generation,
         originUserId: socket.data.userId,
         serverTimestamp: Date.now(),
-  });
-
-  socket.on('sync:url-changed', (data) => {
-    io!.to(data.roomId).emit('sync:url-changed', {
-      url: data.url, originUserId: socket.data.userId, serverTimestamp: Date.now(),
-    });
       });
     }
+  });
+
+  socket.on('sync:url-changed', async (data) => {
+    const result = await syncService.processUrlChangeEvent(data.roomId, socket.data.userId, data.url);
+    if (result) {
+      io!.to(data.roomId).emit('sync:url-changed', {
+        url: data.url, originUserId: socket.data.userId, serverTimestamp: Date.now(),
+      });
+    }
+  });
+
+  socket.on('sync:timecheck', (data) => {
+    io!.to(data.roomId).emit('sync:timecheck', {
+      time: data.time,
+      playing: data.playing,
+      userId: socket.data.userId,
+      serverTimestamp: Date.now(),
+    });
   });
 
   socket.on('sync:speed', async (data) => {

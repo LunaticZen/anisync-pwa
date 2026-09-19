@@ -168,7 +168,7 @@ export class SyncEngine {
 export function createInitialSyncState(): SyncState {
   return {
     isPlaying: false, currentTime: 0, playbackSpeed: 1, generation: 0,
-    lastEventAt: Date.now(), activeSubtitle: null, activeQuality: null, anime: null,
+    lastEventAt: Date.now(), activeSubtitle: null, activeQuality: null, anime: null, currentUrl: null,
   };
 }
 

@@ -170,7 +170,10 @@ export const useSyncStore = create<SyncStoreState>((set) => ({
   playerType: null,
   isSynced: true,
   lastDriftMs: 0,
-  setSyncState: (syncState) => set({ syncState }),
+  setSyncState: (syncState) => set((state) => ({ 
+    syncState,
+    currentUrl: syncState.currentUrl !== undefined ? syncState.currentUrl : state.currentUrl 
+  })),
   setCurrentUrl: (currentUrl) => set({ currentUrl }),
   setPlayerReady: (isPlayerReady, playerType) => set({
     isPlayerReady,
