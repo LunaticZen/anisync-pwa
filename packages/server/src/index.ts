@@ -57,6 +57,10 @@ async function main() {
   app.use('/api', apiRoutes);
 
 
+  
+  // ── Serve Videos ──
+  app.use('/videolar', express.static('/www/wwwroot/176.96.131.15/videolar'));
+
   // ── Serve Frontend ──
   const desktopDist = path.join(__dirname, '../../desktop/dist');
   app.use(express.static(desktopDist));
