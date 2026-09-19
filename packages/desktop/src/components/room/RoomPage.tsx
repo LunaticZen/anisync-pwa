@@ -671,7 +671,7 @@ export default function RoomPage() {
           background: activeTheme.glassColor,
           zIndex: 0,
         }} />}
-        <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+        <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden', minHeight: 0, minWidth: 0 }}>
           <RoomHeader {...headerProps} />
           <RoomVideoArea
             mode={mode}
@@ -753,8 +753,10 @@ export default function RoomPage() {
         backdropFilter: 'none',
         flex: (!currentUrl) ? 'none' : 1,
         height: (!currentUrl) ? 'auto' : undefined,
+        minHeight: 0,
+        minWidth: 0,
       }}>
-        <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', flex: 1 }}>
+        <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, minWidth: 0 }}>
           <RoomHeader {...headerProps} />
           <RoomVideoArea
             mode={mode}
