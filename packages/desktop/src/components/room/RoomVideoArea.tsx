@@ -216,16 +216,18 @@ export function RoomVideoArea({
           </div>
         ) : (
           <div style={{
-            flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flex: mode === 'mobile-portrait' ? 'none' : 1,
+            aspectRatio: mode === 'mobile-portrait' ? '16/9' : undefined,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
             background: '#000', position: 'relative', minHeight: 0, minWidth: 0,
-            width: '100%', height: '100%'
+            width: '100%', height: mode === 'mobile-portrait' ? 'auto' : '100%'
           }}>
             <video
               ref={videoRef}
               src={currentUrl}
               controls
               playsInline
-              style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+              style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'contain' }}
               onPlay={handlePlay}
               onPause={handlePause}
               onSeeked={handleSeeked}
