@@ -33,6 +33,7 @@ interface RoomData {
   members: Map<string, { username: string; role: string; joinedAt: string }>;
   createdAt: string;
   isActive: boolean;
+  theme?: string;
 }
 
 const rooms = new Map<string, RoomData>();       // id -> room
@@ -84,6 +85,7 @@ export async function createRoom(hostId: string, data: {
     members: new Map([[hostId, { username: hostId, role: 'host', joinedAt: new Date().toISOString() }]]),
     createdAt: new Date().toISOString(),
     isActive: true,
+    theme: 'night',
   };
 
   rooms.set(id, room);
@@ -223,6 +225,13 @@ export function getRoom(roomId: string) {
   return rooms.get(roomId);
 }
 
+export function setTheme(roomId: string, theme: string) {
+  const room = rooms.get(roomId);
+  if (room) {
+    room.theme = theme;
+  }
+}
+
 // ─── Helpers ──────────────────────────────────────────────────
 
 async function getRoomSyncState(roomId: string): Promise<SyncState> {
@@ -244,6 +253,7 @@ function formatRoomResponse(room: RoomData, syncState: SyncState) {
       presence: { isConnected: true, isBuffering: false, currentTime: 0, lastHeartbeat: Date.now() },
     })),
     settings: room.settings, syncState,
+    theme: room.theme,
   };
 }
 

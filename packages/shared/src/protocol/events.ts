@@ -29,6 +29,7 @@ export interface ClientToServerEvents {
   'room:kick': (data: { roomId: string; targetUserId: string }) => void;
   'room:promote': (data: { roomId: string; targetUserId: string; role: string }) => void;
   'room:settings': (data: { roomId: string; settings: Partial<RoomSettings> }) => void;
+  'room:set-theme': (data: { roomId: string; themeId: string }) => void;
   'room:transfer-host': (data: { roomId: string; targetUserId: string }) => void;
 
   // ── Sync Events ──
@@ -72,6 +73,7 @@ export interface ServerToClientEvents {
   'room:member-kicked': (data: { userId: string; by: string }) => void;
   'room:member-promoted': (data: { userId: string; role: string }) => void;
   'room:settings-changed': (data: { settings: Partial<RoomSettings>; by: string }) => void;
+  'room:theme-changed': (data: { theme: string; by: string }) => void;
   'room:host-transferred': (data: { newHostId: string }) => void;
   'room:closed': (data: { reason: string }) => void;
 

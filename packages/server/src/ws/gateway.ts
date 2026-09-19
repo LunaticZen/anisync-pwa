@@ -174,6 +174,14 @@ function registerRoomHandlers(socket: TypedSocket) {
       socket.emit('error', { code: 'SETTINGS_FAILED', message: err.message });
     }
   });
+  socket.on('room:set-theme', (data) => {
+    roomService.setTheme(data.roomId, data.themeId);
+    io!.to(data.roomId).emit('room:theme-changed', {
+      theme: data.themeId,
+      by: socket.data.userId,
+    });
+  });
+
 
   socket.on('room:transfer-host', async (data) => {
     try {
